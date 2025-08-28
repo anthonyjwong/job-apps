@@ -1,0 +1,13 @@
+.venv
+.env
+__pycache__
+
+_playground.ipynb
+.instructions
+
+
+.db
+
+go.sum
+scheduler
+debug.log
