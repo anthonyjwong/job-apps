@@ -5,6 +5,8 @@ from abc import ABC, abstractmethod
 
 from src.definitions import App, Job
 
+EMULATE_HUMAN = True
+
 
 class JobSite(ABC):
     @abstractmethod

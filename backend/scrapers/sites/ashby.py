@@ -4,7 +4,7 @@ import time
 
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
-from scrapers.scraper import JobSite
+from scrapers.scraper import EMULATE_HUMAN, JobSite
 from src.definitions import App, AppField, Job
 
 
@@ -19,7 +19,6 @@ def find_answer_area(children):
 
 
 def human_delay(min_sec=0.5, max_sec=1.5):
-    EMULATE_HUMAN = False
     if EMULATE_HUMAN:
         time.sleep(random.uniform(min_sec, max_sec))
     else:

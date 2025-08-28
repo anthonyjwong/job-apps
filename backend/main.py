@@ -460,7 +460,7 @@ def approve_application(
             )
 
         applied_app = submit_app(app, job)
-        # update_application_by_id(db, app_id, applied_app)
+        update_application_by_id(db, app_id, applied_app)
 
         return JSONResponse(
             status_code=200,
