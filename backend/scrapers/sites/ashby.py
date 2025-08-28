@@ -4,7 +4,7 @@ import time
 
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
-from scrapers.scraper import JobSite, fill_combobox
+from scrapers.scraper import JobSite
 from src.definitions import App, AppField, Job
 
 
@@ -18,6 +18,87 @@ def find_answer_area(children):
     return answer_area
 
 
+def human_delay(min_sec=0.5, max_sec=1.5):
+    EMULATE_HUMAN = False
+    if EMULATE_HUMAN:
+        time.sleep(random.uniform(min_sec, max_sec))
+    else:
+        pass
+
+
+def fill_combobox(element, value, timeout=7000):
+    """
+    entry: locator for the field container that includes the combobox input
+    value: text to select, e.g. "New York, NY, United States"
+    """
+
+    cb = element.get_by_role("combobox").first
+
+    cb.wait_for(state="visible", timeout=timeout)
+    assert cb.is_enabled(), "Combobox is disabled"
+    assert cb.is_editable(), "Combobox is not editable (possibly readonly)"
+
+    cb.scroll_into_view_if_needed()
+    human_delay(0.2, 0.5)
+    cb.click()
+    human_delay(0.2, 0.5)
+
+    try:
+        if (cb.get_attribute("aria-expanded") or "false").lower() == "false":
+            toggle = element.locator("button").filter(has=element.locator("svg")).first
+            if toggle.count():
+                toggle.click()
+                human_delay(0.2, 0.5)
+    except Exception as e:
+        logging.warning("Failed to expand combobox: %s", e)
+
+    try:
+        cb.press("Control+A")
+        human_delay(0.1, 0.2)
+    except Exception as e:
+        logging.warning("Failed to press Control+A: %s", e)
+    for char in value:
+        cb.type(char)
+        human_delay(0.05, 0.15)
+    human_delay(0.3, 0.7)
+
+    try:
+        listbox = cb.page.get_by_role("listbox")
+        listbox.wait_for(state="visible", timeout=2000)
+        opt = listbox.get_by_role("option", name=value)
+        if opt.count() and opt.first.is_visible():
+            opt.first.scroll_into_view_if_needed()
+            human_delay(0.1, 0.3)
+            opt.first.click()
+        else:
+            first_opt = listbox.get_by_role("option").first
+            if first_opt.is_visible():
+                first_opt.scroll_into_view_if_needed()
+                human_delay(0.1, 0.3)
+                first_opt.click()
+            else:
+                cb.press("Enter")
+                human_delay(0.1, 0.3)
+    except Exception:
+        cb.press("Enter")
+        human_delay(0.1, 0.3)
+
+    cb.press("Tab")  # always press tab after filling out combobox
+
+    if not (cb.input_value() or "").strip():
+        cb.evaluate(
+            """(el, val) => {
+                    el.value = val;
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                }""",
+            value,
+        )
+        human_delay(0.1, 0.3)
+
+    assert value.split(",")[0] in cb.input_value()
+
+
 class Ashby(JobSite):
     @staticmethod
     def scrape_questions(job: Job) -> App:
@@ -26,7 +107,7 @@ class Ashby(JobSite):
             url += "/application"
 
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            browser = p.firefox.launch(headless=True)
             page = browser.new_page()
             page.goto(url)
             page.wait_for_selector(
@@ -131,17 +212,13 @@ class Ashby(JobSite):
 
     @staticmethod
     def apply(app: App, job: Job) -> bool:
-
         url = job.direct_job_url
         if not url.endswith("/application"):
             url += "/application"
 
-        def human_delay(min_sec=0.5, max_sec=1.5):
-            time.sleep(random.uniform(min_sec, max_sec))
-
         try:
             with sync_playwright() as p:
-                browser = p.chromium.launch(headless=False)
+                browser = p.firefox.launch(headless=False)
                 page = browser.new_page()
                 page.goto(url, wait_until="domcontentloaded")
                 page.wait_for_selector("div.ashby-application-form-container")
@@ -190,7 +267,7 @@ class Ashby(JobSite):
                             "input#_systemfield_resume[type='file']"
                         )
                         if file_upload.count() > 0:
-                            file_upload.scroll_into_view_if_needed()
+                            # file_upload.scroll_into_view_if_needed()
                             file_upload.set_input_files(answer)
                             human_delay()
 
@@ -207,10 +284,10 @@ class Ashby(JobSite):
                 submit_button = page.locator(
                     ".ashby-application-form-submit-button"
                 ).first
-                print(submit_button.text_content())
                 submit_button.scroll_into_view_if_needed()
                 submit_button.click()
                 human_delay(2, 3)
+                time.sleep(3600)
 
         except Exception as e:
             logging.error(f"Error occurred while applying: {e}")
