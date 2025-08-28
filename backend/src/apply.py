@@ -8,6 +8,8 @@ from scrapers.sites import Ashby
 from src.definitions import App, AppField, Job, Review, User
 from src.utils import get_base_url
 
+from backend.scrapers.scraper import JobSite
+
 client = OpenAI()
 DOMAIN_HANDLERS = {"jobs.ashbyhq.com": Ashby}
 
@@ -66,7 +68,8 @@ def scrape_job_app(job: Job) -> App:
 
     base_url = get_base_url(job.direct_job_url)
     if base_url in DOMAIN_HANDLERS:
-        return DOMAIN_HANDLERS[base_url].scrape_questions(job)
+        job_site = DOMAIN_HANDLERS[base_url](job)
+        return job_site.scrape_questions()
 
     logging.warning(f"Site not supported: {get_base_url(job.direct_job_url)}")
     raise NotImplementedError(f"Site not supported: {job.direct_job_url}")
@@ -199,14 +202,15 @@ def prepare_job_app(job: Job, app: App, user: User) -> App:
     return app
 
 
-def submit_app(app: App, job: Job) -> bool:
+def submit_app(app: App, job: Job) -> App:
     """Submit an application."""
     if not job.direct_job_url or not job.linkedin_job_url:
         raise ValueError("Job must have a direct job URL or LinkedIn job URL.")
 
     base_url = get_base_url(job.direct_job_url)
     if base_url in DOMAIN_HANDLERS:
-        if DOMAIN_HANDLERS[base_url].apply(app, job):
+        job_site: JobSite = DOMAIN_HANDLERS[base_url](job, app)
+        if job_site.apply():
             app.user_approved = True
             app.submitted = True
         return app

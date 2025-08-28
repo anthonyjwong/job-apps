@@ -1,107 +1,103 @@
 import logging
-import random
 import time
 
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
-from scrapers.scraper import EMULATE_HUMAN, JobSite
+from scrapers.scraper import EMULATE_HUMAN, JobSite, human_delay
 from src.definitions import App, AppField, Job
 
 
-def find_answer_area(children):
-    divs = children[1:]
-    answer_area = divs[0]
-    if len(divs) > 1 and "ashby-application-form-question-description" in divs[0].get(
-        "class"
-    ):
-        answer_area = divs[1]
-    return answer_area
-
-
-def human_delay(min_sec=0.5, max_sec=1.5):
-    if EMULATE_HUMAN:
-        time.sleep(random.uniform(min_sec, max_sec))
-    else:
-        pass
-
-
-def fill_combobox(element, value, timeout=7000):
-    """
-    entry: locator for the field container that includes the combobox input
-    value: text to select, e.g. "New York, NY, United States"
-    """
-
-    cb = element.get_by_role("combobox").first
-
-    cb.wait_for(state="visible", timeout=timeout)
-    assert cb.is_enabled(), "Combobox is disabled"
-    assert cb.is_editable(), "Combobox is not editable (possibly readonly)"
-
-    cb.scroll_into_view_if_needed()
-    human_delay(0.2, 0.5)
-    cb.click()
-    human_delay(0.2, 0.5)
-
-    try:
-        if (cb.get_attribute("aria-expanded") or "false").lower() == "false":
-            toggle = element.locator("button").filter(has=element.locator("svg")).first
-            if toggle.count():
-                toggle.click()
-                human_delay(0.2, 0.5)
-    except Exception as e:
-        logging.warning("Failed to expand combobox: %s", e)
-
-    try:
-        cb.press("Control+A")
-        human_delay(0.1, 0.2)
-    except Exception as e:
-        logging.warning("Failed to press Control+A: %s", e)
-    for char in value:
-        cb.type(char)
-        human_delay(0.05, 0.15)
-    human_delay(0.3, 0.7)
-
-    try:
-        listbox = cb.page.get_by_role("listbox")
-        listbox.wait_for(state="visible", timeout=2000)
-        opt = listbox.get_by_role("option", name=value)
-        if opt.count() and opt.first.is_visible():
-            opt.first.scroll_into_view_if_needed()
-            human_delay(0.1, 0.3)
-            opt.first.click()
-        else:
-            first_opt = listbox.get_by_role("option").first
-            if first_opt.is_visible():
-                first_opt.scroll_into_view_if_needed()
-                human_delay(0.1, 0.3)
-                first_opt.click()
-            else:
-                cb.press("Enter")
-                human_delay(0.1, 0.3)
-    except Exception:
-        cb.press("Enter")
-        human_delay(0.1, 0.3)
-
-    cb.press("Tab")  # always press tab after filling out combobox
-
-    if not (cb.input_value() or "").strip():
-        cb.evaluate(
-            """(el, val) => {
-                    el.value = val;
-                    el.dispatchEvent(new Event('input', { bubbles: true }));
-                    el.dispatchEvent(new Event('change', { bubbles: true }));
-                }""",
-            value,
-        )
-        human_delay(0.1, 0.3)
-
-    assert value.split(",")[0] in cb.input_value()
-
-
 class Ashby(JobSite):
-    @staticmethod
-    def scrape_questions(job: Job) -> App:
-        url = job.direct_job_url
+    job: Job
+
+    def __init__(self, job):
+        self.job = job
+
+    def find_answer_area(self, children):
+        divs = children[1:]
+        answer_area = divs[0]
+        if len(divs) > 1 and "ashby-application-form-question-description" in divs[
+            0
+        ].get("class"):
+            answer_area = divs[1]
+        return answer_area
+
+    def fill_combobox(self, element, value, timeout=7000):
+        """
+        entry: locator for the field container that includes the combobox input
+        value: text to select, e.g. "New York, NY, United States"
+        """
+
+        cb = element.get_by_role("combobox").first
+
+        cb.wait_for(state="visible", timeout=timeout)
+        assert cb.is_enabled(), "Combobox is disabled"
+        assert cb.is_editable(), "Combobox is not editable (possibly readonly)"
+
+        cb.scroll_into_view_if_needed()
+        human_delay(0.2, 0.5)
+        cb.click()
+        human_delay(0.2, 0.5)
+
+        try:
+            if (cb.get_attribute("aria-expanded") or "false").lower() == "false":
+                toggle = (
+                    element.locator("button").filter(has=element.locator("svg")).first
+                )
+                if toggle.count():
+                    toggle.click()
+                    human_delay(0.2, 0.5)
+        except Exception as e:
+            logging.warning("Failed to expand combobox: %s", e)
+
+        try:
+            cb.press("Control+A")
+            human_delay(0.1, 0.2)
+        except Exception as e:
+            logging.warning("Failed to press Control+A: %s", e)
+        for char in value:
+            cb.type(char)
+            human_delay(0.05, 0.15)
+        human_delay(0.3, 0.7, override=True)
+
+        try:
+            listbox = cb.page.get_by_role("listbox")
+            listbox.wait_for(state="visible", timeout=2000)
+            opt = listbox.get_by_role("option", name=value)
+            if opt.count() and opt.first.is_visible():
+                opt.first.scroll_into_view_if_needed()
+                human_delay(0.1, 0.3, override=True)
+                opt.first.click()
+            else:
+                first_opt = listbox.get_by_role("option").first
+                if first_opt.is_visible():
+                    first_opt.scroll_into_view_if_needed()
+                    human_delay(0.1, 0.3, override=True)
+                    first_opt.click()
+                else:
+                    cb.press("Enter")
+                    human_delay(0.1, 0.3, override=True)
+        except Exception:
+            cb.press("Enter")
+            human_delay(0.1, 0.3, override=True)
+
+        cb.press("Tab")  # always press tab after filling out combobox
+
+        if not (cb.input_value() or "").strip():
+            cb.evaluate(
+                """(el, val) => {
+                        el.value = val;
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                    }""",
+                value,
+            )
+            human_delay(0.1, 0.3, override=True)
+
+        assert value.split(",")[0] in cb.input_value()
+
+    def scrape_questions(self) -> App:
+        url = self.job.direct_job_url
         if not url.endswith("/application"):
             url += "/application"
 
@@ -122,11 +118,13 @@ class Ashby(JobSite):
 
             # parse job app
             app = App(
-                job_id=job.id,
+                job_id=self.job.id,
                 url=(
-                    job.direct_job_url
-                    if job.direct_job_url
-                    else job.linkedin_job_url if job.linkedin_job_url else None
+                    self.job.direct_job_url
+                    if self.job.direct_job_url
+                    else (
+                        self.job.linkedin_job_url if self.job.linkedin_job_url else None
+                    )
                 ),
             )
             form = soup.find(class_="ashby-application-form-container")
@@ -145,7 +143,7 @@ class Ashby(JobSite):
                         "class"
                     ):  # scrape text question
                         children = element.find_all(recursive=False)
-                        answer_area = find_answer_area(children)
+                        answer_area = self.find_answer_area(children)
                         if (
                             answer_area.name == "input"
                             or answer_area.name == "textarea"
@@ -209,9 +207,8 @@ class Ashby(JobSite):
 
         return app
 
-    @staticmethod
-    def apply(app: App, job: Job) -> bool:
-        url = job.direct_job_url
+    def apply(self, app: App) -> bool:
+        url = self.job.direct_job_url
         if not url.endswith("/application"):
             url += "/application"
 
@@ -250,7 +247,7 @@ class Ashby(JobSite):
                         dropdown_text = element.locator("._input_v5ami_28")
                         if dropdown_text.count() > 0:
                             dropdown_text.scroll_into_view_if_needed()
-                            fill_combobox(element, answer)
+                            self.fill_combobox(element, answer)
                             human_delay()
 
                         boolean_options = element.locator("._option_y2cw4_33")
@@ -266,7 +263,6 @@ class Ashby(JobSite):
                             "input#_systemfield_resume[type='file']"
                         )
                         if file_upload.count() > 0:
-                            # file_upload.scroll_into_view_if_needed()
                             file_upload.set_input_files(answer)
                             human_delay()
 
@@ -279,17 +275,43 @@ class Ashby(JobSite):
                                 option.locator("input").first.click()
                                 human_delay()
 
-                human_delay(1, 2)
+                # submit
+                human_delay(1, 2, override=True)
                 submit_button = page.locator(
                     ".ashby-application-form-submit-button"
                 ).first
                 submit_button.scroll_into_view_if_needed()
                 submit_button.click()
                 human_delay(2, 3)
-                time.sleep(3600)
+
+                # Check for success or failure after submission
+                success_selector = "div.ashby-application-form-success-container"
+                failure_selector = "div.ashby-application-form-failure-container"
+                try:
+                    page.wait_for_selector(
+                        f"{success_selector}, {failure_selector}", timeout=7000
+                    )
+                except Exception:
+                    error_message = "Timed out waiting for success or failure container. Submission may have been improperly filled out."
+                    logging.error(error_message)
+                    raise Exception(error_message)
+
+                success = page.locator(success_selector).count() > 0
+                failure = page.locator(failure_selector).count() > 0
+                if success:
+                    logging.info("Application submitted successfully!")
+                    return True
+                elif failure:
+                    logging.error(
+                        "Application submission failed; Failure container detected."
+                    )
+                    return False
+                else:
+                    logging.error(
+                        "Could not determine application submission result (no container detected). Assuming failure."
+                    )
+                    return False
 
         except Exception as e:
             logging.error(f"Error occurred while applying: {e}")
             return False
-        logging.info(f"Successfully submitted application!")
-        return True

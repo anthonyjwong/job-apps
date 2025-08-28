@@ -198,9 +198,7 @@ async def review_job(
             logging.info(
                 f"Ranked job as {reviewed_job.review.classification}. Sending for prep..."
             )
-            background_tasks.add_task(
-                create_application, reviewed_job.id, background_tasks, db
-            )
+            background_tasks.add_task(create_application, reviewed_job.id, db)
         return JSONResponse(
             status_code=200,
             content={
@@ -220,9 +218,7 @@ async def review_job(
 
 
 @app.post("/job/{job_id}/prepare")
-def create_application(
-    job_id: UUID, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
-):
+def create_application(job_id: UUID, db: Session = Depends(get_db)):
     """Create an app for a job by its ID."""
     try:
         job = get_job_by_id(db, job_id)
@@ -354,7 +350,7 @@ async def create_applications(
     for job in jobs:
         app = get_application_by_job_id(db, job.id)
         if app is None or app.prepared == False:
-            background_tasks.add_task(create_application, job.id, background_tasks, db)
+            background_tasks.add_task(create_application, job.id, db)
         else:
             logging.info(
                 f"Skipping review for job {job.id}. Application {app.id} already completed."
@@ -373,7 +369,7 @@ async def prepare_applications(
     """Prepares unprepared applications."""
     apps = get_unprepared_applications(db)
     for app in apps:
-        background_tasks.add_task(create_application, app.job_id, background_tasks, db)
+        background_tasks.add_task(create_application, app.job_id, db)
 
     return JSONResponse(
         status_code=202,
@@ -426,9 +422,7 @@ async def update_application_from_fragment(
 
 
 @app.post("/app/{app_id}/approve")
-def approve_application(
-    app_id: UUID, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
-):
+def approve_application(app_id: UUID, db: Session = Depends(get_db)):
     """Approve and submit an application"""
     try:
         app = get_application_by_id(db, app_id)
@@ -460,6 +454,7 @@ def approve_application(
             )
 
         applied_app = submit_app(app, job)
+        logging.info(f"Application {app_id} vs {applied_app.id}")
         update_application_by_id(db, app_id, applied_app)
 
         return JSONResponse(
@@ -551,11 +546,14 @@ async def get_applications_summary(db: Session = Depends(get_db)):
     try:
         apps = get_all_applications(db)
         total_apps = len(apps)
+        discarded = 0
         submitted = 0
         acknowledged = 0
         rejected = 0
 
         for app in apps:
+            if app.discarded:
+                discarded += 1
             if app.submitted:
                 submitted += 1
             if app.acknowledged:
@@ -568,6 +566,7 @@ async def get_applications_summary(db: Session = Depends(get_db)):
             content={
                 "data": {
                     "total_apps": total_apps,
+                    "discarded": discarded,
                     "submitted": submitted,
                     "acknowledged": acknowledged,
                     "rejected": rejected,
