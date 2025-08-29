@@ -66,8 +66,7 @@ def get_unapproved_applications(db_session) -> list[App]:
     apps = (
         db_session.query(ApplicationORM)
         .filter(
-            (ApplicationORM.user_approved == False)
-            & (ApplicationORM.prepared == True)
+            (ApplicationORM.prepared == True)
             & (ApplicationORM.discarded == False)
             & (ApplicationORM.submitted == False)
         )

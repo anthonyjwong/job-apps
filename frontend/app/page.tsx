@@ -203,8 +203,24 @@ export default function UnapprovedApps(): ReactElement {
         alert("Network error: " + err.message);
       });
 
-    // Remove item and adjust index
-    setApps((prev) => prev.filter((_, index) => index !== currentIndex));
+    // Remove item and adjust index, and update initialSizes
+    setApps((prevApps) => {
+      const newApps = prevApps.filter((_, index) => index !== currentIndex);
+      // Recompute initialSizes for newApps
+      const newSizes = newApps.map(app =>
+        app.fields.map(field => {
+          const answer = field.answer || '';
+          const lines = answer.split('\n').reduce((acc, line) => acc + Math.max(1, Math.ceil(line.length / 70)), 0);
+          const height = Math.max(32, Math.min(lines * 32 + 16, 200));
+          let width;
+          if (answer.length > 60) width = 600;
+          else width = Math.max(160, Math.min(answer.length * 10 + 40, 600));
+          return { width, height };
+        })
+      );
+      setInitialSizes(newSizes);
+      return newApps;
+    });
     setCurrentIndex((prev) => (prev > 0 ? prev - 1 : 0));
   };
 
@@ -239,7 +255,23 @@ export default function UnapprovedApps(): ReactElement {
         alert("Network error: " + err.message);
       });
 
-    setApps((prev) => prev.filter((_, index) => index !== currentIndex));
+    setApps((prevApps) => {
+      const newApps = prevApps.filter((_, index) => index !== currentIndex);
+      // Recompute initialSizes for newApps
+      const newSizes = newApps.map(app =>
+        app.fields.map(field => {
+          const answer = field.answer || '';
+          const lines = answer.split('\n').reduce((acc, line) => acc + Math.max(1, Math.ceil(line.length / 70)), 0);
+          const height = Math.max(32, Math.min(lines * 32 + 16, 200));
+          let width;
+          if (answer.length > 60) width = 600;
+          else width = Math.max(160, Math.min(answer.length * 10 + 40, 600));
+          return { width, height };
+        })
+      );
+      setInitialSizes(newSizes);
+      return newApps;
+    });
     setCurrentIndex((prev) => (prev > 0 ? prev - 1 : 0));
   };
 

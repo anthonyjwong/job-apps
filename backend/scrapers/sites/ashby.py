@@ -282,6 +282,7 @@ class Ashby(JobSite):
                 # get manual approval first
                 # user_approval = input("Do you approve this application? (y/n): ")
                 # app.user_approved = user_approval.lower() == "y"
+                app.user_approved = True  # auto-approve for now
 
                 if app.user_approved:
                     # submit
