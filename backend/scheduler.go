@@ -94,10 +94,10 @@ func main() {
 		path     string
 		interval time.Duration
 	}{
-		// {"/jobs/find", time.Hour * 24},   // daily
+		{"/jobs/find", time.Hour * 24}, // daily
 		// {"/jobs/review", time.Hour * 24}, // daily
 		// {"/apps/create", time.Hour * 24}, // daily
-		{"/apps/prepare", time.Hour * 24}, // daily
+		// {"/apps/prepare", time.Hour * 24}, // daily
 	}
 
 	// start a goroutine for each endpoint

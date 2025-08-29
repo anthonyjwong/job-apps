@@ -421,8 +421,19 @@ async def update_application_from_fragment(
         )
 
 
+def submit_and_update_application(app: App, job: Job, db: Session):
+    """Submit and save an application"""
+    try:
+        applied_app = submit_app(app, job)
+        update_application_by_id(db, app.id, applied_app)
+    except Exception as e:
+        logging.error(f"Failed to submit application {app.id}: {e}")
+
+
 @app.post("/app/{app_id}/approve")
-def approve_application(app_id: UUID, db: Session = Depends(get_db)):
+def approve_application(
+    app_id: UUID, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
+):
     """Approve and submit an application"""
     try:
         app = get_application_by_id(db, app_id)
@@ -453,13 +464,12 @@ def approve_application(app_id: UUID, db: Session = Depends(get_db)):
                 },
             )
 
-        applied_app = submit_app(app, job)
-        update_application_by_id(db, app_id, applied_app)
+        background_tasks.add_task(submit_and_update_application, app, job, db)
 
         return JSONResponse(
-            status_code=200,
+            status_code=202,
             content={
-                "message": f"Application with ID {app_id} approved and submission completed!",
+                "message": f"Application with ID {app_id} queued for submission!",
             },
         )
     except Exception as e:
