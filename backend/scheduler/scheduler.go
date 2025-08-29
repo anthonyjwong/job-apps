@@ -25,7 +25,7 @@ func waitForReviewCompletion(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Minute)
 	defer cancel()
 
-	wsURL := "ws://localhost:8000/ws/jobs/review"
+	wsURL := "ws://backend:8000/ws/jobs/review"
 	c, _, err := websocket.Dial(ctx, wsURL, nil)
 	if err != nil {
 		return fmt.Errorf("failed to connect to WebSocket: %v", err)
@@ -60,7 +60,7 @@ func makePeriodicRequest(endpoint string, interval time.Duration, wg *sync.WaitG
 	defer wg.Done()
 
 	client := &http.Client{}
-	baseURL := "http://localhost:8000"
+	baseURL := "http://backend:8000"
 
 	for {
 

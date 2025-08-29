@@ -10,6 +10,3 @@ db_upgrade:
 db_downgrade:
 	alembic downgrade -1
 
-go:
-	cd scheduler
-	go build scheduler.go && ./scheduler
