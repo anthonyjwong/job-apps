@@ -454,7 +454,6 @@ def approve_application(app_id: UUID, db: Session = Depends(get_db)):
             )
 
         applied_app = submit_app(app, job)
-        logging.info(f"Application {app_id} vs {applied_app.id}")
         update_application_by_id(db, app_id, applied_app)
 
         return JSONResponse(

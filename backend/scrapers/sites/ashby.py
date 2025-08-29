@@ -80,16 +80,20 @@ class Ashby(JobSite):
         except Exception:
             cb.press("Enter")
             human_delay(0.1, 0.3, override=True)
+        finally:
+            human_delay(0.2, 0.5)
 
         cb.press("Tab")  # always press tab after filling out combobox
 
-        if not (cb.input_value() or "").strip():
+        # Post-fill combobox value check and correction
+        combobox_value = (cb.input_value() or "").strip()
+        if not combobox_value or value.split(",")[0] not in combobox_value:
             cb.evaluate(
                 """(el, val) => {
-                        el.value = val;
-                        el.dispatchEvent(new Event('input', { bubbles: true }));
-                        el.dispatchEvent(new Event('change', { bubbles: true }));
-                    }""",
+                    el.value = val;
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                }""",
                 value,
             )
             human_delay(0.1, 0.3, override=True)
@@ -108,8 +112,7 @@ class Ashby(JobSite):
             page.wait_for_selector(
                 "div.ashby-application-form-container"
             )  # wait until loaded
-
-            time.sleep(5)  # sleep 5 sec
+            time.sleep(1)  # wait 1 sec
 
             # get page content
             html = page.content()
@@ -218,6 +221,7 @@ class Ashby(JobSite):
                 page = browser.new_page()
                 page.goto(url, wait_until="domcontentloaded")
                 page.wait_for_selector("div.ashby-application-form-container")
+                time.sleep(1)  # wait 1 sec
 
                 question_elements = page.locator(
                     ".ashby-application-form-field-entry, fieldset"
@@ -275,41 +279,49 @@ class Ashby(JobSite):
                                 option.locator("input").first.click()
                                 human_delay()
 
-                # submit
-                human_delay(1, 2, override=True)
-                submit_button = page.locator(
-                    ".ashby-application-form-submit-button"
-                ).first
-                submit_button.scroll_into_view_if_needed()
-                submit_button.click()
-                human_delay(2, 3)
+                # get manual approval first
+                user_approval = input("Do you approve this application? (y/n): ")
+                app.user_approved = user_approval.lower() == "y"
 
-                # Check for success or failure after submission
-                success_selector = "div.ashby-application-form-success-container"
-                failure_selector = "div.ashby-application-form-failure-container"
-                try:
-                    page.wait_for_selector(
-                        f"{success_selector}, {failure_selector}", timeout=7000
-                    )
-                except Exception:
-                    error_message = "Timed out waiting for success or failure container. Submission may have been improperly filled out."
-                    logging.error(error_message)
-                    raise Exception(error_message)
+                if app.user_approved:
+                    # submit
+                    human_delay(1, 2, override=True)
+                    submit_button = page.locator(
+                        ".ashby-application-form-submit-button"
+                    ).first
+                    submit_button.scroll_into_view_if_needed()
+                    submit_button.click()
+                    human_delay(2, 3)
 
-                success = page.locator(success_selector).count() > 0
-                failure = page.locator(failure_selector).count() > 0
-                if success:
-                    logging.info("Application submitted successfully!")
-                    return True
-                elif failure:
-                    logging.error(
-                        "Application submission failed; Failure container detected."
-                    )
-                    return False
+                    # check for success or failure after submission
+                    success_selector = "div.ashby-application-form-success-container"
+                    failure_selector = "div.ashby-application-form-failure-container"
+                    try:
+                        page.wait_for_selector(
+                            f"{success_selector}, {failure_selector}", timeout=7000
+                        )
+                    except Exception:
+                        error_message = "Timed out waiting for success or failure container. Submission may have been improperly filled out."
+                        logging.error(error_message)
+                        raise Exception(error_message)
+
+                    success = page.locator(success_selector).count() > 0
+                    failure = page.locator(failure_selector).count() > 0
+                    if success:
+                        logging.info("Application submitted successfully!")
+                        return True
+                    elif failure:
+                        logging.error(
+                            "Application submission failed; Failure container detected."
+                        )
+                        return False
+                    else:
+                        logging.error(
+                            "Could not determine application submission result (no container detected). Assuming failure."
+                        )
+                        return False
                 else:
-                    logging.error(
-                        "Could not determine application submission result (no container detected). Assuming failure."
-                    )
+                    logging.error("Application not approved by user.")
                     return False
 
         except Exception as e:

@@ -4,11 +4,10 @@ import re
 
 from openai import OpenAI
 from openai.types.responses import Response
+from scrapers.scraper import JobSite
 from scrapers.sites import Ashby
 from src.definitions import App, AppField, Job, Review, User
 from src.utils import get_base_url
-
-from backend.scrapers.scraper import JobSite
 
 client = OpenAI()
 DOMAIN_HANDLERS = {"jobs.ashbyhq.com": Ashby}
@@ -209,9 +208,8 @@ def submit_app(app: App, job: Job) -> App:
 
     base_url = get_base_url(job.direct_job_url)
     if base_url in DOMAIN_HANDLERS:
-        job_site: JobSite = DOMAIN_HANDLERS[base_url](job, app)
-        if job_site.apply():
-            app.user_approved = True
+        job_site: JobSite = DOMAIN_HANDLERS[base_url](job)
+        if job_site.apply(app):
             app.submitted = True
         return app
     raise NotImplementedError(f"Site not supported: {job.direct_job_url}")

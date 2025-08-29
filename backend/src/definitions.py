@@ -112,6 +112,7 @@ class User(BaseModel):
             "last_name": self.last_name,
             "linkedin": self.linkedin_url,
             "location": self.current_location,
+            "located": self.current_location,
             "name": f"{self.first_name} {self.last_name}",
             "resume": self.resume_pdf_path,
             "twitter": None,
@@ -159,13 +160,13 @@ Please use this information to help formulate appropriate responses about this j
         return prompt.format(
             first_name=self.first_name,
             last_name=self.last_name,
-            email=self.email or "Not provided",
-            phone=self.phone_number or "Not provided",
-            current_location=self.current_location or "Not provided",
-            desired_location=self.desired_location or "Not provided",
-            linkedin=self.linkedin_url or "Not provided",
-            github=self.github_url or "Not provided",
-            resume=self.resume_pdf_path or "Not provided",
+            email=self.email or "",
+            phone=self.phone_number or "",
+            current_location=self.current_location or "",
+            desired_location=self.desired_location or "",
+            linkedin=self.linkedin_url or "",
+            github=self.github_url or "",
+            resume=self.resume_pdf_path or "",
             work_modes=", ".join(self.work_mode_ranking),
         )
 

@@ -108,7 +108,6 @@ def update_application_by_id(db_session, app_id, updated_app: App):
                 fields = [field.__dict__ for field in value]
                 setattr(app, key, fields)
             else:
-                print(key, value)
                 setattr(app, key, value)
         db_session.commit()
 

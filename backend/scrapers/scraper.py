@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 
 from src.definitions import App, Job
 
-EMULATE_HUMAN = False
+EMULATE_HUMAN = True
 
 
 def human_delay(min_sec=0.5, max_sec=1.5, override=False):

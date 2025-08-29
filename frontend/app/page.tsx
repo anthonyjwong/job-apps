@@ -403,7 +403,7 @@ export default function UnapprovedApps(): ReactElement {
                           ? '100%'
                           : `${initialSizeObj.width}px`,
                       minHeight: '32px',
-                      maxHeight: '200px',
+                      maxHeight: '400px',
                       height: `${initialSizeObj.height}px`,
                       boxSizing: 'border-box',
                       resize: 'none',
