@@ -1,5 +1,6 @@
 import pandas as pd
 from jobspy import scrape_jobs
+from sqlalchemy import DateTime
 from src.definitions import Job
 from src.utils import clean_url, clean_val
 

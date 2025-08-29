@@ -2,7 +2,6 @@ import re
 from urllib.parse import urlparse
 
 import pandas as pd
-
 from src.definitions import Job
 
 
@@ -15,7 +14,19 @@ def convert_object_list_to_df(objects: list[object]) -> pd.DataFrame:
 
 
 def clean_val(x):
-    return x if pd.notna(x) else None
+    """Normalize values coming from external sources.
+
+    - Treat pandas NA as None
+    - Treat common string placeholders ("", "none", "nan", "nat") as None
+    - Leave other values unchanged
+    """
+    if not pd.notna(x):
+        return None
+    if isinstance(x, str):
+        s = x.strip().lower()
+        if s in {"", "none", "nan", "nat", "null"}:
+            return None
+    return x
 
 
 from typing import Optional

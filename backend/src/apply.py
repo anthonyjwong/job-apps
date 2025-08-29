@@ -195,7 +195,7 @@ def prepare_job_app(job: Job, app: App, user: User) -> App:
             field.answer = common_questions[matches[0].lower()]
         else:
             response = answer_question(field, job, app, user)
-            field.answer = response.output_text
+            field.answer = response.output_text.strip()
 
     app.prepared = True
     return app

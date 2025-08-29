@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 import pandas as pd
@@ -9,6 +10,13 @@ from .models import ApplicationORM, ErrorORM, JobORM
 
 def job_to_orm(job: Job) -> JobORM:
     """Convert Job dataclass to ORM model"""
+    date_posted = None
+    if job.date_posted is not None:
+        raw = str(job.date_posted).strip()
+        logging.info(f"Date posted: {raw}, {job.date_posted}")
+        if raw:
+            date_posted = datetime.strptime(raw, "%Y-%m-%d").date()
+
     return JobORM(
         id=job.id,
         jobspy_id=job.jobspy_id,
@@ -17,7 +25,7 @@ def job_to_orm(job: Job) -> JobORM:
         location=job.location,
         min_salary=job.min_salary,
         max_salary=job.max_salary,
-        date_posted=datetime.strptime(job.date_posted, "%Y-%m-%d").date(),
+        date_posted=date_posted,
         job_type=job.job_type,
         linkedin_job_url=job.linkedin_job_url,
         direct_job_url=job.direct_job_url,
@@ -50,7 +58,9 @@ def orm_to_job(db_job: JobORM) -> Job:
         location=db_job.location,
         min_salary=db_job.min_salary,
         max_salary=db_job.max_salary,
-        date_posted=db_job.date_posted.strftime("%Y-%m-%d"),
+        date_posted=(
+            db_job.date_posted.strftime("%Y-%m-%d") if db_job.date_posted else None
+        ),
         job_type=db_job.job_type,
         linkedin_job_url=db_job.linkedin_job_url,
         direct_job_url=db_job.direct_job_url,

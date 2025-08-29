@@ -1,5 +1,5 @@
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import field
 from typing import Literal, Optional
 from uuid import UUID
 
@@ -23,7 +23,7 @@ class Job(BaseModel):
     jobspy_id: str
     title: str
     company: str
-    location: str
+    location: Optional[str] = None
     min_salary: Optional[float] = None
     max_salary: Optional[float] = None
     date_posted: Optional[str] = None
