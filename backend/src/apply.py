@@ -68,7 +68,9 @@ def scrape_job_app(job: Job) -> App:
     base_url = get_base_url(job.direct_job_url)
     if base_url in DOMAIN_HANDLERS:
         job_site = DOMAIN_HANDLERS[base_url](job)
-        return job_site.scrape_questions()
+        app = job_site.scrape_questions()
+        app.scraped = True
+        return app
 
     logging.warning(f"Site not supported: {get_base_url(job.direct_job_url)}")
     raise NotImplementedError(f"Site not supported: {job.direct_job_url}")

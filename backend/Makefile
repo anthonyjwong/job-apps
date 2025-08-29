@@ -3,12 +3,9 @@
 db_login:
 	PGPASSWORD=$(DB_PASSWORD) psql -h localhost -p $(DB_PORT_HOST) -U $(DB_USER) -d $(DB_NAME)
 
-# Create a new autogenerate revision: make db_revision msg="your message"
-db_revision:
-	alembic revision --autogenerate -m "$(msg)"
-
-# Apply all pending migrations
+# Create a new autogenerate revision and apply all pending migrations
 db_upgrade:
+	alembic revision --autogenerate -m "update"	
 	alembic upgrade head
 
 db_downgrade:

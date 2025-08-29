@@ -14,12 +14,14 @@ from db.utils import (
     get_all_jobs,
     get_application_by_id,
     get_application_by_job_id,
+    get_approved_applications,
     get_job_by_id,
-    get_reviewed_jobs,
     get_unapproved_applications,
     get_unprepared_applications,
     get_unreviewed_jobs,
+    get_unscraped_jobs,
     get_unsubmitted_applications,
+    get_user_approved_applications,
     update_application_by_id,
     update_application_by_id_with_fragment,
     update_job_by_id,
@@ -192,7 +194,7 @@ async def review_job(
         reviewed_job = evaluate_candidate_aptitude(job, user)
         update_job_by_id(db, job_id, reviewed_job)
 
-        time.sleep(5)  # Wait 5 sec before sending prepare requests
+        time.sleep(2)  # Wait 2 sec before sending prepare requests
         if (
             reviewed_job.review.classification in ["safety", "target"]
             and reviewed_job.job_type == "fulltime"
@@ -200,7 +202,7 @@ async def review_job(
             logging.info(
                 f"Ranked job as {reviewed_job.review.classification}. Sending for prep..."
             )
-            background_tasks.add_task(create_application, reviewed_job.id, db)
+            background_tasks.add_task(scrape_job, job_id, background_tasks, db)
         return JSONResponse(
             status_code=200,
             content={
@@ -219,8 +221,10 @@ async def review_job(
         )
 
 
-@app.post("/job/{job_id}/prepare")
-def create_application(job_id: UUID, db: Session = Depends(get_db)):
+@app.post("/job/{job_id}/scrape")
+def scrape_job(
+    job_id: UUID, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
+):
     """Create an app for a job by its ID."""
     try:
         job = get_job_by_id(db, job_id)
@@ -230,21 +234,7 @@ def create_application(job_id: UUID, db: Session = Depends(get_db)):
                 status_code=404,
                 content={
                     "status": "error",
-                    "message": f"Job with ID {job_id} not found",
-                },
-            )
-
-        # check if app with this job_id already exists
-        existing_app = get_application_by_job_id(db, job_id)
-        if existing_app and existing_app.prepared == True:
-            logging.warning(
-                f"/jobs/{job_id}/prepare: Application for job {job_id} already exists"
-            )
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "status": "error",
-                    "message": f"/jobs/{job_id}/prepare: Application for job {job_id} already exists",
+                    "message": f"/jobs/{job_id}/scrape: Job with ID {job_id} not found",
                 },
             )
 
@@ -254,13 +244,27 @@ def create_application(job_id: UUID, db: Session = Depends(get_db)):
             or get_base_url(job.direct_job_url) not in DOMAIN_HANDLERS.keys()
         ):
             logging.warning(
-                f"/jobs/{job_id}/prepare: Skipping unsupported job URL {get_base_url(job.direct_job_url) if job.direct_job_url else 'unknown'}"
+                f"/jobs/{job_id}/scrape: Skipping unsupported job URL {get_base_url(job.direct_job_url) if job.direct_job_url else 'unknown'}"
             )
             return JSONResponse(
                 status_code=400,
                 content={
                     "status": "error",
-                    "message": f"/jobs/{job_id}/prepare: Unsupported job URL",
+                    "message": f"/jobs/{job_id}/scrape: Unsupported job URL",
+                },
+            )
+
+        # check if app with this job_id already exists
+        existing_app = get_application_by_job_id(db, job_id)
+        if existing_app and existing_app.scraped == True:
+            logging.warning(
+                f"/jobs/{job_id}/scrape: Application for job {job_id} already scraped"
+            )
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "status": "error",
+                    "message": f"/jobs/{job_id}/scrape: Application for job {job_id} already scraped",
                 },
             )
 
@@ -275,7 +279,7 @@ def create_application(job_id: UUID, db: Session = Depends(get_db)):
                         "message": f"/jobs/{id}/prepare: Job {job.id} is missing URLs\n{str(e)}",
                     },
                 )
-            else:
+            elif type(e) is NotImplementedError:
                 return JSONResponse(
                     status_code=500,
                     content={
@@ -287,9 +291,82 @@ def create_application(job_id: UUID, db: Session = Depends(get_db)):
         if existing_app is None:
             add_new_application(db, app)
         else:
-            app.id = existing_app.id  # keep the same ID for updates
+            update_application_by_id(db, existing_app.id, app)
+            app.id = existing_app.id
 
-        time.sleep(5)  # Wait 5 sec before preparing app
+        if app.scraped == True:
+            background_tasks.add_task(prepare_application, app.id, db)
+    except Exception as e:
+        logging.error(
+            f"/jobs/{job_id}/prepare: Error scraping job: {str(e)}", exc_info=True
+        )
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "error",
+                "message": f"/jobs/{job_id}/scrape:\n{str(e)}",
+            },
+        )
+
+
+@app.post("/app/{app_id}/prepare")
+def prepare_application(app_id: UUID, db: Session = Depends(get_db)):
+    """Create an app for a job by its ID."""
+    try:
+        app = get_application_by_id(db, app_id)
+        if app is None:
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "status": "error",
+                    "message": f"/app/{app_id}/prepare: App {app_id} not found",
+                },
+            )
+
+        job = get_job_by_id(db, app.job_id)
+        if job is None:
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "status": "error",
+                    "message": f"/app/{app_id}/prepare: Job {app.job_id} associated with App {app.id} not found",
+                },
+            )
+
+        if app.scraped == False:
+            logging.warning(f"/app/{app.id}/prepare: App {app.id} is not scraped")
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "status": "error",
+                    "message": f"/app/{app.id}/prepare: App {app.id} is not scraped",
+                },
+            )
+
+        if app.prepared == True:
+            logging.warning(f"/app/{app.id}/prepare: App {app.id} is already prepared")
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "status": "error",
+                    "message": f"/app/{app.id}/prepare: App {app.id} is already prepared",
+                },
+            )
+
+        if (
+            not job.direct_job_url
+            or get_base_url(job.direct_job_url) not in DOMAIN_HANDLERS.keys()
+        ):
+            logging.warning(
+                f"/jobs/{job.id}/prepare: Skipping unsupported job URL {get_base_url(job.direct_job_url) if job.direct_job_url else 'unknown'}"
+            )
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "status": "error",
+                    "message": f"/app/{app_id}/prepare: Unsupported job URL",
+                },
+            )
 
         logging.info(f"Preparing app {app.id}...")
         prepared_app = prepare_job_app(job, app, user)
@@ -303,23 +380,26 @@ def create_application(job_id: UUID, db: Session = Depends(get_db)):
                 },
             )
 
-        update_application_by_id(db, app.id, prepared_app)
+        update_application_by_id(db, app_id, prepared_app)
 
-        logging.info(f"Application {app.id} for job {job.id} prepared successfully.")
+        logging.info(f"Application {app_id} prepared successfully.")
         return JSONResponse(
             status_code=200,
             content={
                 "status": "success",
-                "message": f"Application {id} prepared successfully",
+                "message": f"Application {app_id} prepared successfully",
             },
         )
     except Exception as e:
         logging.error(
-            f"/jobs/{id}/prepare: Error preparing job: {str(e)}", exc_info=True
+            f"/app/{app_id}/prepare: Error preparing app: {str(e)}", exc_info=True
         )
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "message": f"/jobs/{id}/prepare:\n{str(e)}"},
+            content={
+                "status": "error",
+                "message": f"/app/{app_id}/prepare:\n{str(e)}",
+            },
         )
 
 
@@ -408,24 +488,20 @@ async def review_jobs(background_tasks: BackgroundTasks, db: Session = Depends(g
     )
 
 
-@app.post("/apps/create")
-async def create_applications(
-    background_tasks: BackgroundTasks, db: Session = Depends(get_db)
-):
-    """Creates new application for reviewed jobs."""
-    jobs = get_reviewed_jobs(db)
+@app.post("/jobs/scrape")
+async def scrape_jobs(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    """Creates new application for unscraped jobs."""
+    jobs = get_unscraped_jobs(db)
     for job in jobs:
-        app = get_application_by_job_id(db, job.id)
-        if app is None or app.prepared == False:
-            background_tasks.add_task(create_application, job.id, db)
-        else:
-            logging.info(
-                f"Skipping review for job {job.id}. Application {app.id} already completed."
-            )
+        if (
+            job.review.classification in ["safety", "target"]
+            and job.job_type == "fulltime"
+        ):
+            background_tasks.add_task(scrape_job, job.id, background_tasks, db)
 
     return JSONResponse(
         status_code=202,
-        content={"status": "success", "message": "Job reviews started"},
+        content={"status": "success", "message": "Job scraping started"},
     )
 
 
@@ -436,7 +512,7 @@ async def prepare_applications(
     """Prepares unprepared applications."""
     apps = get_unprepared_applications(db)
     for app in apps:
-        background_tasks.add_task(create_application, app.job_id, db)
+        background_tasks.add_task(prepare_application, app.id, db)
 
     return JSONResponse(
         status_code=202,
@@ -449,7 +525,7 @@ def submit_applications(
     background_tasks: BackgroundTasks, db: Session = Depends(get_db)
 ):
     """Submits approved applications."""
-    apps = get_unsubmitted_applications(db)
+    apps = get_approved_applications(db)
     for app in apps:
         submit_application(app.id, background_tasks, db)
 
@@ -567,6 +643,7 @@ async def discard_application(app_id: UUID, db: Session = Depends(get_db)):
         )
 
 
+# data endpoints
 @app.get("/jobs/summary")
 async def get_jobs_summary(db: Session = Depends(get_db)):
     """Get the status of job reviews"""

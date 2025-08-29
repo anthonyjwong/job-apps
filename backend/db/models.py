@@ -62,6 +62,7 @@ class ApplicationORM(Base):
     job_id = Column(UUID(as_uuid=True), ForeignKey("jobs.id"), nullable=False)
     url = Column(String, nullable=False)
     fields = Column(JSON, nullable=True)  # Store AppFields as JSON
+    scraped = Column(Boolean, default=False)
     prepared = Column(Boolean, default=False)
     user_approved = Column(Boolean, default=False)
     discarded = Column(Boolean, default=False)
@@ -84,6 +85,7 @@ class ApplicationORM(Base):
             "job_id": self.job_id,
             "url": self.url,
             "fields": self.fields,
+            "scraped": self.scraped,
             "prepared": self.prepared,
             "user_approved": self.user_approved,
             "discarded": self.discarded,

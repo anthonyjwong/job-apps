@@ -176,6 +176,7 @@ class App(BaseModel):
     job_id: UUID
     url: Optional[str] = None
     fields: list[AppField] = PydanticField(default_factory=list)
+    scraped: bool = False
     prepared: bool = False
     user_approved: bool = False
     discarded: bool = False
@@ -212,6 +213,7 @@ class App(BaseModel):
             "job_id": str(self.job_id),
             "url": self.url,
             "fields": [f.to_json() for f in self.fields],
+            "scraped": self.scraped,
             "prepared": self.prepared,
             "user_approved": self.user_approved,
             "discarded": self.discarded,
