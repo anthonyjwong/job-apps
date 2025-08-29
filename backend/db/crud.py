@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import List, Optional
 
 import pandas as pd
 from sqlalchemy.orm import Session
@@ -18,7 +17,7 @@ def job_to_orm(job: Job) -> JobORM:
         location=job.location,
         min_salary=job.min_salary,
         max_salary=job.max_salary,
-        date_posted=datetime.strptime(job.date_posted, "%Y-%m-%d").date()
+        date_posted=datetime.strptime(job.date_posted, "%Y-%m-%d").date(),
         job_type=job.job_type,
         linkedin_job_url=job.linkedin_job_url,
         direct_job_url=job.direct_job_url,
