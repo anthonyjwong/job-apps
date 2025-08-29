@@ -1,7 +1,7 @@
 .PHONY: db_login db_revision db_upgrade db_downgrade db_current db_heads
 
 db_login:
-	psql -U postgres -d job_apps
+	PGPASSWORD=$(DB_PASSWORD) psql -h localhost -p $(DB_PORT_HOST) -U $(DB_USER) -d $(DB_NAME)
 
 # Create a new autogenerate revision: make db_revision msg="your message"
 db_revision:

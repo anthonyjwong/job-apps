@@ -7,7 +7,9 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     ports:
-      - "${DB_PORT}:5432"
+      # Map container 5432 to a host port that won't clash with a local Postgres.
+      # Set DB_PORT_HOST in .env (e.g., DB_PORT_HOST=5433). Defaults to 5432 if unset.
+      - "${DB_PORT_HOST:-5432}:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:

@@ -13,7 +13,6 @@ def job_to_orm(job: Job) -> JobORM:
     date_posted = None
     if job.date_posted is not None:
         raw = str(job.date_posted).strip()
-        logging.info(f"Date posted: {raw}, {job.date_posted}")
         if raw:
             date_posted = datetime.strptime(raw, "%Y-%m-%d").date()
 

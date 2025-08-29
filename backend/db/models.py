@@ -15,7 +15,7 @@ class JobORM(Base):
     jobspy_id = Column(String, nullable=False)
     title = Column(String, nullable=False)
     company = Column(String, nullable=False)
-    location = Column(String, nullable=False)
+    location = Column(String, nullable=True)
     min_salary = Column(Float, nullable=True)
     max_salary = Column(Float, nullable=True)
     date_posted = Column(DateTime, nullable=True)
@@ -52,7 +52,6 @@ class JobORM(Base):
             "description": self.description,
             "review": self.review,
             "reviewed": self.reviewed,
-            "processed": self.processed,
         }
 
 

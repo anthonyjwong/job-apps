@@ -19,7 +19,7 @@ class Review(BaseModel):
 
 
 class Job(BaseModel):
-    id: UUID = uuid.uuid4()
+    id: UUID = PydanticField(default_factory=uuid.uuid4)
     jobspy_id: str
     title: str
     company: str
@@ -31,7 +31,7 @@ class Job(BaseModel):
     linkedin_job_url: Optional[str] = None
     direct_job_url: Optional[str] = None
     description: Optional[str] = None
-    review: Review = None
+    review: Optional[Review] = None
     reviewed: bool = False
 
     def log(self):
@@ -90,7 +90,7 @@ class AppField(BaseModel):
 
 # TODO: add EEOC questions
 class User(BaseModel):
-    id: UUID = uuid.uuid4()
+    id: UUID = PydanticField(default_factory=uuid.uuid4)
     first_name: str
     last_name: str
     email: str
@@ -172,7 +172,7 @@ Please use this information to help formulate appropriate responses about this j
 
 
 class App(BaseModel):
-    id: UUID = uuid.uuid4()
+    id: UUID = PydanticField(default_factory=uuid.uuid4)
     job_id: UUID
     url: Optional[str] = None
     fields: list[AppField] = PydanticField(default_factory=list)
