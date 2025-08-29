@@ -217,7 +217,7 @@ class Ashby(JobSite):
 
         try:
             with sync_playwright() as p:
-                browser = p.firefox.launch(headless=False)
+                browser = p.firefox.launch(headless=True)
                 page = browser.new_page()
                 page.goto(url, wait_until="domcontentloaded")
                 page.wait_for_selector("div.ashby-application-form-container")
@@ -280,8 +280,8 @@ class Ashby(JobSite):
                                 human_delay()
 
                 # get manual approval first
-                user_approval = input("Do you approve this application? (y/n): ")
-                app.user_approved = user_approval.lower() == "y"
+                # user_approval = input("Do you approve this application? (y/n): ")
+                # app.user_approved = user_approval.lower() == "y"
 
                 if app.user_approved:
                     # submit
