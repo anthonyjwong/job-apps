@@ -1,6 +1,5 @@
 import pandas as pd
 from jobspy import scrape_jobs
-
 from src.definitions import Job
 from src.utils import clean_url, clean_val
 
@@ -41,7 +40,7 @@ def save_jobs(num_jobs=5) -> list[Job]:
         search_term="software engineer",
         location="New York, NY",
         results_wanted=num_jobs,
-        hours_old=24 * 7,
+        hours_old=24,
         country_indeed="USA",
         linkedin_fetch_description=True,
         # proxies=["208.195.175.46:65095", "208.195.175.45:65095", "localhost"],

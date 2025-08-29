@@ -95,6 +95,7 @@ func main() {
 		interval time.Duration
 	}{
 		{"/jobs/find", time.Hour * 24}, // daily
+		{"/apps/submit", time.Hour},    // every 1 hour
 		// {"/jobs/review", time.Hour * 24}, // daily
 		// {"/apps/create", time.Hour * 24}, // daily
 		// {"/apps/prepare", time.Hour * 24}, // daily

@@ -8,6 +8,7 @@ from db.database import get_db
 from db.utils import (
     add_new_application,
     add_new_scraped_jobs,
+    approve_application_by_id,
     discard_application_by_id,
     get_all_applications,
     get_all_jobs,
@@ -18,6 +19,7 @@ from db.utils import (
     get_unapproved_applications,
     get_unprepared_applications,
     get_unreviewed_jobs,
+    get_unsubmitted_applications,
     update_application_by_id,
     update_application_by_id_with_fragment,
     update_job_by_id,
@@ -99,7 +101,7 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-DEFAULT_JOBS_TO_FIND = 500
+DEFAULT_JOBS_TO_FIND = 50
 
 # Keep the user configuration
 user = User(
@@ -321,6 +323,71 @@ def create_application(job_id: UUID, db: Session = Depends(get_db)):
         )
 
 
+@app.post("/app/{app_id}/submit")
+def submit_application(
+    app_id: UUID, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
+):
+    """Submit an application"""
+    try:
+        app = get_application_by_id(db, app_id)
+        if not app:
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "status": "error",
+                    "message": f"Application with ID {app_id} not found",
+                },
+            )
+        if not app.prepared:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "status": "error",
+                    "message": "Application must be prepared before approval",
+                },
+            )
+        if not app.user_approved:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "status": "error",
+                    "message": "Application must be approved by user before submission",
+                },
+            )
+
+        job = get_job_by_id(db, app.job_id)
+        if not job:
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "status": "error",
+                    "message": f"Job ID {app.job_id} attached to app {app_id} not found",
+                },
+            )
+
+        background_tasks.add_task(submit_and_update_application, app, job, db)
+
+        return JSONResponse(
+            status_code=202,
+            content={
+                "message": f"Application with ID {app_id} queued for submission!",
+            },
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500, content={"status": "error", "message": str(e)}
+        )
+
+
+def submit_and_update_application(app: App, job: Job, db: Session):
+    """Submit and save an application"""
+    try:
+        applied_app = submit_app(app, job)
+        update_application_by_id(db, app.id, applied_app)
+    except Exception as e:
+        logging.error(f"Failed to submit application {app.id}: {e}")
+
+
 # bulk endpoints
 @app.post("/jobs/review")
 async def review_jobs(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
@@ -377,6 +444,21 @@ async def prepare_applications(
     )
 
 
+@app.post("/apps/submit")
+def submit_applications(
+    background_tasks: BackgroundTasks, db: Session = Depends(get_db)
+):
+    """Submits approved applications."""
+    apps = get_unsubmitted_applications(db)
+    for app in apps:
+        submit_application(app.id, background_tasks, db)
+
+    return JSONResponse(
+        status_code=200,
+        content={"status": "success", "message": "Application submissions started"},
+    )
+
+
 # frontend endpoints
 @app.get("/apps/unapproved")
 async def get_unapproved_apps(db: Session = Depends(get_db)):
@@ -421,19 +503,8 @@ async def update_application_from_fragment(
         )
 
 
-def submit_and_update_application(app: App, job: Job, db: Session):
-    """Submit and save an application"""
-    try:
-        applied_app = submit_app(app, job)
-        update_application_by_id(db, app.id, applied_app)
-    except Exception as e:
-        logging.error(f"Failed to submit application {app.id}: {e}")
-
-
 @app.post("/app/{app_id}/approve")
-def approve_application(
-    app_id: UUID, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
-):
+def approve_application(app_id: UUID, db: Session = Depends(get_db)):
     """Approve and submit an application"""
     try:
         app = get_application_by_id(db, app_id)
@@ -454,22 +525,12 @@ def approve_application(
                 },
             )
 
-        job = get_job_by_id(db, app.job_id)
-        if not job:
-            return JSONResponse(
-                status_code=404,
-                content={
-                    "status": "error",
-                    "message": f"Job ID {app.job_id} attached to app {app_id} not found",
-                },
-            )
-
-        background_tasks.add_task(submit_and_update_application, app, job, db)
+        approve_application_by_id(db, app.id)
 
         return JSONResponse(
-            status_code=202,
+            status_code=200,
             content={
-                "message": f"Application with ID {app_id} queued for submission!",
+                "message": f"Application with ID {app_id} approved!",
             },
         )
     except Exception as e:

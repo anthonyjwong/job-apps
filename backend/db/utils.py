@@ -75,6 +75,18 @@ def get_unapproved_applications(db_session) -> list[App]:
     return [orm_to_app(app) for app in apps]
 
 
+def get_unsubmitted_applications(db_session) -> list[App]:
+    """Fetch all unsubmitted applications."""
+    apps = (
+        db_session.query(ApplicationORM)
+        .filter(
+            (ApplicationORM.user_approved == True) & (ApplicationORM.submitted == False)
+        )
+        .all()
+    )
+    return [orm_to_app(app) for app in apps]
+
+
 def get_all_applications(db_session) -> list[App]:
     """Fetch all applications."""
     apps = db_session.query(ApplicationORM).all()
@@ -124,6 +136,15 @@ def update_application_by_id_with_fragment(db_session, app_id, fragment: AppFrag
             else:
                 setattr(app, key, value)
         db_session.commit()
+
+
+def approve_application_by_id(db_session, app_id):
+    """Approve an application by its ID."""
+    app = db_session.query(ApplicationORM).filter(ApplicationORM.id == app_id).first()
+    if not app:
+        raise ValueError(f"Application with id {app_id} not found.")
+    app.user_approved = True
+    db_session.commit()
 
 
 def discard_application_by_id(db_session, app_id):
