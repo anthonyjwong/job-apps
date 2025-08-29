@@ -14,8 +14,8 @@ services:
 
   scheduler:
     build:
-      context: ./backend
-      dockerfile: scheduler/Dockerfile
+      context: ./backend/scheduler
+      dockerfile: Dockerfile
     depends_on:
       backend:
         condition: service_healthy
