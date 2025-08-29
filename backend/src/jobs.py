@@ -19,7 +19,7 @@ def preprocess_listing(listing: dict) -> dict:
         "max_salary": clean_val(
             listing.get("max_amount")
         ),  # Map max_amount to max_salary
-        "date_posted": clean_val(listing.get("date_posted")),
+        "date_posted": clean_val(str(listing.get("date_posted"))),
         "job_type": clean_val(listing.get("job_type")),
         "linkedin_job_url": (
             clean_url(clean_val(listing.get("job_url")))
