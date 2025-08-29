@@ -3,5 +3,6 @@ __pycache__
 
 _playground.ipynb
 .instructions
+debug.log
 
 .db

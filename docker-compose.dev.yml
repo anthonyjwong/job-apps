@@ -13,7 +13,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 60s
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
 
