@@ -18,7 +18,7 @@ class JobORM(Base):
     location = Column(String, nullable=False)
     min_salary = Column(Float, nullable=True)
     max_salary = Column(Float, nullable=True)
-    date_posted = Column(String, nullable=True)
+    date_posted = Column(DateTime, nullable=True)
     job_type = Column(String, nullable=True)
     linkedin_job_url = Column(String, nullable=True)
     direct_job_url = Column(String, nullable=True)

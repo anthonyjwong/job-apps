@@ -18,7 +18,7 @@ def job_to_orm(job: Job) -> JobORM:
         location=job.location,
         min_salary=job.min_salary,
         max_salary=job.max_salary,
-        date_posted=job.date_posted,
+        date_posted=datetime.strptime(job.date_posted, "%Y-%m-%d").date()
         job_type=job.job_type,
         linkedin_job_url=job.linkedin_job_url,
         direct_job_url=job.direct_job_url,
@@ -51,7 +51,7 @@ def orm_to_job(db_job: JobORM) -> Job:
         location=db_job.location,
         min_salary=db_job.min_salary,
         max_salary=db_job.max_salary,
-        date_posted=db_job.date_posted,
+        date_posted=db_job.date_posted.strftime("%Y-%m-%d"),
         job_type=db_job.job_type,
         linkedin_job_url=db_job.linkedin_job_url,
         direct_job_url=db_job.direct_job_url,
