@@ -69,13 +69,7 @@ func main() {
 		{"/jobs/review", []time.Duration{time.Minute, 4 * time.Hour, 16 * time.Hour}, interval},
 		{"/jobs/apps", []time.Duration{2 * time.Minute, 8 * time.Hour, 20 * time.Hour}, interval},
 		{"/apps/prepare", []time.Duration{3 * time.Minute, 12 * time.Hour, 24 * time.Hour}, interval},
-		// {"/apps/submit", []time.Duration{
-		// 	9*time.Hour + 30*time.Minute,
-		// 	12*time.Hour + 30*time.Minute,
-		// 	15*time.Hour + 30*time.Minute,
-		// 	18*time.Hour + 30*time.Minute,
-		// 	21*time.Hour + 30*time.Minute,
-		// }, interval},
+		{"/apps/submit", []time.Duration{0 * time.Second}, time.Hour},
 	}
 
 	// Start schedules
