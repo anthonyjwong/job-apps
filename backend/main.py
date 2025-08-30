@@ -1,10 +1,11 @@
+import asyncio
 import logging
 import time
 from typing import List
 from uuid import UUID
 
 import uvicorn
-from db.database import get_db
+from db.database import SessionLocal, get_db
 from db.utils import (
     add_new_application,
     add_new_scraped_jobs,
@@ -53,6 +54,13 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[logging.StreamHandler(), logging.FileHandler("debug.log")],
 )
+
+# Ensure handlers use a formatter that includes timestamps
+_fmt = "%(asctime)s - %(levelname)s - %(message)s"
+_datefmt = "%Y-%m-%d %H:%M:%S"
+_formatter = logging.Formatter(fmt=_fmt, datefmt=_datefmt)
+for _h in logging.getLogger().handlers:
+    _h.setFormatter(_formatter)
 
 app = FastAPI(title="Job Application API")
 
@@ -120,11 +128,9 @@ user = User(
 
 @app.post("/jobs/find")
 async def find_jobs(
-    background_tasks: BackgroundTasks,
     num_jobs: int = Query(
         DEFAULT_JOBS_TO_FIND, ge=1, le=500, description="Number of jobs to find (1-500)"
     ),
-    db: Session = Depends(get_db),
 ):
     """Find and save current job listings"""
 
@@ -132,19 +138,21 @@ async def find_jobs(
     async def save_jobs_with_db():
         try:
             logging.info("Finding jobs...")
-            jobs = save_jobs(num_jobs=num_jobs)
-        except:
-            logging.error(f"/jobs/find: Error saving jobs", exc_info=True)
+            jobs = await asyncio.to_thread(save_jobs, num_jobs=num_jobs)
+        except Exception:
+            logging.error("/jobs/find: Error saving jobs", exc_info=True)
             await manager.broadcast(
                 {"type": "error", "data": {"message": "Failed to save jobs"}}
             )
+            return
 
         # database operation
         try:
+            db = SessionLocal()
             jobs = add_new_scraped_jobs(db, jobs)
-        except:
+        except Exception:
             logging.error(
-                f"/jobs/find: Error adding new jobs to database",
+                "/jobs/find: Error adding new jobs to database",
                 exc_info=True,
             )
             await manager.broadcast(
@@ -153,6 +161,9 @@ async def find_jobs(
                     "data": {"message": "Failed to add new jobs to database"},
                 }
             )
+            return
+        finally:
+            db.close()
 
         # websocket notification
         await manager.broadcast(
@@ -165,9 +176,9 @@ async def find_jobs(
         # send-off
         for job in jobs:
             if not job.reviewed:
-                background_tasks.add_task(review_job, job.id, background_tasks, db)
+                asyncio.create_task(review_job(job.id))
 
-    background_tasks.add_task(save_jobs_with_db)
+    asyncio.create_task(save_jobs_with_db)
 
     # response
     return JSONResponse(
@@ -180,9 +191,7 @@ async def find_jobs(
 
 
 @app.post("/job/{job_id}/review")
-async def review_job(
-    job_id: UUID, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
-):
+async def review_job(job_id: UUID, db: Session = Depends(get_db)):
     """Review a specific job by ID"""
     # arg validation
     job = get_job_by_id(db, job_id)
@@ -225,7 +234,7 @@ async def review_job(
         reviewed_job.review.classification in ["safety", "target"]
         and reviewed_job.job_type == "fulltime"
     ):
-        background_tasks.add_task(create_job_application, job_id, background_tasks, db)
+        asyncio.create_task(create_job_application(job_id))
     else:
         logging.info(
             f'Job {job_id} classified "{reviewed_job.review.classification}" does not require application'
@@ -243,9 +252,7 @@ async def review_job(
 
 
 @app.post("/job/{job_id}/create_app")
-def create_job_application(
-    job_id: UUID, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
-):
+def create_job_application(job_id: UUID, db: Session = Depends(get_db)):
     """Create an app for a job by its ID."""
     # arg validation
     job = get_job_by_id(db, job_id)
@@ -325,7 +332,7 @@ def create_job_application(
 
     # send-off
     if app.scraped == True:
-        background_tasks.add_task(prepare_application, app.id, db)
+        asyncio.create_task(prepare_application(app.id))
 
     # response
     return JSONResponse(
@@ -432,9 +439,7 @@ def prepare_application(app_id: UUID, db: Session = Depends(get_db)):
 
 
 @app.post("/app/{app_id}/submit")
-def submit_application(
-    app_id: UUID, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
-):
+def submit_application(app_id: UUID, db: Session = Depends(get_db)):
     """Submit an application"""
     # arg validation
     app = get_application_by_id(db, app_id)
@@ -539,7 +544,7 @@ def submit_application(
                 },
             )
 
-    background_tasks.add_task(submit_and_update_application)
+    asyncio.create_task(submit_and_update_application)
 
     # response
     return JSONResponse(
@@ -552,7 +557,7 @@ def submit_application(
 
 # bulk endpoints
 @app.post("/jobs/review")
-async def review_jobs(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+async def review_jobs(db: Session = Depends(get_db)):
     """Review unreviewed jobs for candidate aptitude"""
     # arg validation
     jobs = get_unreviewed_jobs(db)
@@ -561,7 +566,7 @@ async def review_jobs(background_tasks: BackgroundTasks, db: Session = Depends(g
 
     # send-off
     for job in jobs:
-        background_tasks.add_task(review_job, job.id, background_tasks, db)
+        asyncio.create_task(review_job(job.id))
 
     # response
     return JSONResponse(
@@ -571,9 +576,7 @@ async def review_jobs(background_tasks: BackgroundTasks, db: Session = Depends(g
 
 
 @app.post("/apps/create")
-async def create_job_applications(
-    background_tasks: BackgroundTasks, db: Session = Depends(get_db)
-):
+async def create_job_applications(db: Session = Depends(get_db)):
     """Creates new application for unscraped apps."""
     # arg validation
     apps = get_unscraped_applications(db)
@@ -588,9 +591,7 @@ async def create_job_applications(
             and job.review.classification in ["safety", "target"]
             and job.job_type == "fulltime"
         ):
-            background_tasks.add_task(
-                create_job_application, job.id, background_tasks, db
-            )
+            asyncio.create_task(create_job_application(job.id))
 
     # response
     return JSONResponse(
@@ -600,9 +601,7 @@ async def create_job_applications(
 
 
 @app.post("/apps/prepare")
-async def prepare_applications(
-    background_tasks: BackgroundTasks, db: Session = Depends(get_db)
-):
+async def prepare_applications(db: Session = Depends(get_db)):
     """Prepares unprepared applications."""
     # arg validation
     apps = get_unprepared_applications(db)
@@ -611,7 +610,7 @@ async def prepare_applications(
 
     # send-off
     for app in apps:
-        background_tasks.add_task(prepare_application, app.id, db)
+        asyncio.create_task(prepare_application, app.id)
 
     # response
     return JSONResponse(
@@ -621,9 +620,7 @@ async def prepare_applications(
 
 
 @app.post("/apps/submit")
-def submit_applications(
-    background_tasks: BackgroundTasks, db: Session = Depends(get_db)
-):
+def submit_applications(db: Session = Depends(get_db)):
     """Submits approved applications."""
     # arg validation
     apps = get_user_approved_applications(db)
@@ -632,7 +629,7 @@ def submit_applications(
 
     # send off
     for app in apps:
-        submit_application(app.id, background_tasks, db)
+        submit_application(app.id)
 
     # response
     return JSONResponse(
