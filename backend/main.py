@@ -131,8 +131,8 @@ async def find_jobs(
     # logic
     async def save_jobs_with_db():
         try:
-            logging.info(f"Saving jobs...")
             jobs = save_jobs(num_jobs=num_jobs)
+            logging.info(f"Found {len(jobs)} new jobs!")
         except:
             logging.error(f"/jobs/find: Error saving jobs", exc_info=True)
             await manager.broadcast(

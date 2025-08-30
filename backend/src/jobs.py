@@ -33,7 +33,6 @@ def preprocess_listing(listing: dict) -> dict:
 
 def save_jobs(num_jobs=5) -> list[Job]:
     """Finds jobs and saves them to the database."""
-
     listings: pd.DataFrame = scrape_jobs(
         site_name=[
             "linkedin",
