@@ -228,7 +228,7 @@ async def review_job(
         background_tasks.add_task(create_job_application, job_id, background_tasks, db)
     else:
         logging.info(
-            f"Job {job_id} classified {reviewed_job.review.classification} does not require application"
+            f'Job {job_id} classified "{reviewed_job.review.classification}" does not require application'
         )
 
     # response
