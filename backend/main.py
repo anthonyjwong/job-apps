@@ -127,9 +127,8 @@ async def find_jobs(
     db: Session = Depends(get_db),
 ):
     """Find and save current job listings"""
-    # logic
-    background_tasks.add_task(save_jobs_with_db)
 
+    # logic
     async def save_jobs_with_db():
         try:
             logging.info(f"Saving jobs...")
@@ -167,6 +166,8 @@ async def find_jobs(
         for job in jobs:
             if not job.reviewed:
                 background_tasks.add_task(review_job, job.id, background_tasks, db)
+
+    background_tasks.add_task(save_jobs_with_db)
 
     # response
     return JSONResponse(
@@ -483,8 +484,6 @@ def submit_application(
         )
 
     # logic
-    background_tasks.add_task(submit_and_update_application, app, job, db)
-
     async def submit_and_update_application():
         try:
             applied_app = submit_app(app, job)
@@ -535,6 +534,8 @@ def submit_application(
                     "message": f"Failed to update app {app.id} in database",
                 },
             )
+
+    background_tasks.add_task(submit_and_update_application, app, job, db)
 
     # response
     return JSONResponse(
