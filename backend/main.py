@@ -34,7 +34,7 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 from src.apply import (
     DOMAIN_HANDLERS,
@@ -226,6 +226,10 @@ async def review_job(
         and reviewed_job.job_type == "fulltime"
     ):
         background_tasks.add_task(create_job_application, job_id, background_tasks, db)
+    else:
+        logging.info(
+            f"Job {job_id} classified {reviewed_job.review.classification} does not require application"
+        )
 
     # response
     return JSONResponse(
@@ -535,7 +539,7 @@ def submit_application(
                 },
             )
 
-    background_tasks.add_task(submit_and_update_application, app, job, db)
+    background_tasks.add_task(submit_and_update_application)
 
     # response
     return JSONResponse(
@@ -553,10 +557,7 @@ async def review_jobs(background_tasks: BackgroundTasks, db: Session = Depends(g
     # arg validation
     jobs = get_unreviewed_jobs(db)
     if len(jobs) == 0:
-        return JSONResponse(
-            status_code=204,
-            content={"status": "error", "message": "No unreviewed jobs found"},
-        )
+        return Response(status_code=204)
 
     # send-off
     for job in jobs:
@@ -577,7 +578,7 @@ async def create_job_applications(
     # arg validation
     apps = get_unscraped_applications(db)
     if len(apps) == 0:
-        return JSONResponse(status_code=204)
+        return Response(status_code=204)
 
     # send-off
     for app in apps:
@@ -606,7 +607,7 @@ async def prepare_applications(
     # arg validation
     apps = get_unprepared_applications(db)
     if len(apps) == 0:
-        return JSONResponse(status_code=204)
+        return Response(status_code=204)
 
     # send-off
     for app in apps:
@@ -627,7 +628,7 @@ def submit_applications(
     # arg validation
     apps = get_user_approved_applications(db)
     if len(apps) == 0:
-        return JSONResponse(status_code=204)
+        return Response(status_code=204)
 
     # send off
     for app in apps:
