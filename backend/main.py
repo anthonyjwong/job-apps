@@ -25,15 +25,7 @@ from db.utils import (
     update_application_by_id_with_fragment,
     update_job_by_id,
 )
-from fastapi import (
-    BackgroundTasks,
-    Body,
-    Depends,
-    FastAPI,
-    Query,
-    WebSocket,
-    WebSocketDisconnect,
-)
+from fastapi import Body, Depends, FastAPI, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
@@ -138,7 +130,7 @@ async def find_jobs(
     async def save_jobs_with_db():
         try:
             logging.info("Finding jobs...")
-            jobs = await asyncio.to_thread(save_jobs, num_jobs=num_jobs)
+            jobs = await asyncio.create_task(save_jobs(num_jobs=num_jobs))
         except Exception:
             logging.error("/jobs/find: Error saving jobs", exc_info=True)
             await manager.broadcast(
@@ -178,7 +170,7 @@ async def find_jobs(
             if not job.reviewed:
                 asyncio.create_task(review_job(job.id))
 
-    asyncio.create_task(save_jobs_with_db)
+    asyncio.create_task(save_jobs_with_db())
 
     # response
     return JSONResponse(
@@ -544,7 +536,7 @@ def submit_application(app_id: UUID, db: Session = Depends(get_db)):
                 },
             )
 
-    asyncio.create_task(submit_and_update_application)
+    asyncio.create_task(submit_and_update_application())
 
     # response
     return JSONResponse(
@@ -610,7 +602,7 @@ async def prepare_applications(db: Session = Depends(get_db)):
 
     # send-off
     for app in apps:
-        asyncio.create_task(prepare_application, app.id)
+        asyncio.create_task(prepare_application(app.id))
 
     # response
     return JSONResponse(
