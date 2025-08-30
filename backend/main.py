@@ -242,7 +242,7 @@ async def review_job(
     )
 
 
-@app.post("/job/{job_id}/app")
+@app.post("/job/{job_id}/create_app")
 def create_job_application(
     job_id: UUID, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
 ):
@@ -250,7 +250,7 @@ def create_job_application(
     # arg validation
     job = get_job_by_id(db, job_id)
     if job is None:
-        logging.error(f"/job/{job_id}/app: Job not found", exc_info=True)
+        logging.error(f"/job/{job_id}/create_app: Job not found", exc_info=True)
         return JSONResponse(
             status_code=404,
             content={
@@ -262,7 +262,7 @@ def create_job_application(
     existing_app = get_application_by_job_id(db, job_id)
     if existing_app and existing_app.scraped == True:
         logging.error(
-            f"/job/{job_id}/app: Application for job {job_id} already scraped",
+            f"/job/{job_id}/create_app: Application for job {job_id} already scraped",
             exc_info=True,
         )
         return JSONResponse(
@@ -277,7 +277,7 @@ def create_job_application(
     try:
         app = scrape_job_app(job)
     except ValueError:
-        logging.error(f"/job/{job_id}/app: Job {job.id} is missing URLs")
+        logging.error(f"/job/{job_id}/create_app: Job {job.id} is missing URLs")
         return JSONResponse(
             status_code=500,
             content={
@@ -287,7 +287,7 @@ def create_job_application(
         )
     except NotImplementedError:
         logging.warning(
-            f"/job/{job_id}/app: {get_base_url(job.direct_job_url)} app prep is not supported at this time"
+            f"/job/{job_id}/create_app: {get_base_url(job.direct_job_url)} app prep is not supported at this time"
         )
         return JSONResponse(
             status_code=400,
@@ -297,7 +297,7 @@ def create_job_application(
             },
         )
     except:
-        logging.error(f"/job/{job_id}/app: Error scraping job", exc_info=True)
+        logging.error(f"/job/{job_id}/create_app: Error scraping job", exc_info=True)
         return JSONResponse(
             status_code=500,
             content={"status": "error", "message": f"Failed to scrape job {job_id}"},
@@ -312,7 +312,7 @@ def create_job_application(
             update_application_by_id(db, existing_app.id, app)
     except:
         logging.error(
-            f"/job/{job_id}/app: Error updating app {app.id} in database",
+            f"/job/{job_id}/create_app: Error updating app {app.id} in database",
             exc_info=True,
         )
         return JSONResponse(
