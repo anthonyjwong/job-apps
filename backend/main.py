@@ -19,7 +19,6 @@ from db.utils import (
     get_unprepared_applications,
     get_unreviewed_jobs,
     get_unscraped_applications,
-    get_unscraped_jobs,
     get_user_approved_applications,
     update_application_by_id,
     update_application_by_id_with_fragment,
