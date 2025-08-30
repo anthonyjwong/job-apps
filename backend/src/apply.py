@@ -62,7 +62,7 @@ def evaluate_candidate_aptitude(job: Job, user: User) -> Job:
 def scrape_job_app(job: Job) -> App:
     """Scrape job details and create an application."""
     if not job.direct_job_url and not job.linkedin_job_url:
-        logging.warning(f"Job {job.id} is missing URLs.")
+        logging.error(f"Job {job.id} is missing URLs.")
         raise ValueError("Job must have a direct job URL or LinkedIn job URL.")
 
     base_url = get_base_url(job.direct_job_url)
@@ -72,7 +72,6 @@ def scrape_job_app(job: Job) -> App:
         app.scraped = True
         return app
 
-    logging.warning(f"Site not supported: {get_base_url(job.direct_job_url)}")
     raise NotImplementedError(f"Site not supported: {job.direct_job_url}")
 
 

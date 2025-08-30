@@ -143,6 +143,7 @@ def update_application_by_id_with_fragment(db_session, app_id, fragment: AppFrag
             else:
                 setattr(app, key, value)
         db_session.commit()
+        logging.debug(f"App {app_id} manually updated by user")
 
 
 def approve_application_by_id(db_session, app_id):
@@ -152,6 +153,7 @@ def approve_application_by_id(db_session, app_id):
         raise ValueError(f"Application with id {app_id} not found.")
     app.user_approved = True
     db_session.commit()
+    logging.debug(f"App {app_id} approved")
 
 
 def discard_application_by_id(db_session, app_id):
@@ -161,6 +163,7 @@ def discard_application_by_id(db_session, app_id):
         raise ValueError(f"Application with id {app_id} not found.")
     app.discarded = True
     db_session.commit()
+    logging.debug(f"App {app_id} discarded")
 
 
 # add methods
@@ -185,7 +188,7 @@ def add_new_scraped_jobs(db_session, new_jobs: list[Job]) -> list[Job]:
             db_session.add(job)
     db_session.commit()
 
-    logging.info(f"{num_new_jobs} new jobs added to the database.")
+    logging.debug(f"{num_new_jobs} new jobs added to the database")
     return added_jobs
 
 
@@ -193,3 +196,4 @@ def add_new_application(db_session, new_app: App):
     """Add a new application to the database."""
     db_session.add(app_to_orm(new_app))
     db_session.commit()
+    logging.debug(f"New app {new_app.id} added to the database")
