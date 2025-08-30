@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -41,12 +42,14 @@ func startAfterDelay(endpoint string, delay time.Duration, interval time.Duratio
 }
 
 func logScheduleStart(endpoint string, delays []time.Duration, interval time.Duration) {
-	start_times := []time.Time{}
+	startTimes := []string{}
+	loc := time.Local
 	for _, delay := range delays {
-		start_times = append(start_times, time.Now().Add(delay))
+		t := time.Now().Add(delay).In(loc)
+		startTimes = append(startTimes, t.Format("3:04 PM"))
 	}
-	fmt.Printf("Started schedule for %s: Running at %s, every %s\n", endpoint, start_times, interval)
-
+	fmt.Printf("Started schedule for %s: Running at [%s] UTC, every %s\n", endpoint,
+		strings.Join(startTimes, ", "), interval)
 }
 
 func main() {
