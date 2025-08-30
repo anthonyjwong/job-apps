@@ -14,13 +14,11 @@ from db.utils import (
     get_all_jobs,
     get_application_by_id,
     get_application_by_job_id,
-    get_approved_applications,
     get_job_by_id,
     get_unapproved_applications,
     get_unprepared_applications,
     get_unreviewed_jobs,
     get_unscraped_jobs,
-    get_unsubmitted_applications,
     get_user_approved_applications,
     update_application_by_id,
     update_application_by_id_with_fragment,
@@ -202,7 +200,9 @@ async def review_job(
             logging.info(
                 f"Ranked job as {reviewed_job.review.classification}. Sending for prep..."
             )
-            background_tasks.add_task(scrape_job, job_id, background_tasks, db)
+            background_tasks.add_task(
+                create_job_application, job_id, background_tasks, db
+            )
         return JSONResponse(
             status_code=200,
             content={
@@ -221,8 +221,8 @@ async def review_job(
         )
 
 
-@app.post("/job/{job_id}/scrape")
-def scrape_job(
+@app.post("/job/{job_id}/app")
+def create_job_application(
     job_id: UUID, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
 ):
     """Create an app for a job by its ID."""
@@ -488,8 +488,10 @@ async def review_jobs(background_tasks: BackgroundTasks, db: Session = Depends(g
     )
 
 
-@app.post("/jobs/scrape")
-async def scrape_jobs(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+@app.post("/jobs/apps")
+async def create_job_applications(
+    background_tasks: BackgroundTasks, db: Session = Depends(get_db)
+):
     """Creates new application for unscraped jobs."""
     jobs = get_unscraped_jobs(db)
     for job in jobs:
@@ -497,11 +499,13 @@ async def scrape_jobs(background_tasks: BackgroundTasks, db: Session = Depends(g
             job.review.classification in ["safety", "target"]
             and job.job_type == "fulltime"
         ):
-            background_tasks.add_task(scrape_job, job.id, background_tasks, db)
+            background_tasks.add_task(
+                create_job_application, job.id, background_tasks, db
+            )
 
     return JSONResponse(
         status_code=202,
-        content={"status": "success", "message": "Job scraping started"},
+        content={"status": "success", "message": "Creating job applications"},
     )
 
 
@@ -525,7 +529,7 @@ def submit_applications(
     background_tasks: BackgroundTasks, db: Session = Depends(get_db)
 ):
     """Submits approved applications."""
-    apps = get_approved_applications(db)
+    apps = get_user_approved_applications(db)
     for app in apps:
         submit_application(app.id, background_tasks, db)
 

@@ -16,7 +16,7 @@ stop:
 	docker compose -f docker-compose.dev.yml down
 	docker compose -f docker-compose.prod.yml down
 
-# Remove all containers, images, and volumes
+# Remove all containers and images
 clean:
-	docker compose -f docker-compose.dev.yml down -v --rmi all --remove-orphans
-	docker compose -f docker-compose.prod.yml down -v --rmi all --remove-orphans
+	docker compose -f docker-compose.dev.yml down --rmi all --remove-orphans
+	docker compose -f docker-compose.prod.yml down --rmi all --remove-orphans

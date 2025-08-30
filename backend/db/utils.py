@@ -73,6 +73,7 @@ def get_unapproved_applications(db_session) -> list[App]:
         db_session.query(ApplicationORM)
         .filter(
             (ApplicationORM.prepared == True)
+            & (ApplicationORM.user_approved == False)
             & (ApplicationORM.discarded == False)
             & (ApplicationORM.submitted == False)
         )
@@ -81,7 +82,7 @@ def get_unapproved_applications(db_session) -> list[App]:
     return [orm_to_app(app) for app in apps]
 
 
-def get_approved_applications(db_session) -> list[App]:
+def get_user_approved_applications(db_session) -> list[App]:
     """Fetch all user-approved applications."""
     apps = (
         db_session.query(ApplicationORM)
