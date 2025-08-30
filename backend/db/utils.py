@@ -186,7 +186,7 @@ def add_new_scraped_jobs(db_session, new_jobs: list[Job]) -> list[Job]:
             db_session.add(job)
     db_session.commit()
 
-    logging.debug(f"{num_new_jobs} new jobs added to the database")
+    logging.info(f"{num_new_jobs} new jobs added to the database!")
     return added_jobs
 
 

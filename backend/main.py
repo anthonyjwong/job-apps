@@ -131,8 +131,8 @@ async def find_jobs(
     # logic
     async def save_jobs_with_db():
         try:
+            logging.info("Finding jobs...")
             jobs = save_jobs(num_jobs=num_jobs)
-            logging.info(f"Found {len(jobs)} new jobs!")
         except:
             logging.error(f"/jobs/find: Error saving jobs", exc_info=True)
             await manager.broadcast(
@@ -554,7 +554,7 @@ async def review_jobs(background_tasks: BackgroundTasks, db: Session = Depends(g
     jobs = get_unreviewed_jobs(db)
     if len(jobs) == 0:
         return JSONResponse(
-            status_code=404,
+            status_code=204,
             content={"status": "error", "message": "No unreviewed jobs found"},
         )
 
@@ -578,7 +578,7 @@ async def create_job_applications(
     apps = get_unscraped_applications(db)
     if len(apps) == 0:
         return JSONResponse(
-            status_code=404,
+            status_code=204,
             content={"status": "error", "message": "No unscraped applications found"},
         )
 
@@ -610,7 +610,7 @@ async def prepare_applications(
     apps = get_unprepared_applications(db)
     if len(apps) == 0:
         return JSONResponse(
-            status_code=404,
+            status_code=204,
             content={"status": "error", "message": "No unprepared applications found"},
         )
 
@@ -634,7 +634,7 @@ def submit_applications(
     apps = get_user_approved_applications(db)
     if len(apps) == 0:
         return JSONResponse(
-            status_code=404,
+            status_code=204,
             content={
                 "status": "error",
                 "message": "No applications approved for submission",
