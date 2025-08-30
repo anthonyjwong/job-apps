@@ -18,6 +18,7 @@ from db.utils import (
     get_unapproved_applications,
     get_unprepared_applications,
     get_unreviewed_jobs,
+    get_unscraped_applications,
     get_unscraped_jobs,
     get_user_approved_applications,
     update_application_by_id,
@@ -569,23 +570,25 @@ async def review_jobs(background_tasks: BackgroundTasks, db: Session = Depends(g
     )
 
 
-@app.post("/jobs/apps")
+@app.post("/apps/create")
 async def create_job_applications(
     background_tasks: BackgroundTasks, db: Session = Depends(get_db)
 ):
-    """Creates new application for unscraped jobs."""
+    """Creates new application for unscraped apps."""
     # arg validation
-    jobs = get_unscraped_jobs(db)
-    if len(jobs) == 0:
+    apps = get_unscraped_applications(db)
+    if len(apps) == 0:
         return JSONResponse(
             status_code=404,
-            content={"status": "error", "message": "No unscraped jobs found"},
+            content={"status": "error", "message": "No unscraped applications found"},
         )
 
     # send-off
-    for job in jobs:
+    for app in apps:
+        job = get_job_by_id(db, app.job_id)
         if (
-            job.review.classification in ["safety", "target"]
+            job
+            and job.review.classification in ["safety", "target"]
             and job.job_type == "fulltime"
         ):
             background_tasks.add_task(

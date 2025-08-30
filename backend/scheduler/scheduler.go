@@ -67,7 +67,7 @@ func main() {
 	schedules := []periodicSchedule{
 		{"/jobs/find", []time.Duration{10 * time.Second}, interval},
 		{"/jobs/review", []time.Duration{time.Minute, 4 * time.Hour, 16 * time.Hour}, interval},
-		{"/jobs/apps", []time.Duration{2 * time.Minute, 8 * time.Hour, 20 * time.Hour}, interval},
+		{"/apps/create", []time.Duration{2 * time.Minute, 8 * time.Hour, 20 * time.Hour}, interval},
 		{"/apps/prepare", []time.Duration{3 * time.Minute, 12 * time.Hour, 24 * time.Hour}, interval},
 		{"/apps/submit", []time.Duration{5 * time.Minute}, time.Hour},
 	}

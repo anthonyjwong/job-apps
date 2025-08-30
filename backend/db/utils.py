@@ -20,16 +20,6 @@ def get_unreviewed_jobs(db_session) -> list[Job]:
     return [orm_to_job(job) for job in jobs]
 
 
-def get_unscraped_jobs(db_session) -> list[Job]:
-    """Fetch all unscraped jobs."""
-    jobs = (
-        db_session.query(JobORM)
-        .filter(JobORM.reviewed == True & JobORM.scraped == False)
-        .all()
-    )
-    return [orm_to_job(job) for job in jobs]
-
-
 def get_all_jobs(db_session) -> list[Job]:
     jobs = db_session.query(JobORM).all()
     return [orm_to_job(job) for job in jobs]
@@ -57,11 +47,19 @@ def get_application_by_job_id(db_session, job_id) -> App:
     return orm_to_app(app)
 
 
+def get_unscraped_applications(db_session) -> list[App]:
+    """Fetch all unscraped applications."""
+    apps = (
+        db_session.query(ApplicationORM).filter(ApplicationORM.scraped == False).all()
+    )
+    return [orm_to_app(app) for app in apps]
+
+
 def get_unprepared_applications(db_session) -> list[App]:
     """Fetch all unprepared apps."""
     apps = (
         db_session.query(ApplicationORM)
-        .filter(ApplicationORM.scraped == True & ApplicationORM.prepared == False)
+        .filter((ApplicationORM.scraped == True) & (ApplicationORM.prepared == False))
         .all()
     )
     return [orm_to_app(app) for app in apps]
