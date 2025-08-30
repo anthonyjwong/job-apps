@@ -577,10 +577,7 @@ async def create_job_applications(
     # arg validation
     apps = get_unscraped_applications(db)
     if len(apps) == 0:
-        return JSONResponse(
-            status_code=204,
-            content={"status": "error", "message": "No unscraped applications found"},
-        )
+        return JSONResponse(status_code=204)
 
     # send-off
     for app in apps:
@@ -609,10 +606,7 @@ async def prepare_applications(
     # arg validation
     apps = get_unprepared_applications(db)
     if len(apps) == 0:
-        return JSONResponse(
-            status_code=204,
-            content={"status": "error", "message": "No unprepared applications found"},
-        )
+        return JSONResponse(status_code=204)
 
     # send-off
     for app in apps:
@@ -633,13 +627,7 @@ def submit_applications(
     # arg validation
     apps = get_user_approved_applications(db)
     if len(apps) == 0:
-        return JSONResponse(
-            status_code=204,
-            content={
-                "status": "error",
-                "message": "No applications approved for submission",
-            },
-        )
+        return JSONResponse(status_code=204)
 
     # send off
     for app in apps:
