@@ -58,6 +58,7 @@ app = FastAPI(title="Job Application API")
 
 # Allow requests from your frontend (e.g., http://localhost:3000)
 origins = [
+    "http://localhost:3000",
     "http://frontend:3000",
     # Add more origins if needed
 ]

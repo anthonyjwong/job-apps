@@ -57,7 +57,7 @@ export default function UnapprovedApps(): ReactElement {
   const [error, setError] = useState<Error | null>(null);
 
   // Determine API base URL from environment (defaults to empty string).
-  const baseUrl: string = "http://backend:8000";
+  const baseUrl: string = "http://localhost:8000";
 
   useEffect(() => {
     /**
