@@ -304,11 +304,12 @@ async def create_job_application(job_id: UUID, db: Session = Depends(get_db)):
 
     # database operation
     try:
-        if existing_app is None:
-            add_new_application(db, app)
-        else:
-            app.id = existing_app.id  # must be first for correct error messaging
-            update_application_by_id(db, existing_app.id, app)
+        with SessionLocal() as db:
+            if existing_app is None:
+                add_new_application(db, app)
+            else:
+                app.id = existing_app.id  # must be first for correct error messaging
+                update_application_by_id(db, existing_app.id, app)
     except:
         logging.error(
             f"/job/{job_id}/create_app: Error updating app {app.id} in database",
