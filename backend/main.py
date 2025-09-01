@@ -183,42 +183,58 @@ async def find_jobs(
 
 
 @app.post("/job/{job_id}/review")
-async def review_job(job_id: UUID, db: Session = Depends(get_db)):
+async def review_job(job_id: UUID):
     """Review a specific job by ID"""
-    # arg validation
-    job = get_job_by_id(db, job_id)
-    if job is None:
-        logging.error(f"/job/{job_id}/review: Job not found", exc_info=True)
+    try:
+        with SessionLocal() as db:
+            # arg validation
+            job = get_job_by_id(db, job_id)
+            if job is None:
+                logging.error(f"/job/{job_id}/review: Job not found", exc_info=True)
+                return JSONResponse(
+                    status_code=404,
+                    content={
+                        "status": "error",
+                        "message": f"Job {job_id} not found",
+                    },
+                )
+
+            # logic
+            try:
+                logging.info(f"Reviewing job {job_id}...")
+                reviewed_job = evaluate_candidate_aptitude(job, user)
+            except:
+                logging.error(
+                    f"/job/{job_id}/review: Error reviewing job", exc_info=True
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={"status": "error", "message": "Failed to review job"},
+                )
+
+            # database operation
+            try:
+                update_job_by_id(db, job_id, reviewed_job)
+            except:
+                logging.error(
+                    f"/job/{job_id}/review: Error updating job in database",
+                    exc_info=True,
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "status": "error",
+                        "message": "Failed to update job in database",
+                    },
+                )
+    except:
+        logging.error(f"/job/{job_id}/review: Unexpected failure", exc_info=True)
         return JSONResponse(
-            status_code=404,
+            status_code=500,
             content={
                 "status": "error",
-                "message": f"Job {job_id} not found",
+                "message": f"Failed to review job {job_id}",
             },
-        )
-
-    # logic
-    try:
-        logging.info(f"Reviewing job {job_id}...")
-        reviewed_job = evaluate_candidate_aptitude(job, user)
-    except:
-        logging.error(f"/job/{job_id}/review: Error reviewing job", exc_info=True)
-        return JSONResponse(
-            status_code=500,
-            content={"status": "error", "message": "Failed to review job"},
-        )
-
-    # database operation
-    try:
-        update_job_by_id(db, job_id, reviewed_job)
-    except:
-        logging.error(
-            f"/job/{job_id}/review: Error updating job in database",
-            exc_info=True,
-        )
-        return JSONResponse(
-            status_code=500,
-            content={"status": "error", "message": "Failed to update job in database"},
         )
 
     # send-off
@@ -244,82 +260,99 @@ async def review_job(job_id: UUID, db: Session = Depends(get_db)):
 
 
 @app.post("/job/{job_id}/create_app")
-async def create_job_application(job_id: UUID, db: Session = Depends(get_db)):
+async def create_job_application(job_id: UUID):
     """Create an app for a job by its ID."""
-    # arg validation
-    job = get_job_by_id(db, job_id)
-    if job is None:
-        logging.error(f"/job/{job_id}/create_app: Job not found", exc_info=True)
-        return JSONResponse(
-            status_code=404,
-            content={
-                "status": "error",
-                "message": f"Job {job_id} not found",
-            },
-        )
-
-    existing_app = get_application_by_job_id(db, job_id)
-    if existing_app and existing_app.scraped == True:
-        logging.error(
-            f"/job/{job_id}/create_app: Application for job {job_id} already scraped",
-            exc_info=True,
-        )
-        return JSONResponse(
-            status_code=500,
-            content={
-                "status": "error",
-                "message": f"Application for job {job_id} already scraped",
-            },
-        )
-
-    # logic
-    try:
-        app = scrape_job_app(job)
-    except ValueError:
-        logging.error(f"/job/{job_id}/create_app: Job {job.id} is missing URLs")
-        return JSONResponse(
-            status_code=500,
-            content={
-                "status": "error",
-                "message": f"Job {job.id} is missing URLs",
-            },
-        )
-    except NotImplementedError:
-        logging.warning(
-            f"/job/{job_id}/create_app: {get_base_url(job.direct_job_url)} app prep is not supported at this time"
-        )
-        return JSONResponse(
-            status_code=400,
-            content={
-                "status": "warning",
-                "message": f"{get_base_url(job.direct_job_url)} app prep is not supported at this time",
-            },
-        )
-    except:
-        logging.error(f"/job/{job_id}/create_app: Error scraping job", exc_info=True)
-        return JSONResponse(
-            status_code=500,
-            content={"status": "error", "message": f"Failed to scrape job {job_id}"},
-        )
-
-    # database operation
     try:
         with SessionLocal() as db:
-            if existing_app is None:
-                add_new_application(db, app)
-            else:
-                app.id = existing_app.id  # must be first for correct error messaging
-                update_application_by_id(db, existing_app.id, app)
+            # arg validation
+            job = get_job_by_id(db, job_id)
+            if job is None:
+                logging.error(f"/job/{job_id}/create_app: Job not found", exc_info=True)
+                return JSONResponse(
+                    status_code=404,
+                    content={
+                        "status": "error",
+                        "message": f"Job {job_id} not found",
+                    },
+                )
+
+            existing_app = get_application_by_job_id(db, job_id)
+            if existing_app and existing_app.scraped == True:
+                logging.error(
+                    f"/job/{job_id}/create_app: Application for job {job_id} already scraped",
+                    exc_info=True,
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "status": "error",
+                        "message": f"Application for job {job_id} already scraped",
+                    },
+                )
+
+            # logic
+            try:
+                app = scrape_job_app(job)
+            except ValueError:
+                logging.error(f"/job/{job_id}/create_app: Job {job.id} is missing URLs")
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "status": "error",
+                        "message": f"Job {job.id} is missing URLs",
+                    },
+                )
+            except NotImplementedError:
+                logging.warning(
+                    f"/job/{job_id}/create_app: {get_base_url(job.direct_job_url)} app prep is not supported at this time"
+                )
+                return JSONResponse(
+                    status_code=400,
+                    content={
+                        "status": "warning",
+                        "message": f"{get_base_url(job.direct_job_url)} app prep is not supported at this time",
+                    },
+                )
+            except:
+                logging.error(
+                    f"/job/{job_id}/create_app: Error scraping job", exc_info=True
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "status": "error",
+                        "message": f"Failed to scrape job {job_id}",
+                    },
+                )
+
+            # database operation
+            try:
+                if existing_app is None:
+                    add_new_application(db, app)
+                else:
+                    app.id = (
+                        existing_app.id
+                    )  # must be first for correct error messaging
+                    update_application_by_id(db, existing_app.id, app)
+            except:
+                logging.error(
+                    f"/job/{job_id}/create_app: Error updating app {app.id} in database",
+                    exc_info=True,
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "status": "error",
+                        "message": f"Failed to add/update app {app.id} in database",
+                    },
+                )
     except:
-        logging.error(
-            f"/job/{job_id}/create_app: Error updating app {app.id} in database",
-            exc_info=True,
-        )
+        logging.error(f"/job/{job_id}/create_app: Unexpected failure", exc_info=True)
         return JSONResponse(
             status_code=500,
             content={
                 "status": "error",
-                "message": f"Failed to add/update app {app.id} in database",
+                "message": f"Failed to create application for job {job_id}",
             },
         )
 
@@ -338,86 +371,99 @@ async def create_job_application(job_id: UUID, db: Session = Depends(get_db)):
 
 
 @app.post("/app/{app_id}/prepare")
-async def prepare_application(app_id: UUID, db: Session = Depends(get_db)):
+async def prepare_application(app_id: UUID):
     """Create an app for a job by its ID."""
     # arg validation
-    app = get_application_by_id(db, app_id)
-    if app is None:
-        logging.error(
-            f"/app/{app_id}/prepare: App not found",
-        )
-        return JSONResponse(
-            status_code=404,
-            content={
-                "status": "error",
-                "message": f"App {app_id} not found",
-            },
-        )
-
-    job = get_job_by_id(db, app.job_id)
-    if job is None:
-        logging.error(
-            f"/app/{app_id}/prepare: Job {app.job_id} not found",
-        )
-        return JSONResponse(
-            status_code=404,
-            content={
-                "status": "error",
-                "message": f"Job {app.job_id} attached to app {app_id} not found",
-            },
-        )
-
-    if app.scraped == False:
-        logging.error(
-            f"/app/{app_id}/prepare: App questions not scraped",
-        )
-        return JSONResponse(
-            status_code=500,
-            content={
-                "status": "error",
-                "message": f"App {app.id} is not scraped",
-            },
-        )
-
-    if app.prepared == True:
-        logging.error(
-            f"/app/{app_id}/prepare: App is already prepared",
-        )
-        return JSONResponse(
-            status_code=500,
-            content={
-                "status": "error",
-                "message": f"App {app.id} is already prepared",
-            },
-        )
-
-    # logic
     try:
-        logging.info(f"Preparing app {app.id}...")
-        prepared_app = prepare_job_app(job, app, user)
-    except:
-        logging.error(f"/app/{app_id}/prepare: Failed to prepare app", exc_info=True)
-        return JSONResponse(
-            status_code=500,
-            content={
-                "status": "error",
-                "message": f"Failed to prepare app {app.id}",
-            },
-        )
+        with SessionLocal() as db:
+            app = get_application_by_id(db, app_id)
+            if app is None:
+                logging.error(
+                    f"/app/{app_id}/prepare: App not found",
+                )
+                return JSONResponse(
+                    status_code=404,
+                    content={
+                        "status": "error",
+                        "message": f"App {app_id} not found",
+                    },
+                )
 
-    # database operation
-    try:
-        update_application_by_id(db, app_id, prepared_app)
+            job = get_job_by_id(db, app.job_id)
+            if job is None:
+                logging.error(
+                    f"/app/{app_id}/prepare: Job {app.job_id} not found",
+                )
+                return JSONResponse(
+                    status_code=404,
+                    content={
+                        "status": "error",
+                        "message": f"Job {app.job_id} attached to app {app_id} not found",
+                    },
+                )
+
+            if app.scraped == False:
+                logging.error(
+                    f"/app/{app_id}/prepare: App questions not scraped",
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "status": "error",
+                        "message": f"App {app.id} is not scraped",
+                    },
+                )
+
+            if app.prepared == True:
+                logging.error(
+                    f"/app/{app_id}/prepare: App is already prepared",
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "status": "error",
+                        "message": f"App {app.id} is already prepared",
+                    },
+                )
+
+            # logic
+            try:
+                logging.info(f"Preparing app {app.id}...")
+                prepared_app = prepare_job_app(job, app, user)
+            except:
+                logging.error(
+                    f"/app/{app_id}/prepare: Failed to prepare app", exc_info=True
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "status": "error",
+                        "message": f"Failed to prepare app {app.id}",
+                    },
+                )
+
+            # database operation
+            try:
+                update_application_by_id(db, app_id, prepared_app)
+            except:
+                logging.error(
+                    f"/app/{app_id}/prepare: Failed to update app in database",
+                    exc_info=True,
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "status": "error",
+                        "message": f"Failed to update app {app.id} in database",
+                    },
+                )
     except:
-        logging.error(
-            f"/app/{app_id}/prepare: Failed to update app in database",
-            exc_info=True,
-        )
+        logging.error(f"/app/{app_id}/prepare: Unexpected failure", exc_info=True)
         return JSONResponse(
             status_code=500,
             content={
                 "status": "error",
-                "message": f"Failed to update app {app.id} in database",
+                "message": f"Failed to prepare application {app_id}",
             },
         )
 
@@ -432,119 +478,130 @@ async def prepare_application(app_id: UUID, db: Session = Depends(get_db)):
 
 
 @app.post("/app/{app_id}/submit")
-def submit_application(app_id: UUID, db: Session = Depends(get_db)):
+def submit_application(app_id: UUID):
     """Submit an application"""
-    # arg validation
-    app = get_application_by_id(db, app_id)
-    if not app:
-        logging.error(
-            f"/app/{app_id}/prepare: App not found",
-        )
-        return JSONResponse(
-            status_code=404,
-            content={
-                "status": "error",
-                "message": f"Application with ID {app_id} not found",
-            },
-        )
+    try:
+        with SessionLocal() as db:
+            # arg validation
+            app = get_application_by_id(db, app_id)
+            if not app:
+                logging.error(
+                    f"/app/{app_id}/submit: App not found",
+                )
+                return JSONResponse(
+                    status_code=404,
+                    content={
+                        "status": "error",
+                        "message": f"Application {app_id} not found",
+                    },
+                )
 
-    if not app.prepared:
-        logging.error(
-            f"/app/{app_id}/prepare: App not prepared",
-        )
-        return JSONResponse(
-            status_code=500,
-            content={
-                "status": "error",
-                "message": f"App {app_id} must be prepared before approval",
-            },
-        )
+            if not app.prepared:
+                logging.error(
+                    f"/app/{app_id}/submit: App not prepared",
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "status": "error",
+                        "message": f"App {app_id} must be prepared before approval",
+                    },
+                )
 
-    if not app.user_approved:
-        logging.error(
-            f"/app/{app_id}/prepare: App not approved by user",
-        )
-        return JSONResponse(
-            status_code=500,
-            content={
-                "status": "error",
-                "message": f"App {app_id} must be approved by user before submission",
-            },
-        )
+            if not app.user_approved:
+                logging.error(
+                    f"/app/{app_id}/submit: App not approved by user",
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "status": "error",
+                        "message": f"App {app_id} must be approved by user before submission",
+                    },
+                )
 
-    job = get_job_by_id(db, app.job_id)
-    if not job:
-        logging.error(
-            f"/app/{app_id}/prepare: Job {app.job_id} not found",
-        )
-        return JSONResponse(
-            status_code=404,
-            content={
-                "status": "error",
-                "message": f"Job ID {app.job_id} attached to app {app_id} not found",
-            },
-        )
+            job = get_job_by_id(db, app.job_id)
+            if not job:
+                logging.error(
+                    f"/app/{app_id}/submit: Job {app.job_id} not found",
+                )
+                return JSONResponse(
+                    status_code=404,
+                    content={
+                        "status": "error",
+                        "message": f"Job ID {app.job_id} attached to app {app_id} not found",
+                    },
+                )
 
-    # logic
-    async def submit_and_update_application():
-        try:
-            applied_app = submit_app(app, job)
-        except ValueError:
-            logging.error(f"/app/{app_id}/submit: Job {job.id} is missing URLs")
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "status": "error",
-                    "message": f"Job {job.id} is missing URLs",
-                },
-            )
-        except NotImplementedError:
-            logging.warning(
-                f"/app/{app_id}/submit: {get_base_url(job.direct_job_url)} app submission is not supported at this time"
-            )
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "status": "warning",
-                    "message": f"{get_base_url(job.direct_job_url)} app prep is not supported at this time",
-                },
-            )
-        except:
-            logging.error(
-                f"/app/{app_id}/submit: Error submitting application", exc_info=True
-            )
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "status": "error",
-                    "message": f"Failed to submit application {app_id}",
-                },
-            )
+            # logic
+            try:
+                applied_app = submit_app(app, job)
+            except ValueError:
+                logging.error(f"/app/{app_id}/submit: Job {job.id} is missing URLs")
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "status": "error",
+                        "message": f"Job {job.id} is missing URLs",
+                    },
+                )
+            except NotImplementedError:
+                logging.warning(
+                    f"/app/{app_id}/submit: {get_base_url(job.direct_job_url)} app submission is not supported at this time"
+                )
+                return JSONResponse(
+                    status_code=400,
+                    content={
+                        "status": "warning",
+                        "message": f"{get_base_url(job.direct_job_url)} app prep is not supported at this time",
+                    },
+                )
+            except:
+                logging.error(
+                    f"/app/{app_id}/submit: Error submitting application", exc_info=True
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "status": "error",
+                        "message": f"Failed to submit application {app_id}",
+                    },
+                )
 
-        # database operation
-        try:
-            with SessionLocal() as db:
+            # database operation
+            try:
                 update_application_by_id(db, app.id, applied_app)
-        except:
-            logging.error(
-                f"/app/{app_id}/prepare: Error updating app in database",
-                exc_info=True,
-            )
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "status": "error",
-                    "message": f"Failed to update app {app.id} in database",
-                },
-            )
-
-    asyncio.create_task(submit_and_update_application())
+            except:
+                logging.error(
+                    f"/app/{app_id}/submit: Error updating app in database",
+                    exc_info=True,
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "status": "error",
+                        "message": f"Failed to update app {app.id} in database",
+                    },
+                )
+    except:
+        logging.error(
+            f"/app/{app_id}/submit: Unexpected error",
+            exc_info=True,
+        )
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "error",
+                "message": f"Failed to prepare application {app_id}",
+            },
+        )
 
     # response
+    logging.info(f"Application {app_id} submitted successfully!")
     return JSONResponse(
-        status_code=202,
+        status_code=200,
         content={
-            "message": f"Application with ID {app_id} queued for submission!",
+            "message": f"Application {app_id} was submitted!",
         },
     )
 

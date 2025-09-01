@@ -1,0 +1,11 @@
+# Global ignores
+.git
+.vscode
+.idea
+**/__pycache__
+**/*.py[cod]
+**/*.log
+**/.venv
+node_modules
+**/.next
+.DS_Store

@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+*.egg
+
+# Envs
+.venv/
+.env
+
+# Not needed in image
+_playground.ipynb
+.debug/
+.db/
+.git
+.gitignore
+.debug.log
+debug.log
+
+# VCS
+.vscode/
+.idea/
