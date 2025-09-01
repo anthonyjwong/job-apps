@@ -203,6 +203,8 @@ async def review_job(job_id: UUID):
             try:
                 logging.info(f"Reviewing job {job_id}...")
                 reviewed_job = evaluate_candidate_aptitude(job, user)
+            except JSONDecodeError:
+                pass
             except:
                 logging.error(
                     f"/job/{job_id}/review: Error reviewing job", exc_info=True
@@ -617,7 +619,7 @@ async def review_jobs(db: Session = Depends(get_db)):
 
     # send-off
     for job in jobs:
-        asyncio.create_task(review_job(job.id, db))
+        asyncio.create_task(review_job(job.id))
 
     # response
     return JSONResponse(
@@ -661,7 +663,7 @@ async def prepare_applications(db: Session = Depends(get_db)):
 
     # send-off
     for app in apps:
-        asyncio.create_task(prepare_application(app.id, db))
+        asyncio.create_task(prepare_application(app.id))
 
     # response
     return JSONResponse(
@@ -680,7 +682,7 @@ def submit_applications(db: Session = Depends(get_db)):
 
     # send off
     for app in apps:
-        submit_application(app.id)
+        asyncio.create_task(submit_application(app.id))
 
     # response
     return JSONResponse(
