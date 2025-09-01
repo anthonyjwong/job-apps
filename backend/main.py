@@ -130,7 +130,7 @@ async def find_jobs(
     async def save_jobs_with_db():
         try:
             logging.info("Finding jobs...")
-            jobs = await asyncio.create_task(save_jobs(num_jobs=num_jobs))
+            jobs = save_jobs(num_jobs=num_jobs)
         except Exception:
             logging.error("/jobs/find: Error saving jobs", exc_info=True)
             await manager.broadcast(
@@ -140,8 +140,8 @@ async def find_jobs(
 
         # database operation
         try:
-            db = SessionLocal()
-            jobs = add_new_scraped_jobs(db, jobs)
+            with SessionLocal() as db:
+                jobs = add_new_scraped_jobs(db, jobs)
         except Exception:
             logging.error(
                 "/jobs/find: Error adding new jobs to database",
@@ -244,7 +244,7 @@ async def review_job(job_id: UUID, db: Session = Depends(get_db)):
 
 
 @app.post("/job/{job_id}/create_app")
-def create_job_application(job_id: UUID, db: Session = Depends(get_db)):
+async def create_job_application(job_id: UUID, db: Session = Depends(get_db)):
     """Create an app for a job by its ID."""
     # arg validation
     job = get_job_by_id(db, job_id)
@@ -337,7 +337,7 @@ def create_job_application(job_id: UUID, db: Session = Depends(get_db)):
 
 
 @app.post("/app/{app_id}/prepare")
-def prepare_application(app_id: UUID, db: Session = Depends(get_db)):
+async def prepare_application(app_id: UUID, db: Session = Depends(get_db)):
     """Create an app for a job by its ID."""
     # arg validation
     app = get_application_by_id(db, app_id)
@@ -522,7 +522,8 @@ def submit_application(app_id: UUID, db: Session = Depends(get_db)):
 
         # database operation
         try:
-            update_application_by_id(db, app.id, applied_app)
+            with SessionLocal() as db:
+                update_application_by_id(db, app.id, applied_app)
         except:
             logging.error(
                 f"/app/{app_id}/prepare: Error updating app in database",
@@ -558,7 +559,7 @@ async def review_jobs(db: Session = Depends(get_db)):
 
     # send-off
     for job in jobs:
-        asyncio.create_task(review_job(job.id))
+        asyncio.create_task(review_job(job.id, db))
 
     # response
     return JSONResponse(
@@ -602,7 +603,7 @@ async def prepare_applications(db: Session = Depends(get_db)):
 
     # send-off
     for app in apps:
-        asyncio.create_task(prepare_application(app.id))
+        asyncio.create_task(prepare_application(app.id, db))
 
     # response
     return JSONResponse(
