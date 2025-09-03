@@ -183,7 +183,7 @@ class App(BaseModel):
     fields: list[AppField] = PydanticField(default_factory=list)
     scraped: bool = False
     prepared: bool = False
-    user_approved: bool = False
+    approved: bool = False
     discarded: bool = False
     submitted: bool = False
     acknowledged: bool = False
@@ -220,7 +220,7 @@ class App(BaseModel):
             "fields": [f.to_json() for f in self.fields],
             "scraped": self.scraped,
             "prepared": self.prepared,
-            "user_approved": self.user_approved,
+            "approved": self.approved,
             "discarded": self.discarded,
             "submitted": self.submitted,
             "acknowledged": self.acknowledged,

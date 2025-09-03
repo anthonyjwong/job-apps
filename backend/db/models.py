@@ -25,6 +25,8 @@ class JobORM(Base):
     description = Column(String, nullable=True)
     review = Column(JSON, nullable=True)  # Store Review as JSON
     reviewed = Column(Boolean, default=False)
+    approved = Column(Boolean, default=False)
+    discarded = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
     updated_at = Column(
         DateTime,
@@ -52,6 +54,8 @@ class JobORM(Base):
             "description": self.description,
             "review": self.review,
             "reviewed": self.reviewed,
+            "approved": self.approved,
+            "discarded": self.discarded,
         }
 
 
@@ -64,7 +68,7 @@ class ApplicationORM(Base):
     fields = Column(JSON, nullable=True)  # Store AppFields as JSON
     scraped = Column(Boolean, default=False)
     prepared = Column(Boolean, default=False)
-    user_approved = Column(Boolean, default=False)
+    approved = Column(Boolean, default=False)
     discarded = Column(Boolean, default=False)
     submitted = Column(Boolean, default=False)
     acknowledged = Column(Boolean, default=False)
@@ -87,7 +91,7 @@ class ApplicationORM(Base):
             "fields": self.fields,
             "scraped": self.scraped,
             "prepared": self.prepared,
-            "user_approved": self.user_approved,
+            "approved": self.approved,
             "discarded": self.discarded,
             "submitted": self.submitted,
             "acknowledged": self.acknowledged,

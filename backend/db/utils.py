@@ -71,7 +71,7 @@ def get_unapproved_applications(db_session) -> list[App]:
         db_session.query(ApplicationORM)
         .filter(
             (ApplicationORM.prepared == True)
-            & (ApplicationORM.user_approved == False)
+            & (ApplicationORM.approved == False)
             & (ApplicationORM.discarded == False)
             & (ApplicationORM.submitted == False)
         )
@@ -80,13 +80,11 @@ def get_unapproved_applications(db_session) -> list[App]:
     return [orm_to_app(app) for app in apps]
 
 
-def get_user_approved_applications(db_session) -> list[App]:
+def get_approved_applications(db_session) -> list[App]:
     """Fetch all user-approved applications."""
     apps = (
         db_session.query(ApplicationORM)
-        .filter(
-            (ApplicationORM.user_approved == True) & (ApplicationORM.submitted == False)
-        )
+        .filter((ApplicationORM.approved == True) & (ApplicationORM.submitted == False))
         .all()
     )
     return [orm_to_app(app) for app in apps]
@@ -111,6 +109,26 @@ def update_job_by_id(db_session, job_id, updated_job: Job):
                 value = value.__dict__
             setattr(job_orm, key, value)
         db_session.commit()
+
+
+def approve_job_by_id(db_session, job_id):
+    """Approve a job by its ID."""
+    job = db_session.query(JobORM).filter(JobORM.id == job_id).first()
+    if not job:
+        raise ValueError(f"Job with id {job_id} not found.")
+    job.approved = True
+    db_session.commit()
+    logging.debug(f"Job {job_id} approved")
+
+
+def discard_job_by_id(db_session, job_id):
+    """Set the discarded field to True."""
+    job = db_session.query(JobORM).filter(JobORM.id == job_id).first()
+    if not job:
+        raise ValueError(f"Job with id {job_id} not found.")
+    job.discarded = True
+    db_session.commit()
+    logging.debug(f"Job {job_id} discarded")
 
 
 def update_application_by_id(db_session, app_id, updated_app: App):
@@ -149,7 +167,7 @@ def approve_application_by_id(db_session, app_id):
     app = db_session.query(ApplicationORM).filter(ApplicationORM.id == app_id).first()
     if not app:
         raise ValueError(f"Application with id {app_id} not found.")
-    app.user_approved = True
+    app.approved = True
     db_session.commit()
     logging.debug(f"App {app_id} approved")
 

@@ -16,12 +16,12 @@ from db.utils import (
     get_all_jobs,
     get_application_by_id,
     get_application_by_job_id,
+    get_approved_applications,
     get_job_by_id,
     get_unapproved_applications,
     get_unprepared_applications,
     get_unreviewed_jobs,
     get_unscraped_applications,
-    get_user_approved_applications,
     update_application_by_id,
     update_application_by_id_with_fragment,
     update_job_by_id,
@@ -487,7 +487,7 @@ async def submit_application(app_id: UUID):
                 },
             )
 
-        if not app.user_approved:
+        if not app.approved:
             logging.error(
                 f"/app/{app_id}/submit: App not approved by user",
             )
@@ -641,7 +641,7 @@ async def prepare_applications(db: Session = Depends(get_db)):
 def submit_applications(db: Session = Depends(get_db)):
     """Submits approved applications."""
     # arg validation
-    apps = get_user_approved_applications(db)
+    apps = get_approved_applications(db)
     if len(apps) == 0:
         return Response(status_code=204)
 

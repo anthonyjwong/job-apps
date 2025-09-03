@@ -286,10 +286,10 @@ class Ashby(JobSite):
 
                 # get manual approval first
                 # user_approval = input("Do you approve this application? (y/n): ")
-                # app.user_approved = user_approval.lower() == "y"
-                app.user_approved = True  # auto-approve for now
+                # app.approved = user_approval.lower() == "y"
+                app.approved = True  # auto-approve for now
 
-                if app.user_approved:
+                if app.approved:
                     # submit
                     await human_delay(1, 2, override=True)
                     submit_button = page.locator(
