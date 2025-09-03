@@ -14,9 +14,19 @@ SQLALCHEMY_DATABASE_URL = (
     f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 )
 
+# Connection pool settings (tunable via environment)
+POOL_SIZE = int(os.environ.get("DB_POOL_SIZE", "10"))
+MAX_OVERFLOW = int(os.environ.get("DB_MAX_OVERFLOW", "20"))
+POOL_TIMEOUT = int(os.environ.get("DB_POOL_TIMEOUT", "30"))  # seconds
+POOL_RECYCLE = int(os.environ.get("DB_POOL_RECYCLE", "1800"))  # seconds
+
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
     pool_pre_ping=True,  # validate connections before use
+    pool_size=POOL_SIZE,
+    max_overflow=MAX_OVERFLOW,
+    pool_timeout=POOL_TIMEOUT,
+    pool_recycle=POOL_RECYCLE,
 )
 # Avoid expiring attributes on commit so objects can be safely read post-commit
 SessionLocal = sessionmaker(

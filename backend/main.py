@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import time
 from json import JSONDecodeError
 from typing import List
@@ -109,6 +110,10 @@ manager = ConnectionManager()
 
 DEFAULT_JOBS_TO_FIND = 50
 
+# Limit concurrent background operations that might use DB connections
+MAX_CONCURRENT_TASKS = int(os.environ.get("MAX_CONCURRENT_TASKS", "8"))
+task_semaphore = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
+
 # Keep the user configuration
 user = User(
     first_name="AJ",
@@ -191,56 +196,59 @@ async def find_jobs(
 @app.post("/job/{job_id}/review")
 async def review_job(job_id: UUID):
     """Review a specific job by ID"""
-    with SessionLocal() as db:
-        # arg validation
-        job = get_job_by_id(db, job_id)
-        if job is None:
-            logging.error(f"/job/{job_id}/review: Job not found", exc_info=True)
-            return JSONResponse(
-                status_code=404,
-                content={
-                    "status": "error",
-                    "message": f"Job {job_id} not found",
-                },
-            )
+    async with task_semaphore:
+        with SessionLocal() as db:
+            # arg validation
+            job = get_job_by_id(db, job_id)
+            if job is None:
+                logging.error(f"/job/{job_id}/review: Job not found", exc_info=True)
+                return JSONResponse(
+                    status_code=404,
+                    content={
+                        "status": "error",
+                        "message": f"Job {job_id} not found",
+                    },
+                )
 
-        # logic
-        try:
-            logging.info(f"Reviewing job {job_id}...")
-            # Offload OpenAI network calls and JSON processing to a worker thread
-            reviewed_job = await asyncio.to_thread(
-                evaluate_candidate_aptitude, job, user
-            )
-        except JSONDecodeError:
-            logging.error(
-                f"/job/{job_id}/review: evaluate_candidate_aptitude failed to return a valid JSON response"
-            )
-            return JSONResponse(
-                status_code=500,
-                content={"status": "error", "message": "Failed to review job"},
-            )
-        except:
-            logging.error(f"/job/{job_id}/review: Error reviewing job", exc_info=True)
-            return JSONResponse(
-                status_code=500,
-                content={"status": "error", "message": "Failed to review job"},
-            )
+            # logic
+            try:
+                logging.info(f"Reviewing job {job_id}...")
+                # Offload OpenAI network calls and JSON processing to a worker thread
+                reviewed_job = await asyncio.to_thread(
+                    evaluate_candidate_aptitude, job, user
+                )
+            except JSONDecodeError:
+                logging.error(
+                    f"/job/{job_id}/review: evaluate_candidate_aptitude failed to return a valid JSON response"
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={"status": "error", "message": "Failed to review job"},
+                )
+            except:
+                logging.error(
+                    f"/job/{job_id}/review: Error reviewing job", exc_info=True
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={"status": "error", "message": "Failed to review job"},
+                )
 
-        # database operation
-        try:
-            update_job_by_id(db, job_id, reviewed_job)
-        except:
-            logging.error(
-                f"/job/{job_id}/review: Error updating job in database",
-                exc_info=True,
-            )
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "status": "error",
-                    "message": "Failed to update job in database",
-                },
-            )
+            # database operation
+            try:
+                update_job_by_id(db, job_id, reviewed_job)
+            except:
+                logging.error(
+                    f"/job/{job_id}/review: Error updating job in database",
+                    exc_info=True,
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "status": "error",
+                        "message": "Failed to update job in database",
+                    },
+                )
 
     # send-off
     if (
@@ -267,32 +275,33 @@ async def review_job(job_id: UUID):
 @app.post("/job/{job_id}/create_app")
 async def create_job_application(job_id: UUID):
     """Create an app for a job by its ID."""
-    with SessionLocal() as db:
-        # arg validation
-        job = get_job_by_id(db, job_id)
-        if job is None:
-            logging.error(f"/job/{job_id}/create_app: Job not found", exc_info=True)
-            return JSONResponse(
-                status_code=404,
-                content={
-                    "status": "error",
-                    "message": f"Job {job_id} not found",
-                },
-            )
+    async with task_semaphore:
+        with SessionLocal() as db:
+            # arg validation
+            job = get_job_by_id(db, job_id)
+            if job is None:
+                logging.error(f"/job/{job_id}/create_app: Job not found", exc_info=True)
+                return JSONResponse(
+                    status_code=404,
+                    content={
+                        "status": "error",
+                        "message": f"Job {job_id} not found",
+                    },
+                )
 
-        existing_app = get_application_by_job_id(db, job_id)
-        if existing_app and existing_app.scraped == True:
-            logging.error(
-                f"/job/{job_id}/create_app: Application for job {job_id} already scraped",
-                exc_info=True,
-            )
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "status": "error",
-                    "message": f"Application for job {job_id} already scraped",
-                },
-            )
+            existing_app = get_application_by_job_id(db, job_id)
+            if existing_app and existing_app.scraped == True:
+                logging.error(
+                    f"/job/{job_id}/create_app: Application for job {job_id} already scraped",
+                    exc_info=True,
+                )
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "status": "error",
+                        "message": f"Application for job {job_id} already scraped",
+                    },
+                )
 
         # logic
         try:
@@ -367,8 +376,9 @@ async def create_job_application(job_id: UUID):
 async def prepare_application(app_id: UUID):
     """Create an app for a job by its ID."""
     # arg validation
-    with SessionLocal() as db:
-        app = get_application_by_id(db, app_id)
+    async with task_semaphore:
+        with SessionLocal() as db:
+            app = get_application_by_id(db, app_id)
         if app is None:
             logging.error(
                 f"/app/{app_id}/prepare: App not found",
@@ -607,13 +617,12 @@ async def create_job_applications(db: Session = Depends(get_db)):
 
     # send-off
     for job in jobs:
-        if (
-            job
-            and (
+        if not job.discarded and (
+            (
                 job.review.classification in ["safety", "target"]
                 and job.job_type == "fulltime"
             )
-            or (job.approved == True and job.discarded == False)
+            or job.approved
         ):
             app = get_application_by_job_id(db, job.id)
             if app is None or app.scraped == False:
