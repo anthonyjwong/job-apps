@@ -30,7 +30,17 @@ export interface ApplicationRecord {
  * time with controls to navigate, approve or discard each entry.
  */
 export default function UnapprovedApps(): ReactElement {
-  const { dark: darkMode, toggle: handleToggleDarkMode } = useTheme();
+  const { dark: darkMode } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  // Prevent horizontal scrolling on this page only
+  useEffect(() => {
+    const prev = document.body.style.overflowX;
+    document.body.style.overflowX = 'hidden';
+    return () => {
+      document.body.style.overflowX = prev;
+    };
+  }, []);
   // State to hold the list of applications. Use explicit generic type.
   const [apps, setApps] = useState<ApplicationRecord[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
@@ -259,6 +269,10 @@ export default function UnapprovedApps(): ReactElement {
   };
 
   // Render loading state
+  if (!mounted) {
+    return <main style={{ padding: '1rem' }} />;
+  }
+
   if (loading) {
     return <p style={{ padding: '1rem' }}>Loading unapproved applications…</p>;
   }
@@ -299,6 +313,7 @@ export default function UnapprovedApps(): ReactElement {
       background: theme.background,
       minHeight: '100vh',
       color: theme.text,
+  overflowX: 'hidden',
       transition: 'background 0.2s, color 0.2s',
     }}>
       <section style={{
@@ -442,39 +457,20 @@ export default function UnapprovedApps(): ReactElement {
         style={{
           position: 'fixed',
           left: 0,
+          right: 0,
           bottom: 0,
-          width: '100vw',
           background: theme.appBg,
           borderTop: `1px solid ${theme.border}`,
           boxShadow: '0 -2px 8px rgba(0,0,0,0.08)',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          justifyContent: 'flex-end',
           padding: '0.75rem 2rem',
+          boxSizing: 'border-box',
+          overflowX: 'hidden',
           zIndex: 2000,
         }}
       >
-        {/* Left: Dark/Light Mode Toggle */}
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <button
-            onClick={handleToggleDarkMode}
-            aria-label="Toggle dark mode"
-            style={{
-              background: darkMode ? '#232326' : '#fff',
-              color: darkMode ? '#f3f3f3' : '#222',
-              border: `1px solid ${theme.border}`,
-              borderRadius: '9999px',
-              padding: '0.5rem 1.25rem',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-              fontWeight: 500,
-              fontSize: '1rem',
-              transition: 'background 0.2s, color 0.2s',
-            }}
-          >
-            {darkMode ? 'Light Mode' : 'Dark Mode'}
-          </button>
-        </div>
-
         {/* Center: Navigation Arrows (absolutely centered) */}
         <div style={{ position: 'absolute', left: '50%', bottom: '0.75rem', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 2100 }}>
           <button

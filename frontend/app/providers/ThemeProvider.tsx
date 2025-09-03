@@ -10,20 +10,29 @@ type ThemeCtx = {
 const ThemeContext = createContext<ThemeCtx | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [dark, setDark] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    const stored = window.localStorage.getItem("theme");
-    return stored ? stored === "dark" : false;
-  });
+  // Start with a deterministic value for SSR, then sync from localStorage after mount
+  const [dark, setDark] = useState<boolean>(false);
+  const [mounted, setMounted] = useState(false);
 
+  // Read preference after mount to avoid SSR/CSR mismatches
   useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem("theme");
+      if (stored) setDark(stored === "dark");
+    } catch {}
+    setMounted(true);
+  }, []);
+
+  // Apply class and persist only after initial sync
+  useEffect(() => {
+    if (!mounted) return;
     const root = document.documentElement;
     if (dark) root.classList.add("dark");
     else root.classList.remove("dark");
     try {
       window.localStorage.setItem("theme", dark ? "dark" : "light");
     } catch {}
-  }, [dark]);
+  }, [dark, mounted]);
 
   const value = useMemo<ThemeCtx>(() => ({
     dark,

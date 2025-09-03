@@ -23,6 +23,9 @@ export default function Home() {
   const [jobs, setJobs] = useState<JobsSummary | null>(null);
   const [apps, setApps] = useState<AppsSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     const base = "http://localhost:8000";
@@ -49,6 +52,11 @@ export default function Home() {
     link: darkMode ? '#90cdf4' : '#1976d2',
   } as const;
   const muted = darkMode ? '#9ca3af' : '#6b7280';
+
+  if (!mounted) {
+    // Keep SSR and CSR markup consistent; render a minimal shell
+    return <main style={{ padding: 16, maxWidth: 1000, margin: "0 auto" }} />;
+  }
 
   return (
     <main style={{ padding: 16, maxWidth: 1000, margin: "0 auto", background: theme.background, color: theme.text, minHeight: '100vh' }}>
