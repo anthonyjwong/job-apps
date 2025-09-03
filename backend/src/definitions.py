@@ -33,6 +33,8 @@ class Job(BaseModel):
     description: Optional[str] = None
     review: Optional[Review] = None
     reviewed: bool = False
+    approved: bool = False
+    discarded: bool = False
 
     def log(self):
         """Log job details."""
@@ -53,6 +55,9 @@ class Job(BaseModel):
             "linkedin_job_url": self.linkedin_job_url,
             "direct_job_url": self.direct_job_url,
             "description": self.description,
+            "reviewed": self.reviewed,
+            "approved": self.approved,
+            "discarded": self.discarded,
         }
 
     def to_prompt(self):

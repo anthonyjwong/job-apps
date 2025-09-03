@@ -710,6 +710,62 @@ async def update_application_from_fragment(
         )
 
 
+@app.post("/job/{job_id}/approve")
+def approve_job(job_id: UUID, db: Session = Depends(get_db)):
+    """Approve a job"""
+    try:
+        job = get_job_by_id(db, job_id)
+        if not job:
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "status": "error",
+                    "message": f"Job with ID {job_id} not found",
+                },
+            )
+
+        approve_job_by_id(db, job.id)
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "message": f"Job with ID {job_id} approved!",
+            },
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500, content={"status": "error", "message": str(e)}
+        )
+
+
+@app.post("/job/{job_id}/discard")
+async def discard_job(job_id: UUID, db: Session = Depends(get_db)):
+    """Discard a job"""
+    try:
+        job = get_job_by_id(db, job_id)
+        if not job:
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "status": "error",
+                    "message": f"Job with ID {job_id} not found",
+                },
+            )
+
+        discard_job_by_id(db, job_id)
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "message": f"Job with ID {job_id} discarded successfully!",
+            },
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500, content={"status": "error", "message": str(e)}
+        )
+
+
 @app.post("/app/{app_id}/approve")
 def approve_application(app_id: UUID, db: Session = Depends(get_db)):
     """Approve and submit an application"""
