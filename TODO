@@ -1,5 +1,5 @@
-- Update frontend to have multiple pages
     - Approval page: This is currently frontend/app/page.tsx
     - Job listings page: List all saved jobs. This is currently frontend/app/jobs/page.tsx
     - A home page that allows for easy navigation to each of the previous pages and also the following:
         - An app stats widget.
+ Update frontend to have multiple pages — Completed

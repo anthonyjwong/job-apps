@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useTheme } from "../providers/ThemeProvider";
 
 type Review = {
   action?: string;
@@ -24,6 +25,7 @@ type JobRecord = {
 };
 
 export default function AllJobsPage() {
+  const { dark: darkMode } = useTheme();
   const [jobs, setJobs] = useState<JobRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,8 +51,16 @@ export default function AllJobsPage() {
     fetchJobs();
   }, []);
 
-  if (loading) return <main style={{ padding: 16 }}>Loading…</main>;
-  if (error) return <main style={{ padding: 16, color: "red" }}>Error: {error}</main>;
+  const theme = {
+    background: darkMode ? '#18181b' : '#f9f9f9',
+    appBg: darkMode ? '#232326' : '#fff',
+    border: darkMode ? '#333' : '#ddd',
+    text: darkMode ? '#f3f3f3' : '#222',
+    link: darkMode ? '#90cdf4' : '#1976d2',
+  } as const;
+
+  if (loading) return <main style={{ padding: 16, background: theme.background, color: theme.text, minHeight: '100vh' }}>Loading…</main>;
+  if (error) return <main style={{ padding: 16, color: "red", background: theme.background, minHeight: '100vh' }}>Error: {error}</main>;
 
   const salary = (j: JobRecord) => {
     if (j.min_salary && j.max_salary) return `$${Math.round(j.min_salary)} - $${Math.round(j.max_salary)}`;
@@ -62,14 +72,14 @@ export default function AllJobsPage() {
   const linkCell = (j: JobRecord) => (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       {j.direct_job_url ? (
-        <a href={j.direct_job_url} target="_blank" rel="noreferrer" style={{ color: "#1976d2", wordBreak: "break-all" }}>
+        <a href={j.direct_job_url} target="_blank" rel="noreferrer" style={{ color: theme.link, wordBreak: "break-all" }}>
           Direct
         </a>
       ) : (
         <span style={{ color: "#666" }}>Direct —</span>
       )}
       {j.linkedin_job_url ? (
-        <a href={j.linkedin_job_url} target="_blank" rel="noreferrer" style={{ color: "#1976d2", wordBreak: "break-all" }}>
+        <a href={j.linkedin_job_url} target="_blank" rel="noreferrer" style={{ color: theme.link, wordBreak: "break-all" }}>
           LinkedIn
         </a>
       ) : (
@@ -79,36 +89,36 @@ export default function AllJobsPage() {
   );
 
   return (
-    <main style={{ padding: 16, maxWidth: 1200, margin: "0 auto" }}>
+    <main style={{ padding: 16, maxWidth: 1200, margin: "0 auto", background: theme.background, color: theme.text, minHeight: '100vh' }}>
       <h1 style={{ marginBottom: 12 }}>All Jobs</h1>
       {jobs.length === 0 ? (
         <p>No jobs yet.</p>
       ) : (
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", background: theme.appBg }}>
             <thead>
               <tr>
-                <th style={th}>Title</th>
-                <th style={th}>Company</th>
-                <th style={th}>Location</th>
-                <th style={th}>Type</th>
-                <th style={th}>Salary</th>
-                <th style={th}>Posted</th>
-                <th style={th}>Classification</th>
-                <th style={th}>Links</th>
+                <th style={th(theme)}>Title</th>
+                <th style={th(theme)}>Company</th>
+                <th style={th(theme)}>Location</th>
+                <th style={th(theme)}>Type</th>
+                <th style={th(theme)}>Salary</th>
+                <th style={th(theme)}>Posted</th>
+                <th style={th(theme)}>Classification</th>
+                <th style={th(theme)}>Links</th>
               </tr>
             </thead>
             <tbody>
               {jobs.map((j) => (
                 <tr key={j.id}>
-                  <td style={td}>{j.title}</td>
-                  <td style={td}>{j.company}</td>
-                  <td style={td}>{j.location || "—"}</td>
-                  <td style={tdSmall}>{j.job_type || "—"}</td>
-                  <td style={tdSmall}>{salary(j)}</td>
-                  <td style={tdSmall}>{j.date_posted || "—"}</td>
-                  <td style={tdSmall}>{j.review?.classification ?? (j.reviewed ? "—" : "unreviewed")}</td>
-                  <td style={td}>{linkCell(j)}</td>
+                  <td style={td(theme)}>{j.title}</td>
+                  <td style={td(theme)}>{j.company}</td>
+                  <td style={td(theme)}>{j.location || "—"}</td>
+                  <td style={tdSmall(theme)}>{j.job_type || "—"}</td>
+                  <td style={tdSmall(theme)}>{salary(j)}</td>
+                  <td style={tdSmall(theme)}>{j.date_posted || "—"}</td>
+                  <td style={tdSmall(theme)}>{j.review?.classification ?? (j.reviewed ? "—" : "unreviewed")}</td>
+                  <td style={td(theme)}>{linkCell(j)}</td>
                 </tr>
               ))}
             </tbody>
@@ -119,19 +129,19 @@ export default function AllJobsPage() {
   );
 }
 
-const th: React.CSSProperties = {
+const th = (theme: any): React.CSSProperties => ({
   textAlign: "left",
-  borderBottom: "1px solid #ddd",
+  borderBottom: `1px solid ${theme.border}`,
   padding: 8,
-};
+});
 
-const td: React.CSSProperties = {
-  borderBottom: "1px solid #eee",
+const td = (theme: any): React.CSSProperties => ({
+  borderBottom: `1px solid ${theme.border}`,
   padding: 8,
   verticalAlign: "top",
-};
+});
 
-const tdSmall: React.CSSProperties = {
-  ...td,
+const tdSmall = (theme: any): React.CSSProperties => ({
+  ...td(theme),
   whiteSpace: "nowrap",
-};
+});

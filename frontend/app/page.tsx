@@ -1,601 +1,208 @@
-"use client"
-import { ReactElement, useEffect, useState } from 'react';
+"use client";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import PieChart from "./components/PieChart";
+import { useTheme } from "./providers/ThemeProvider";
 
-/**
- * Field information associated with an application. If `multiple_choice`
- * is true, the `choices` array contains all possible options. The
- * `answer` string holds either the selected choice or free‑text answer.
- */
-export interface Field {
-  question: string;
-  multiple_choice: boolean;
-  choices: string[];
-  answer: string;
-}
+type JobsSummary = {
+  total_jobs: number;
+  classifications: { safety: number; target: number; reach: number; dream: number };
+  base_urls: Record<string, number>;
+};
 
-/**
- * Application record returned from the `/apps/unapproved` endpoint.
- */
-export interface ApplicationRecord {
-  job_id: string;
-  id: string;
-  url: string;
-  fields: Field[];
-}
+type AppsSummary = {
+  total_apps: number;
+  discarded: number;
+  submitted: number;
+  acknowledged: number;
+  rejected: number;
+};
 
-/**
- * Component for reviewing unapproved applications. It fetches data from
- * `/apps/unapproved` once on mount, and displays one application at a
- * time with controls to navigate, approve or discard each entry.
- */
-export default function UnapprovedApps(): ReactElement {
-  // Persistent dark mode state
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') === 'dark';
-    }
-    return false;
-  });
+export default function Home() {
+  const { dark: darkMode } = useTheme();
+  const [jobs, setJobs] = useState<JobsSummary | null>(null);
+  const [apps, setApps] = useState<AppsSummary | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [darkMode]);
-
-  const handleToggleDarkMode = () => setDarkMode((prev) => !prev);
-  // State to hold the list of applications. Use explicit generic type.
-  const [apps, setApps] = useState<ApplicationRecord[]>([]);
-  const [currentIndex, setCurrentIndex] = useState<number>(0);
-  // Store initial textbox sizes (width) and heights for each app/field
-  const [initialSizes, setInitialSizes] = useState<{ width: number, height: number }[][]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  // Determine API base URL from environment (defaults to empty string).
-  const baseUrl: string = "http://localhost:8000";
-
-  useEffect(() => {
-    /**
-     * Fetch the list of unapproved applications from the API. If the
-     * response is not an array, an error will be thrown.
-     */
-    async function fetchData(): Promise<void> {
+    const base = "http://localhost:8000";
+    const load = async () => {
       try {
-        const res = await fetch(`${baseUrl}/apps/unapproved`, {
-          headers: {
-            Accept: 'application/json',
-          },
-        });
-        const json = await res.json();
-        const data: ApplicationRecord[] = json.apps;
-        if (Array.isArray(data)) {
-          // Type assertion: assume each item conforms to ApplicationRecord
-          setApps(data);
-          // Compute initial sizes for all fields in all apps
-          const sizes = data.map(app =>
-            app.fields.map(field => {
-              const answer = field.answer || '';
-              // Estimate line count by splitting on newlines and wrapping at ~70 chars
-              const lines = answer.split('\n').reduce((acc, line) => acc + Math.max(1, Math.ceil(line.length / 70)), 0);
-              // Height: 32px per line, min 32, max 200
-              const height = Math.max(32, Math.min(lines * 32 + 16, 200));
-              // Width: max width for answers > 60 chars, else scale up to 600px
-              let width;
-              if (answer.length > 60) width = 600;
-              else width = Math.max(160, Math.min(answer.length * 10 + 40, 600));
-              return { width, height };
-            })
-          );
-          setInitialSizes(sizes);
-        } else {
-          throw new Error('Response was not an array');
-        }
-      } catch (err) {
-        console.error('Failed to fetch unapproved applications:', err);
-        setError(err as Error);
-      } finally {
-        setLoading(false);
+        const [j, a] = await Promise.all([
+          fetch(`${base}/jobs/summary`).then((r) => r.json()),
+          fetch(`${base}/apps/summary`).then((r) => r.json()),
+        ]);
+        setJobs(j.data);
+        setApps(a.data);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to load stats");
       }
-    }
-    fetchData();
-  }, [baseUrl]);
-
-  /**
-   * Move to the next application in the list. Wrap around at the end.
-   */
-  const handleNext = (): void => {
-    setCurrentIndex((prev) => {
-      if (apps.length === 0) return 0;
-      return (prev + 1) % apps.length;
-    });
-  };
-
-  /**
-   * Move to the previous application in the list. Wrap around at the start.
-   */
-  const handlePrev = (): void => {
-    setCurrentIndex((prev) => {
-      if (apps.length === 0) return 0;
-      return (prev - 1 + apps.length) % apps.length;
-    });
-  };
-
-  // Save button handler (stub)
-  // Save button handler: collect all current textbox answers for the current app
-  const handleSave = () => {
-    const currentApp = apps[currentIndex];
-    if (!currentApp) return;
-
-    const appData = {
-      id: String(currentApp.id),
-      job_id: String(currentApp.job_id),
-      url: currentApp.url,
-      fields: currentApp.fields.map(f => ({
-        question: f.question,
-        multiple_choice: f.multiple_choice,
-        choices: f.choices,
-        answer: f.answer,
-      })),
     };
+    load();
+  }, []);
 
-    fetch(`http://localhost:8000/app/${appData.id}/update`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(appData),
-    })
-      .then(async res => {
-        if (!res.ok) {
-          let errorText;
-          try {
-            errorText = await res.text();
-            console.error("Error response:", errorText);
-          } catch (e) {
-            console.error("Failed to read error response", e);
-          }
-          alert("Failed to save application: Unprocessable Entity\n" + errorText);
-        } else {
-          console.log("Application saved successfully");
-        }
-      })
-      .catch(err => {
-        console.error("Network or fetch error:", err);
-        alert("Network error: " + err.message);
-      });
-  };
-
-  /**
-   * Send an approval request for the current application. Upon success
-   * remove it from the local list and adjust the current index.
-   */
-  const handleApprove = async (): Promise<void> => {
-    if (!apps.length) return;
-    await handleSave();
-
-    const currentApp = apps[currentIndex];
-    fetch(`${baseUrl}/app/${currentApp.id}/approve`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
-      .then(async res => {
-        if (!res.ok) {
-          let errorText;
-          try {
-            errorText = await res.text();
-            console.error("Error response:", errorText);
-          } catch (e) {
-            console.error("Failed to read error response", e);
-          }
-          alert("Failed to approve application: Unprocessable Entity\n" + errorText);
-        } else {
-          console.log("Application approved successfully");
-        }
-      })
-      .catch(err => {
-        console.error("Network or fetch error:", err);
-        alert("Network error: " + err.message);
-      });
-
-    // Remove item and adjust index, and update initialSizes
-    setApps((prevApps) => {
-      const newApps = prevApps.filter((_, index) => index !== currentIndex);
-      // Recompute initialSizes for newApps
-      const newSizes = newApps.map(app =>
-        app.fields.map(field => {
-          const answer = field.answer || '';
-          const lines = answer.split('\n').reduce((acc, line) => acc + Math.max(1, Math.ceil(line.length / 70)), 0);
-          const height = Math.max(32, Math.min(lines * 32 + 16, 200));
-          let width;
-          if (answer.length > 60) width = 600;
-          else width = Math.max(160, Math.min(answer.length * 10 + 40, 600));
-          return { width, height };
-        })
-      );
-      setInitialSizes(newSizes);
-      return newApps;
-    });
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : 0));
-  };
-
-  /**
-   * Send a discard request for the current application. Upon success
-   * remove it from the local list and adjust the current index.
-   */
-  const handleDiscard = async (): Promise<void> => {
-    if (!apps.length) return;
-    const currentApp = apps[currentIndex];
-    fetch(`${baseUrl}/app/${currentApp.id}/discard`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    }).then(async res => {
-      if (!res.ok) {
-        let errorText;
-        try {
-          errorText = await res.text();
-          console.error("Error response:", errorText);
-        } catch (e) {
-          console.error("Failed to read error response", e);
-        }
-        alert("Failed to discard application: Unprocessable Entity\n" + errorText);
-      } else {
-        console.log("Application discarded successfully");
-      }
-    })
-      .catch(err => {
-        console.error("Network or fetch error:", err);
-        alert("Network error: " + err.message);
-      });
-
-    setApps((prevApps) => {
-      const newApps = prevApps.filter((_, index) => index !== currentIndex);
-      // Recompute initialSizes for newApps
-      const newSizes = newApps.map(app =>
-        app.fields.map(field => {
-          const answer = field.answer || '';
-          const lines = answer.split('\n').reduce((acc, line) => acc + Math.max(1, Math.ceil(line.length / 70)), 0);
-          const height = Math.max(32, Math.min(lines * 32 + 16, 200));
-          let width;
-          if (answer.length > 60) width = 600;
-          else width = Math.max(160, Math.min(answer.length * 10 + 40, 600));
-          return { width, height };
-        })
-      );
-      setInitialSizes(newSizes);
-      return newApps;
-    });
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : 0));
-  };
-
-  // Render loading state
-  if (loading) {
-    return <p style={{ padding: '1rem' }}>Loading unapproved applications…</p>;
-  }
-
-  // Render error state
-  if (error) {
-    return <p style={{ padding: '1rem', color: 'red' }}>Error: {error.message}</p>;
-  }
-
-  // Render empty state
-  if (!apps || apps.length === 0) {
-    return <p style={{ padding: '1rem' }}>No unapproved applications found.</p>;
-  }
-
-  // Current application to render
-  const app = apps[currentIndex];
-
-  // Theme styles
   const theme = {
     background: darkMode ? '#18181b' : '#f9f9f9',
     appBg: darkMode ? '#232326' : '#fff',
-    border: darkMode ? '#333' : '#ccc',
+    border: darkMode ? '#333' : '#ddd',
     text: darkMode ? '#f3f3f3' : '#222',
-    arrowBg: darkMode ? '#232326' : 'rgba(255,255,255,0.85)',
-    arrowColor: darkMode ? '#f3f3f3' : '#222',
-    approveBg: darkMode ? '#388e3c' : '#4caf50',
-    discardBg: darkMode ? '#b71c1c' : '#f44336',
-    buttonText: '#fff',
-  };
+    link: darkMode ? '#90cdf4' : '#1976d2',
+  } as const;
 
   return (
-    <main style={{
-      maxWidth: '800px',
-      margin: '0 auto',
-      padding: '1rem',
-      paddingBottom: '5rem', // Prevent content from being hidden behind navbar
-      position: 'relative',
-      background: theme.background,
-      minHeight: '100vh',
-      color: theme.text,
-      transition: 'background 0.2s, color 0.2s',
-    }}>
-      <section style={{
-        border: `1px solid ${theme.border}`,
-        borderRadius: '8px',
-        padding: '1rem',
-        background: theme.appBg,
-        color: theme.text,
-        transition: 'background 0.2s, color 0.2s',
-      }}>
-        <h2 style={{ marginTop: 0, textAlign: 'center' }}>
-          Application {currentIndex + 1} of {apps.length}
-        </h2>
-        <p style={{ marginTop: 0, textAlign: 'center' }}>
-          <a
-            href={app.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              color: darkMode ? '#90cdf4' : '#1976d2',
-              textDecoration: 'underline',
-              fontWeight: 500,
-              wordBreak: 'break-all',
-              transition: 'color 0.2s',
-            }}
-          >
-            {app.url}
-          </a>
-        </p>
-        <p><strong>App ID:</strong> {app.id}</p>
-        <p><strong>Job ID:</strong> {app.job_id}</p>
+    <main style={{ padding: 16, maxWidth: 1000, margin: "0 auto", background: theme.background, color: theme.text, minHeight: '100vh' }}>
+      <h1 style={{ marginBottom: 12 }}>Job Apps Dashboard</h1>
+      <nav style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+        <Link href="/approval" style={btn(theme, darkMode)}>Approval</Link>
+        <Link href="/jobs" style={btn(theme, darkMode)}>Job listings</Link>
+      </nav>
 
-        <div style={{ marginTop: '1rem' }}>
-          {app.fields && app.fields.map((field, index) => {
-            const initialSizeObj =
-              initialSizes[currentIndex] && initialSizes[currentIndex][index]
-                ? initialSizes[currentIndex][index]
-                : { width: 10, height: 32 };
-            // Special rendering for Resume field
-            if (field.question.toLowerCase().includes('resume')) {
-              return (
-                <div key={index} style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <p style={{ margin: 0 }}>
-                    <strong>{field.question}</strong>
-                  </p>
-                  {/* File attachment icon and answer as link/text */}
-                  <a
-                    href={field.answer}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', color: theme.text }}
-                  >
-                    <span role="img" aria-label="attachment" style={{ fontSize: '1.3em' }}>📎</span>
-                    <span>{field.answer}</span>
-                  </a>
-                </div>
-              );
-            }
-            return (
-              <div key={index} style={{ marginBottom: '0.75rem' }}>
-                <p style={{ margin: 0 }}>
-                  <strong>{field.question}</strong>
-                </p>
-                {field.multiple_choice && Array.isArray(field.choices) ? (
-                  <div style={{ margin: '0.25rem 0', paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    {field.choices.map((choice, i) => (
-                      <label key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: choice === field.answer ? 600 : 400 }}>
-                        <input
-                          type="checkbox"
-                          checked={choice === field.answer}
-                          onChange={() => {
-                            setApps(prev => prev.map((appItem, appIdx) =>
-                              appIdx === currentIndex
-                                ? {
-                                  ...appItem,
-                                  fields: appItem.fields.map((f, fIdx) =>
-                                    fIdx === index ? { ...f, answer: choice } : f
-                                  )
-                                }
-                                : appItem
-                            ));
-                          }}
-                          style={{ accentColor: darkMode ? '#90cdf4' : '#1976d2' }}
-                        />
-                        {choice}
-                      </label>
-                    ))}
-                  </div>
-                ) : (
-                  <textarea
-                    value={field.answer ?? ""}
-                    onChange={e => {
-                      const newValue = e.target.value;
-                      setApps(prev => prev.map((appItem, appIdx) =>
-                        appIdx === currentIndex
-                          ? {
-                            ...appItem,
-                            fields: appItem.fields.map((f, fIdx) =>
-                              fIdx === index ? { ...f, answer: newValue } : f
-                            )
-                          }
-                          : appItem
-                      ));
-                    }}
-                    style={{
-                      padding: '0.6rem 1rem',
-                      borderRadius: '6px',
-                      border: `1px solid ${theme.border}`,
-                      background: darkMode ? '#232326' : '#fff',
-                      color: theme.text,
-                      fontSize: '1rem',
-                      margin: 0,
-                      minWidth: '160px',
-                      maxWidth: '800px',
-                      width:
-                        initialSizeObj.width > 400
-                          ? '100%'
-                          : `${initialSizeObj.width}px`,
-                      minHeight: '32px',
-                      maxHeight: '400px',
-                      height: `${initialSizeObj.height}px`,
-                      boxSizing: 'border-box',
-                      resize: 'none',
-                      lineHeight: '1.5',
-                      textAlign: 'left',
-                      verticalAlign: 'top',
-                      overflowY: 'auto',
-                      whiteSpace: 'pre-wrap',
-                    }}
-                    rows={Math.max(1, Math.round(initialSizeObj.height / 24))}
-                  />
-                )}
-              </div>
-            );
-          })}
+      {error && <p style={{ color: "red" }}>{error}</p>}
+
+      <section style={cardRow}>
+        <div style={card(theme)}>
+          <h3 style={cardTitle}>Jobs</h3>
+          {jobs ? (
+            <ul style={list(theme)}>
+              <li>Total: {jobs.total_jobs}</li>
+              <li>Safety: {jobs.classifications.safety}</li>
+              <li>Target: {jobs.classifications.target}</li>
+              <li>Reach: {jobs.classifications.reach}</li>
+              <li>Dream: {jobs.classifications.dream}</li>
+            </ul>
+          ) : (
+            <p>Loading…</p>
+          )}
+        </div>
+
+        <div style={card(theme)}>
+          <h3 style={cardTitle}>Applications</h3>
+          {apps ? (
+            <ul style={list(theme)}>
+              <li>Total: {apps.total_apps}</li>
+              <li>Discarded: {apps.discarded}</li>
+              <li>Submitted: {apps.submitted}</li>
+              <li>Acknowledged: {apps.acknowledged}</li>
+              <li>Rejected: {apps.rejected}</li>
+            </ul>
+          ) : (
+            <p>Loading…</p>
+          )}
         </div>
       </section>
 
-      {/* Fixed Bottom Bar for Navigation & Actions */}
-      <div
-        style={{
-          position: 'fixed',
-          left: 0,
-          bottom: 0,
-          width: '100vw',
-          background: theme.appBg,
-          borderTop: `1px solid ${theme.border}`,
-          boxShadow: '0 -2px 8px rgba(0,0,0,0.08)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0.75rem 2rem',
-          zIndex: 2000,
-        }}
-      >
-        {/* Left: Dark/Light Mode Toggle */}
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <button
-            onClick={handleToggleDarkMode}
-            aria-label="Toggle dark mode"
-            style={{
-              background: darkMode ? '#232326' : '#fff',
-              color: darkMode ? '#f3f3f3' : '#222',
-              border: `1px solid ${theme.border}`,
-              borderRadius: '9999px',
-              padding: '0.5rem 1.25rem',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-              fontWeight: 500,
-              fontSize: '1rem',
-              transition: 'background 0.2s, color 0.2s',
-            }}
-          >
-            {darkMode ? 'Light Mode' : 'Dark Mode'}
-          </button>
-        </div>
-
-        {/* Center: Navigation Arrows (absolutely centered) */}
-        <div style={{ position: 'absolute', left: '50%', bottom: '0.75rem', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 2100 }}>
-          <button
-            onClick={handlePrev}
-            aria-label="Previous"
-            style={{
-              background: theme.arrowBg,
-              color: theme.arrowColor,
-              border: 'none',
-              borderRadius: '50%',
-              width: '40px',
-              height: '40px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-              fontSize: '1.5rem',
-              cursor: 'pointer',
-              transition: 'background 0.2s, color 0.2s',
-            }}
-          >
-            &#8592;
-          </button>
-          <button
-            onClick={handleNext}
-            aria-label="Next"
-            style={{
-              background: theme.arrowBg,
-              color: theme.arrowColor,
-              border: 'none',
-              borderRadius: '50%',
-              width: '40px',
-              height: '40px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-              fontSize: '1.5rem',
-              cursor: 'pointer',
-              transition: 'background 0.2s, color 0.2s',
-            }}
-          >
-            &#8594;
-          </button>
-        </div>
-
-        {/* Right: Save, Approve/Discard */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <button
-            onClick={handleSave}
-            style={{
-              background: darkMode ? '#1976d2' : '#2196f3',
-              color: theme.buttonText,
-              padding: '0.5rem 1.25rem',
-              border: 'none',
-              borderRadius: '9999px',
-              fontWeight: 500,
-              fontSize: '1rem',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-              cursor: 'pointer',
-              marginRight: '0.5rem',
-              transition: 'background 0.2s',
-            }}
-          >
-            Save
-          </button>
-          <button
-            onClick={handleApprove}
-            style={{
-              background: theme.approveBg,
-              color: theme.buttonText,
-              padding: '0.5rem 1.25rem',
-              border: 'none',
-              borderRadius: '9999px',
-              fontWeight: 500,
-              fontSize: '1rem',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-              cursor: 'pointer',
-              transition: 'background 0.2s',
-            }}
-          >
-            Approve
-          </button>
-          <button
-            onClick={handleDiscard}
-            style={{
-              background: theme.discardBg,
-              color: theme.buttonText,
-              padding: '0.5rem 1.25rem',
-              border: 'none',
-              borderRadius: '9999px',
-              fontWeight: 500,
-              fontSize: '1rem',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-              cursor: 'pointer',
-              transition: 'background 0.2s',
-            }}
-          >
-            Discard
-          </button>
-        </div>
-
-      </div>
+      {jobs && jobs.base_urls && (
+        <section style={{ marginTop: 24 }}>
+          <h3 style={{ marginBottom: 8 }}>Top Sources</h3>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(180px, 1fr) 1fr',
+            gap: 12,
+            alignItems: 'center',
+            border: `1px solid ${theme.border}`,
+            borderRadius: 12,
+            padding: 10,
+            background: theme.appBg,
+          }}>
+            <div style={{ justifySelf: 'center' }}>
+              <PieChart
+                data={Object.entries(jobs.base_urls)
+                  .slice(0, 8)
+                  .map(([label, value]) => ({ label, value }))}
+                size={200}
+                thickness={20}
+                dark={darkMode}
+                ariaLabel="Top Sources by job count"
+              />
+            </div>
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6 }}>
+              {Object.entries(jobs.base_urls).slice(0, 8).map(([host, count], i) => (
+                <li key={host} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{
+                      display: 'inline-block',
+                      width: 10,
+                      height: 10,
+                      borderRadius: 2,
+                      background: colorAt(i, darkMode),
+                      border: `1px solid ${darkMode ? '#000' : '#fff'}`,
+                    }} />
+                    <span style={{ color: theme.text }}>{host}</span>
+                  </div>
+                  <span style={{ fontWeight: 600 }}>{count}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
     </main>
   );
+}
+
+const btn = (theme: any, darkMode: boolean): React.CSSProperties => ({
+  display: "inline-block",
+  padding: "8px 12px",
+  border: `1px solid ${theme.border}`,
+  borderRadius: 8,
+  background: darkMode ? '#232326' : '#fff',
+  color: theme.text,
+});
+
+const cardRow: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+  gap: 12,
+};
+
+const card = (theme: any): React.CSSProperties => ({
+  border: `1px solid ${theme.border}`,
+  borderRadius: 8,
+  padding: 12,
+  background: theme.appBg,
+});
+
+const cardTitle: React.CSSProperties = { marginTop: 0 };
+
+const list = (theme: any): React.CSSProperties => ({ margin: 0, paddingLeft: 18, color: theme.text });
+
+const pill = (theme: any, darkMode: boolean): React.CSSProperties => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  border: `1px solid ${theme.border}`,
+  borderRadius: 999,
+  padding: "8px 12px",
+  background: darkMode ? '#232326' : '#fff',
+  color: theme.text,
+});
+
+// Palette helper to keep legend colors aligned with the chart
+function colorAt(i: number, dark: boolean): string {
+  const paletteLight = [
+    "#2563eb",
+    "#10b981",
+    "#f59e0b",
+    "#ef4444",
+    "#8b5cf6",
+    "#14b8a6",
+    "#f97316",
+    "#22c55e",
+    "#3b82f6",
+    "#e11d48",
+  ];
+  const paletteDark = [
+    "#60a5fa",
+    "#34d399",
+    "#fbbf24",
+    "#f87171",
+    "#a78bfa",
+    "#2dd4bf",
+    "#fb923c",
+    "#4ade80",
+    "#93c5fd",
+    "#fb7185",
+  ];
+  const p = dark ? paletteDark : paletteLight;
+  return p[i % p.length];
 }
