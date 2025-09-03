@@ -11,7 +11,9 @@ from db.utils import (
     add_new_application,
     add_new_scraped_jobs,
     approve_application_by_id,
+    approve_job_by_id,
     discard_application_by_id,
+    discard_job_by_id,
     get_all_applications,
     get_all_jobs,
     get_application_by_id,
@@ -606,8 +608,11 @@ async def create_job_applications(db: Session = Depends(get_db)):
         job = get_job_by_id(db, app.job_id)
         if (
             job
-            and job.review.classification in ["safety", "target"]
-            and job.job_type == "fulltime"
+            and (
+                job.review.classification in ["safety", "target"]
+                and job.job_type == "fulltime"
+            )
+            or (job.approved == True and job.discarded == False)
         ):
             asyncio.create_task(create_job_application(job.id))
 
