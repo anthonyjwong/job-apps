@@ -1,6 +1,7 @@
 FROM node:20-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
+ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
 # Ensure pnpm is available
 RUN corepack enable && corepack prepare pnpm@9 --activate

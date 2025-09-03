@@ -21,6 +21,7 @@ from db.utils import (
     get_approved_applications,
     get_job_by_id,
     get_unapproved_applications,
+    get_unapproved_jobs,
     get_unprepared_applications,
     get_unreviewed_jobs,
     get_unscraped_applications,
@@ -664,7 +665,7 @@ def submit_applications(db: Session = Depends(get_db)):
 @app.get("/jobs")
 async def list_all_jobs(db: Session = Depends(get_db)):
     """List all saved job applications (for frontend page)."""
-    jobs = get_all_jobs(db)
+    jobs = get_unapproved_jobs(db)
     return JSONResponse(
         status_code=200,
         content={"jobs": [job.to_json() for job in jobs]},

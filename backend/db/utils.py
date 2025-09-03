@@ -14,6 +14,16 @@ def get_job_by_id(db_session, job_id) -> Job:
     return orm_to_job(orm)
 
 
+def get_unapproved_jobs(db_session) -> list[Job]:
+    """Fetch all unapproved jobs."""
+    jobs = (
+        db_session.query(JobORM)
+        .filter((JobORM.approved == False) & (JobORM.discarded == False))
+        .all()
+    )
+    return [orm_to_job(job) for job in jobs]
+
+
 def get_unreviewed_jobs(db_session) -> list[Job]:
     """Fetch all unreviewed jobs."""
     jobs = db_session.query(JobORM).filter(JobORM.reviewed == False).all()
