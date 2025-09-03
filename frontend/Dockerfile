@@ -8,8 +8,8 @@ RUN corepack enable && corepack prepare pnpm@9 --activate
 
 # Install dependencies separately for better caching
 FROM base AS deps
-COPY package.json ./
-RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lockfile=false
+COPY package.json pnpm-lock.yaml ./
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lockfile
 
 # Build the Next.js app
 FROM base AS build

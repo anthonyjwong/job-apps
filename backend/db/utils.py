@@ -30,6 +30,12 @@ def get_unreviewed_jobs(db_session) -> list[Job]:
     return [orm_to_job(job) for job in jobs]
 
 
+def get_reviewed_jobs(db_session) -> list[Job]:
+    """Fetch all reviewed jobs."""
+    jobs = db_session.query(JobORM).filter(JobORM.reviewed == True).all()
+    return [orm_to_job(job) for job in jobs]
+
+
 def get_all_jobs(db_session) -> list[Job]:
     jobs = db_session.query(JobORM).all()
     return [orm_to_job(job) for job in jobs]

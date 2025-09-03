@@ -1,4 +1,6 @@
 "use client";
+import dynamic from 'next/dynamic';
+import type { ComponentType } from 'react';
 import { useCallback, useEffect, useState } from "react";
 import { useTheme } from "../providers/ThemeProvider";
 
@@ -119,11 +121,55 @@ export default function AllJobsPage() {
   if (loading) return <main style={{ padding: 16, background: theme.background, color: theme.text, minHeight: '100vh' }}>Loading…</main>;
   if (error) return <main style={{ padding: 16, color: "red", background: theme.background, minHeight: '100vh' }}>Error: {error}</main>;
 
-  const clean = (s?: string | null) => (s ? s.replace(/\s+/g, ' ').trim() : '');
-  const snippet = (s?: string | null, n = 500) => {
-    const c = clean(s);
-    return c.length > n ? c.slice(0, n) + '…' : c;
+  const preview = (md?: string | null, n = 240) => {
+    if (!md) return '';
+    // crude preview: strip markdown symbols for lightweight snippet
+    const text = md
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/`[^`]*`/g, '')
+      .replace(/\!\[[^\]]*\]\([^\)]*\)/g, '')
+      .replace(/\[[^\]]*\]\([^\)]*\)/g, '$1')
+      .replace(/[*_>#\-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return text.length > n ? text.slice(0, n) + '…' : text;
   };
+  const Markdown = dynamic(() => import('../components/MarkdownRenderer'), { ssr: false });
+
+  type SimpleTheme = { link: string; border: string; muted: string; text: string; appBg: string };
+  function DescriptionSection({ markdown, darkMode, theme, Markdown }: { markdown: string; darkMode: boolean; theme: SimpleTheme; Markdown: ComponentType<{ markdown: string; theme: SimpleTheme; darkMode: boolean }> }) {
+    const [expanded, setExpanded] = useState(false);
+    const text = preview(markdown, 280);
+    return (
+      <div style={{ marginTop: 8 }}>
+        {!expanded ? (
+          <>
+            <p style={{ margin: '8px 0', color: theme.text, lineHeight: 1.5 }}>{text}</p>
+            {text.length < (markdown?.length || 0) && (
+              <button
+                type="button"
+                onClick={() => setExpanded(true)}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: 6,
+                  border: `1px solid ${theme.border}`,
+                  background: theme.appBg,
+                  color: theme.link,
+                  cursor: 'pointer',
+                }}
+              >
+                Read more
+              </button>
+            )}
+          </>
+        ) : (
+          <div style={{ lineHeight: 1.6 }}>
+            <Markdown markdown={markdown} theme={theme} darkMode={darkMode} />
+          </div>
+        )}
+      </div>
+    );
+  }
   const bestLink = (j: JobRecord) => j.direct_job_url || j.linkedin_job_url || undefined;
 
   const approveJob = async (j: JobRecord) => {
@@ -249,7 +295,7 @@ export default function AllJobsPage() {
                 </div>
               </header>
               {j.description ? (
-                <p style={{ marginTop: 8, marginBottom: 0, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{snippet(j.description, 700)}</p>
+                <DescriptionSection markdown={j.description} darkMode={darkMode} theme={theme} Markdown={Markdown} />
               ) : (
                 <p style={{ marginTop: 8, marginBottom: 0, color: theme.muted }}>(No description provided)</p>
               )}

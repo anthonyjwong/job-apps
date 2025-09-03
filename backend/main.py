@@ -20,6 +20,7 @@ from db.utils import (
     get_application_by_job_id,
     get_approved_applications,
     get_job_by_id,
+    get_reviewed_jobs,
     get_unapproved_applications,
     get_unapproved_jobs,
     get_unprepared_applications,
@@ -600,13 +601,12 @@ async def review_jobs(db: Session = Depends(get_db)):
 async def create_job_applications(db: Session = Depends(get_db)):
     """Creates new application for unscraped apps."""
     # arg validation
-    apps = get_unscraped_applications(db)
-    if len(apps) == 0:
+    jobs = get_reviewed_jobs(db)
+    if len(jobs) == 0:
         return Response(status_code=204)
 
     # send-off
-    for app in apps:
-        job = get_job_by_id(db, app.job_id)
+    for job in jobs:
         if (
             job
             and (
@@ -615,7 +615,9 @@ async def create_job_applications(db: Session = Depends(get_db)):
             )
             or (job.approved == True and job.discarded == False)
         ):
-            asyncio.create_task(create_job_application(job.id))
+            app = get_application_by_job_id(db, job.id)
+            if app is None or app.scraped == False:
+                asyncio.create_task(create_job_application(job.id))
 
     # response
     return JSONResponse(
