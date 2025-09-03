@@ -55,6 +55,7 @@ class Job(BaseModel):
             "linkedin_job_url": self.linkedin_job_url,
             "direct_job_url": self.direct_job_url,
             "description": self.description,
+            "review": self.review.to_json() if self.review else None,
             "reviewed": self.reviewed,
             "approved": self.approved,
             "discarded": self.discarded,
