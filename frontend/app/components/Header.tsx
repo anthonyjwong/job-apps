@@ -1,10 +1,12 @@
 "use client";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useTheme } from "../providers/ThemeProvider";
 import ThemeToggle from "../theme-toggle";
 
 export default function Header() {
   const { dark: darkMode } = useTheme();
+  const pathname = usePathname();
 
   const theme = {
     appBg: darkMode ? '#232326' : '#fff',
@@ -12,23 +14,25 @@ export default function Header() {
     text: darkMode ? '#f3f3f3' : '#222',
     link: darkMode ? '#cbd5e1' : '#222',
     linkActive: darkMode ? '#90cdf4' : '#1976d2',
+    pill: darkMode ? '#121214' : '#f3f4f6',
   } as const;
 
-  const linkStyle: React.CSSProperties = {
-    color: theme.link,
-    textDecoration: 'none',
-  };
+  const baseLink: React.CSSProperties = { color: theme.link, textDecoration: 'none', padding: '6px 10px', borderRadius: 8 };
+  const activeLink: React.CSSProperties = { ...baseLink, color: theme.linkActive, background: theme.pill, border: `1px solid ${theme.border}` };
 
   return (
-    <header style={{ borderBottom: `1px solid ${theme.border}`, padding: '10px 16px', background: theme.appBg, color: theme.text }}>
-      <nav style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <Link href="/" style={linkStyle}>Home</Link>
-          <Link href="/approval" style={linkStyle}>Approval</Link>
-          <Link href="/jobs" style={linkStyle}>Jobs</Link>
-        </div>
-        <ThemeToggle />
-      </nav>
+    <header style={{ borderBottom: `1px solid ${theme.border}`, padding: '10px 0', background: theme.appBg, color: theme.text, position: 'sticky', top: 0, zIndex: 20, boxShadow: darkMode ? '0 1px 0 rgba(255,255,255,0.04)' : '0 1px 2px rgba(0,0,0,0.04)' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 16px' }}>
+        <nav style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span style={{ fontWeight: 700, marginRight: 8 }}>Job Apps</span>
+            <Link href="/" style={pathname === '/' ? activeLink : baseLink}>Home</Link>
+            <Link href="/approval" style={pathname?.startsWith('/approval') ? activeLink : baseLink}>Approval</Link>
+            <Link href="/jobs" style={pathname?.startsWith('/jobs') ? activeLink : baseLink}>Jobs</Link>
+          </div>
+          <ThemeToggle />
+        </nav>
+      </div>
     </header>
   );
 }

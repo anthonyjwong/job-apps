@@ -140,7 +140,9 @@ export default function Home() {
   );
 }
 
-const btn = (theme: any, darkMode: boolean): React.CSSProperties => ({
+type Theme = { border: string; text: string; appBg: string };
+
+const btn = (theme: Theme, darkMode: boolean): React.CSSProperties => ({
   display: "inline-block",
   padding: "8px 12px",
   border: `1px solid ${theme.border}`,
@@ -155,7 +157,7 @@ const cardRow: React.CSSProperties = {
   gap: 12,
 };
 
-const card = (theme: any): React.CSSProperties => ({
+const card = (theme: Theme): React.CSSProperties => ({
   border: `1px solid ${theme.border}`,
   borderRadius: 8,
   padding: 12,
@@ -164,18 +166,7 @@ const card = (theme: any): React.CSSProperties => ({
 
 const cardTitle: React.CSSProperties = { marginTop: 0 };
 
-const list = (theme: any): React.CSSProperties => ({ margin: 0, paddingLeft: 18, color: theme.text });
-
-const pill = (theme: any, darkMode: boolean): React.CSSProperties => ({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  border: `1px solid ${theme.border}`,
-  borderRadius: 999,
-  padding: "8px 12px",
-  background: darkMode ? '#232326' : '#fff',
-  color: theme.text,
-});
+const list = (theme: Theme): React.CSSProperties => ({ margin: 0, paddingLeft: 18, color: theme.text });
 
 // Palette helper to keep legend colors aligned with the chart
 function colorAt(i: number, dark: boolean): string {

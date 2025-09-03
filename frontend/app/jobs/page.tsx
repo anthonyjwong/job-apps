@@ -129,19 +129,21 @@ export default function AllJobsPage() {
   );
 }
 
-const th = (theme: any): React.CSSProperties => ({
+type Theme = { border: string };
+
+const th = (theme: Theme): React.CSSProperties => ({
   textAlign: "left",
   borderBottom: `1px solid ${theme.border}`,
   padding: 8,
 });
 
-const td = (theme: any): React.CSSProperties => ({
+const td = (theme: Theme): React.CSSProperties => ({
   borderBottom: `1px solid ${theme.border}`,
   padding: 8,
   verticalAlign: "top",
 });
 
-const tdSmall = (theme: any): React.CSSProperties => ({
+const tdSmall = (theme: Theme): React.CSSProperties => ({
   ...td(theme),
   whiteSpace: "nowrap",
 });
