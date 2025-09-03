@@ -65,11 +65,11 @@ func main() {
 	const interval = 24 * time.Hour
 
 	schedules := []periodicSchedule{
-		{"/jobs/review", []time.Duration{0 * time.Second, 4 * time.Hour, 16 * time.Hour}, interval},
-		{"/apps/create", []time.Duration{5 * time.Second, 8 * time.Hour, 20 * time.Hour}, interval},
-		{"/apps/prepare", []time.Duration{10 * time.Second, 12 * time.Hour, 24 * time.Hour}, interval},
-		{"/apps/submit", []time.Duration{5 * time.Minute}, time.Hour},
-		{"/jobs/find", []time.Duration{30 * time.Second}, interval},
+		{"/jobs/review", []time.Duration{0 * time.Second, 20 * time.Minute, 40 * time.Minute, 60 * time.Minute, 80 * time.Minute}, interval},
+		{"/apps/create", []time.Duration{5 * time.Second, 21 * time.Minute, 41 * time.Minute, 61 * time.Minute, 81 * time.Minute}, interval},
+		{"/apps/prepare", []time.Duration{10 * time.Second, 22 * time.Minute, 42 * time.Minute, 62 * time.Minute, 82 * time.Minute}, interval},
+		{"/apps/submit", []time.Duration{5 * time.Minute, 25 * time.Minute}, time.Hour},
+		{"/jobs/find", []time.Duration{30 * time.Second, 30 * time.Minute}, interval},
 	}
 
 	// Start schedules
