@@ -28,6 +28,8 @@ def job_to_orm(job: Job) -> JobORM:
         description=job.description,
         review=job.review.to_json() if job.review else None,
         reviewed=job.reviewed,
+        approved=job.approved,
+        discarded=job.discarded,
     )
 
 
@@ -63,6 +65,8 @@ def orm_to_job(db_job: JobORM) -> Job:
         description=db_job.description,
         review=review,
         reviewed=db_job.reviewed,
+        approved=db_job.approved,
+        discarded=db_job.discarded,
     )
 
 
