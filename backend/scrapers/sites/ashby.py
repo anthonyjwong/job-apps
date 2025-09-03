@@ -1,8 +1,9 @@
+import asyncio
 import logging
-import time
+import random
 
 from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright
+from playwright.async_api import async_playwright
 from scrapers.scraper import EMULATE_HUMAN, JobSite, human_delay
 from src.definitions import App, AppField, Job
 
@@ -22,7 +23,7 @@ class Ashby(JobSite):
             answer_area = divs[1]
         return answer_area
 
-    def fill_combobox(self, element, value, timeout=7000):
+    async def fill_combobox(self, element, value, timeout=7000):
         """
         entry: locator for the field container that includes the combobox input
         value: text to select, e.g. "New York, NY, United States"
@@ -30,65 +31,66 @@ class Ashby(JobSite):
 
         cb = element.get_by_role("combobox").first
 
-        cb.wait_for(state="visible", timeout=timeout)
-        assert cb.is_enabled(), "Combobox is disabled"
-        assert cb.is_editable(), "Combobox is not editable (possibly readonly)"
+        await cb.wait_for(state="visible", timeout=timeout)
+        assert await cb.is_enabled(), "Combobox is disabled"
+        assert await cb.is_editable(), "Combobox is not editable (possibly readonly)"
 
-        cb.scroll_into_view_if_needed()
-        human_delay(0.2, 0.5)
-        cb.click()
-        human_delay(0.2, 0.5)
+        await cb.scroll_into_view_if_needed()
+        await human_delay(0.2, 0.5)
+        await cb.click()
+        await human_delay(0.2, 0.5)
 
         try:
-            if (cb.get_attribute("aria-expanded") or "false").lower() == "false":
+            aria_expanded = await cb.get_attribute("aria-expanded")
+            if (aria_expanded or "false").lower() == "false":
                 toggle = (
                     element.locator("button").filter(has=element.locator("svg")).first
                 )
-                if toggle.count():
-                    toggle.click()
-                    human_delay(0.2, 0.5)
+                if await toggle.count():
+                    await toggle.click()
+                    await human_delay(0.2, 0.5)
         except Exception as e:
             logging.warning("Failed to expand combobox: %s", e)
 
         try:
-            cb.press("Control+A")
-            human_delay(0.1, 0.2)
+            await cb.press("Control+A")
+            await human_delay(0.1, 0.2)
         except Exception as e:
             logging.warning("Failed to press Control+A: %s", e)
         for char in value:
-            cb.type(char)
-            human_delay(0.05, 0.15)
-        human_delay(0.3, 0.7, override=True)
+            await cb.type(char)
+            await human_delay(0.05, 0.15)
+        await human_delay(0.3, 0.7, override=True)
 
         try:
             listbox = cb.page.get_by_role("listbox")
-            listbox.wait_for(state="visible", timeout=2000)
+            await listbox.wait_for(state="visible", timeout=2000)
             opt = listbox.get_by_role("option", name=value)
-            if opt.count() and opt.first.is_visible():
-                opt.first.scroll_into_view_if_needed()
-                human_delay(0.1, 0.3, override=True)
-                opt.first.click()
+            if await opt.count() and await opt.first.is_visible():
+                await opt.first.scroll_into_view_if_needed()
+                await human_delay(0.1, 0.3, override=True)
+                await opt.first.click()
             else:
                 first_opt = listbox.get_by_role("option").first
-                if first_opt.is_visible():
-                    first_opt.scroll_into_view_if_needed()
-                    human_delay(0.1, 0.3, override=True)
-                    first_opt.click()
+                if await first_opt.is_visible():
+                    await first_opt.scroll_into_view_if_needed()
+                    await human_delay(0.1, 0.3, override=True)
+                    await first_opt.click()
                 else:
-                    cb.press("Enter")
-                    human_delay(0.1, 0.3, override=True)
+                    await cb.press("Enter")
+                    await human_delay(0.1, 0.3, override=True)
         except Exception:
-            cb.press("Enter")
-            human_delay(0.1, 0.3, override=True)
+            await cb.press("Enter")
+            await human_delay(0.1, 0.3, override=True)
         finally:
-            human_delay(0.2, 0.5)
+            await human_delay(0.2, 0.5)
 
-        cb.press("Tab")  # always press tab after filling out combobox
+        await cb.press("Tab")  # always press tab after filling out combobox
 
         # Post-fill combobox value check and correction
-        combobox_value = (cb.input_value() or "").strip()
+        combobox_value = ((await cb.input_value()) or "").strip()
         if not combobox_value or value.split(",")[0] not in combobox_value:
-            cb.evaluate(
+            await cb.evaluate(
                 """(el, val) => {
                     el.value = val;
                     el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -96,28 +98,28 @@ class Ashby(JobSite):
                 }""",
                 value,
             )
-            human_delay(0.1, 0.3, override=True)
+            await human_delay(0.1, 0.3, override=True)
 
-        assert value.split(",")[0] in cb.input_value()
+        assert value.split(",")[0] in (await cb.input_value())
 
-    def scrape_questions(self) -> App:
+    async def scrape_questions(self) -> App:
         url = self.job.direct_job_url
         if not url.endswith("/application"):
             url += "/application"
 
-        with sync_playwright() as p:
-            browser = p.firefox.launch(headless=True)
-            page = browser.new_page()
-            page.goto(url)
-            page.wait_for_selector(
+        async with async_playwright() as p:
+            browser = await p.firefox.launch(headless=True)
+            page = await browser.new_page()
+            await page.goto(url)
+            await page.wait_for_selector(
                 "div.ashby-application-form-container"
             )  # wait until loaded
-            time.sleep(1)  # wait 1 sec
+            await asyncio.sleep(1)  # wait 1 sec
 
             # get page content
-            html = page.content()
+            html = await page.content()
             soup = BeautifulSoup(html, "html.parser")
-            browser.close()  # we have all the info we need at this point
+            await browser.close()  # we have all the info we need at this point
 
             # parse job app
             app = App(
@@ -210,74 +212,77 @@ class Ashby(JobSite):
 
         return app
 
-    def apply(self, app: App) -> bool:
+    async def apply(self, app: App) -> bool:
         url = self.job.direct_job_url
         if not url.endswith("/application"):
             url += "/application"
 
         try:
-            with sync_playwright() as p:
-                browser = p.firefox.launch(headless=True)
-                page = browser.new_page()
-                page.goto(url, wait_until="domcontentloaded")
-                page.wait_for_selector("div.ashby-application-form-container")
-                time.sleep(1)  # wait 1 sec
+            async with async_playwright() as p:
+                browser = await p.firefox.launch(headless=True)
+                page = await browser.new_page()
+                await page.goto(url, wait_until="domcontentloaded")
+                await page.wait_for_selector("div.ashby-application-form-container")
+                await asyncio.sleep(1)  # wait 1 sec
 
                 question_elements = page.locator(
                     ".ashby-application-form-field-entry, fieldset"
                 )
 
-                for i in range(question_elements.count()):
+                total = await question_elements.count()
+                for i in range(total):
                     if i >= len(app.fields):
                         break
 
                     element = question_elements.nth(i)
-                    tag = element.evaluate("e => e.tagName.toLowerCase()")
+                    tag = await element.evaluate("e => e.tagName.toLowerCase()")
 
-                    question = element.locator(
+                    question = await element.locator(
                         ".ashby-application-form-question-title"
                     ).first.text_content()
                     answer = app.find_answer(question)
 
                     if tag == "div":
                         text_input = element.locator("._input_hkyf8_33").first
-                        if text_input.count() > 0:
-                            text_input.scroll_into_view_if_needed()
+                        if await text_input.count() > 0:
+                            await text_input.scroll_into_view_if_needed()
                             for char in answer:
-                                text_input.type(char)
-                                human_delay(0.05, 0.15)
-                            human_delay()
+                                await text_input.type(char)
+                                await human_delay(0.05, 0.15)
+                            await human_delay()
 
                         dropdown_text = element.locator("._input_v5ami_28")
-                        if dropdown_text.count() > 0:
-                            dropdown_text.scroll_into_view_if_needed()
-                            self.fill_combobox(element, answer)
-                            human_delay()
+                        if await dropdown_text.count() > 0:
+                            await dropdown_text.scroll_into_view_if_needed()
+                            await self.fill_combobox(element, answer)
+                            await human_delay()
 
                         boolean_options = element.locator("._option_y2cw4_33")
-                        if boolean_options.count() > 0:
-                            for j in range(boolean_options.count()):
+                        if await boolean_options.count() > 0:
+                            count_bool = await boolean_options.count()
+                            for j in range(count_bool):
                                 option = boolean_options.nth(j)
-                                if option.text_content() == answer:
-                                    option.scroll_into_view_if_needed()
-                                    option.click()
-                                    human_delay()
+                                if (await option.text_content()) == answer:
+                                    await option.scroll_into_view_if_needed()
+                                    await option.click()
+                                    await human_delay()
 
                         file_upload = element.locator(
                             "input#_systemfield_resume[type='file']"
                         )
-                        if file_upload.count() > 0:
-                            file_upload.set_input_files(answer)
-                            human_delay()
+                        if await file_upload.count() > 0:
+                            await file_upload.set_input_files(answer)
+                            await human_delay()
 
                     elif tag == "fieldset":
                         checkboxes = element.locator("._option_1v5e2_35")
-                        for j in range(checkboxes.count()):
+                        count_cb = await checkboxes.count()
+                        for j in range(count_cb):
                             option = checkboxes.nth(j)
-                            if option.text_content() == answer:
-                                option.scroll_into_view_if_needed()
-                                option.locator("input").first.click()
-                                human_delay()
+                            if (await option.text_content()) == answer:
+                                await option.scroll_into_view_if_needed()
+                                await option.locator("input").first.click()
+                                await human_delay()
 
                 # get manual approval first
                 # user_approval = input("Do you approve this application? (y/n): ")
@@ -286,19 +291,19 @@ class Ashby(JobSite):
 
                 if app.user_approved:
                     # submit
-                    human_delay(1, 2, override=True)
+                    await human_delay(1, 2, override=True)
                     submit_button = page.locator(
                         ".ashby-application-form-submit-button"
                     ).first
-                    submit_button.scroll_into_view_if_needed()
-                    submit_button.click()
-                    human_delay(2, 3)
+                    await submit_button.scroll_into_view_if_needed()
+                    await submit_button.click()
+                    await human_delay(2, 3)
 
                     # check for success or failure after submission
                     success_selector = "div.ashby-application-form-success-container"
                     failure_selector = "div.ashby-application-form-failure-container"
                     try:
-                        page.wait_for_selector(
+                        await page.wait_for_selector(
                             f"{success_selector}, {failure_selector}", timeout=7000
                         )
                     except Exception:
@@ -306,8 +311,8 @@ class Ashby(JobSite):
                         logging.error(error_message)
                         raise Exception(error_message)
 
-                    success = page.locator(success_selector).count() > 0
-                    failure = page.locator(failure_selector).count() > 0
+                    success = (await page.locator(success_selector).count()) > 0
+                    failure = (await page.locator(failure_selector).count()) > 0
                     if success:
                         logging.info("Application submitted successfully!")
                         return True

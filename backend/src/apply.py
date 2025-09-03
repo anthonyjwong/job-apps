@@ -59,7 +59,7 @@ def evaluate_candidate_aptitude(job: Job, user: User) -> Job:
     return job
 
 
-def scrape_job_app(job: Job) -> App:
+async def scrape_job_app(job: Job) -> App:
     """Scrape job details and create an application."""
     if not job.direct_job_url and not job.linkedin_job_url:
         logging.error(f"Job {job.id} is missing URLs.")
@@ -68,10 +68,9 @@ def scrape_job_app(job: Job) -> App:
     base_url = get_base_url(job.direct_job_url)
     if base_url in DOMAIN_HANDLERS:
         job_site = DOMAIN_HANDLERS[base_url](job)
-        app = job_site.scrape_questions()
+        app = await job_site.scrape_questions()
         app.scraped = True
         return app
-
     raise NotImplementedError(f"Site not supported: {job.direct_job_url}")
 
 
@@ -202,7 +201,7 @@ def prepare_job_app(job: Job, app: App, user: User) -> App:
     return app
 
 
-def submit_app(app: App, job: Job) -> App:
+async def submit_app(app: App, job: Job) -> App:
     """Submit an application."""
     if not job.direct_job_url or not job.linkedin_job_url:
         raise ValueError("Job must have a direct job URL or LinkedIn job URL.")
@@ -210,7 +209,7 @@ def submit_app(app: App, job: Job) -> App:
     base_url = get_base_url(job.direct_job_url)
     if base_url in DOMAIN_HANDLERS:
         job_site: JobSite = DOMAIN_HANDLERS[base_url](job)
-        if job_site.apply(app):
+        if await job_site.apply(app):
             app.submitted = True
         return app
     raise NotImplementedError(f"Site not supported: {job.direct_job_url}")

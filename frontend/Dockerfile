@@ -16,15 +16,15 @@ COPY . .
 COPY --from=deps /app/node_modules /app/node_modules
 RUN pnpm run build
 
-# Development runtime image
-FROM node:20-slim AS dev
+# Production runtime image
+FROM node:20-slim AS prod
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 WORKDIR /app
-ENV NODE_ENV=development
+ENV NODE_ENV=production
 RUN corepack enable && corepack prepare pnpm@9 --activate
 
-# Copy node_modules and build artifacts
+# Copy production node_modules and build artifacts
 COPY --from=deps /app/node_modules /app/node_modules
 COPY --from=build /app/.next /app/.next
 COPY pnpm-lock.yaml ./

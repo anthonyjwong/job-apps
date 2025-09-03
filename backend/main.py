@@ -292,8 +292,7 @@ async def create_job_application(job_id: UUID):
 
         # logic
         try:
-            # Playwright sync API is blocking; run in a thread
-            app = await asyncio.to_thread(scrape_job_app, job)
+            app = await scrape_job_app(job)
         except ValueError:
             logging.error(f"/job/{job_id}/create_app: Job {job.id} is missing URLs")
             return JSONResponse(
@@ -515,8 +514,7 @@ async def submit_application(app_id: UUID):
 
         # logic
         try:
-            # Playwright sync automation is blocking; run in a thread
-            applied_app = await asyncio.to_thread(submit_app, app, job)
+            applied_app = await submit_app(app, job)
         except ValueError:
             logging.error(f"/app/{app_id}/submit: Job {job.id} is missing URLs")
             return JSONResponse(
@@ -655,6 +653,16 @@ def submit_applications(db: Session = Depends(get_db)):
     return JSONResponse(
         status_code=202,
         content={"status": "success", "message": "Application submissions started"},
+    )
+
+
+@app.get("/jobs")
+async def list_all_jobs(db: Session = Depends(get_db)):
+    """List all saved job applications (for frontend page)."""
+    jobs = get_all_jobs(db)
+    return JSONResponse(
+        status_code=200,
+        content={"jobs": [job.to_json() for job in jobs]},
     )
 
 
