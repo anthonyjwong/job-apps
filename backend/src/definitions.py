@@ -41,7 +41,7 @@ class Job(BaseModel):
     def to_json(self):
         """Converts Job object to JSON serializable format."""
         return {
-            "id": self.id,
+            "id": str(self.id),
             "jobspy_id": self.jobspy_id,
             "title": self.title,
             "company": self.company,
@@ -126,7 +126,7 @@ class User(BaseModel):
     def to_json(self):
         """Converts User object to JSON serializable format."""
         return {
-            "id": self.id,
+            "id": str(self.id),
             "first_name": self.first_name,
             "last_name": self.last_name,
             "email": self.email,
