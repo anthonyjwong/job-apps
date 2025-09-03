@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTheme } from "../providers/ThemeProvider";
 
 type Review = {
@@ -34,22 +34,25 @@ export default function AllJobsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        const res = await fetch("http://localhost:8000/jobs", {
-          headers: { Accept: "application/json" },
-        });
-        const json = await res.json();
-        setJobs(json.jobs || []);
-      } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : "Failed to load jobs");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchJobs();
+  const fetchJobs = useCallback(async () => {
+    try {
+      const res = await fetch("http://localhost:8000/jobs", {
+        headers: { Accept: "application/json" },
+      });
+      const json = await res.json();
+      setJobs(json.jobs || []);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to load jobs");
+    }
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      await fetchJobs();
+      setLoading(false);
+    })();
+  }, [fetchJobs]);
 
   const theme = {
     background: darkMode ? '#18181b' : '#f9f9f9',
@@ -131,7 +134,9 @@ export default function AllJobsPage() {
         alert(`Failed to approve job: ${t}`);
         return;
       }
-      setJobs(prev => prev.map(x => x.id === j.id ? { ...x, approved: true } : x));
+  // Optimistic UI update, then refresh from server for consistency
+  setJobs(prev => prev.map(x => x.id === j.id ? { ...x, approved: true } : x));
+  void fetchJobs();
     } catch (e) {
       alert(`Network error approving job: ${e instanceof Error ? e.message : 'unknown'}`);
     }
@@ -145,7 +150,9 @@ export default function AllJobsPage() {
         alert(`Failed to discard job: ${t}`);
         return;
       }
-      setJobs(prev => prev.map(x => x.id === j.id ? { ...x, discarded: true } : x));
+  // Optimistic UI update, then refresh from server for consistency
+  setJobs(prev => prev.map(x => x.id === j.id ? { ...x, discarded: true } : x));
+  void fetchJobs();
     } catch (e) {
       alert(`Network error discarding job: ${e instanceof Error ? e.message : 'unknown'}`);
     }
@@ -153,7 +160,28 @@ export default function AllJobsPage() {
 
   return (
     <main style={{ padding: 16, maxWidth: 900, margin: "0 auto", background: theme.background, color: theme.text, minHeight: '100vh' }}>
-      <h1 style={{ marginBottom: 12 }}>All Jobs</h1>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+        <h1 style={{ margin: 0 }}>All Jobs</h1>
+        <div
+          aria-label={`Total jobs: ${jobs.length}`}
+          title={`Total jobs: ${jobs.length}`}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 13,
+            padding: '2px 10px',
+            borderRadius: 999,
+            background: theme.appBg,
+            color: theme.muted,
+            border: `1px solid ${theme.border}`,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <span style={{ color: theme.text, fontWeight: 600 }}>{jobs.length}</span>
+          <span style={{ textTransform: 'none' }}>{jobs.length === 1 ? 'job' : 'jobs'}</span>
+        </div>
+      </header>
       {jobs.length === 0 ? (
         <p>No jobs yet.</p>
       ) : (
