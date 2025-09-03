@@ -48,6 +48,7 @@ export default function Home() {
     text: darkMode ? '#f3f3f3' : '#222',
     link: darkMode ? '#90cdf4' : '#1976d2',
   } as const;
+  const muted = darkMode ? '#9ca3af' : '#6b7280';
 
   return (
     <main style={{ padding: 16, maxWidth: 1000, margin: "0 auto", background: theme.background, color: theme.text, minHeight: '100vh' }}>
@@ -62,6 +63,7 @@ export default function Home() {
       <section style={cardRow}>
         <div style={card(theme)}>
           <h3 style={cardTitle}>Jobs</h3>
+          <div style={{ fontSize: 12, color: muted, marginTop: -6, marginBottom: 8 }}>Overview</div>
           {jobs ? (
             <ul style={list(theme)}>
               <li>Total: {jobs.total_jobs}</li>
@@ -77,6 +79,7 @@ export default function Home() {
 
         <div style={card(theme)}>
           <h3 style={cardTitle}>Applications</h3>
+          <div style={{ fontSize: 12, color: muted, marginTop: -6, marginBottom: 8 }}>Overview</div>
           {apps ? (
             <ul style={list(theme)}>
               <li>Total: {apps.total_apps}</li>
@@ -94,46 +97,64 @@ export default function Home() {
       {jobs && jobs.base_urls && (
         <section style={{ marginTop: 24 }}>
           <h3 style={{ marginBottom: 8 }}>Top Sources</h3>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(180px, 1fr) 1fr',
-            gap: 12,
-            alignItems: 'center',
-            border: `1px solid ${theme.border}`,
-            borderRadius: 12,
-            padding: 10,
-            background: theme.appBg,
-          }}>
-            <div style={{ justifySelf: 'center' }}>
-              <PieChart
-                data={Object.entries(jobs.base_urls)
-                  .slice(0, 8)
-                  .map(([label, value]) => ({ label, value }))}
-                size={200}
-                thickness={20}
-                dark={darkMode}
-                ariaLabel="Top Sources by job count"
-              />
-            </div>
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6 }}>
-              {Object.entries(jobs.base_urls).slice(0, 8).map(([host, count], i) => (
-                <li key={host} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{
-                      display: 'inline-block',
-                      width: 10,
-                      height: 10,
-                      borderRadius: 2,
-                      background: colorAt(i, darkMode),
-                      border: `1px solid ${darkMode ? '#000' : '#fff'}`,
-                    }} />
-                    <span style={{ color: theme.text }}>{host}</span>
-                  </div>
-                  <span style={{ fontWeight: 600 }}>{count}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {(() => {
+            const entries = Object.entries(jobs.base_urls).slice(0, 8);
+            const total = entries.reduce((acc, [, v]) => acc + (typeof v === 'number' ? v : 0), 0);
+            if (entries.length === 0 || total === 0) {
+              return (
+                <div style={{
+                  border: `1px solid ${theme.border}`,
+                  borderRadius: 12,
+                  padding: 16,
+                  background: theme.appBg,
+                  color: muted,
+                  textAlign: 'center',
+                }}>
+                  No source data yet.
+                </div>
+              );
+            }
+            return (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'minmax(180px, 1fr) 1fr',
+                gap: 12,
+                alignItems: 'center',
+                border: `1px solid ${theme.border}`,
+                borderRadius: 12,
+                padding: 10,
+                background: theme.appBg,
+              }}>
+                <div style={{ justifySelf: 'center' }}>
+                  <PieChart
+                    data={entries.map(([label, value]) => ({ label, value }))}
+                    size={200}
+                    thickness={20}
+                    dark={darkMode}
+                    ariaLabel="Top Sources by job count"
+                  />
+                </div>
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6 }}>
+                  {entries.map(([host, count], i) => (
+                    <li key={host} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{
+                          display: 'inline-block',
+                          width: 10,
+                          height: 10,
+                          borderRadius: 2,
+                          background: colorAt(i, darkMode),
+                          border: `1px solid ${darkMode ? '#000' : '#fff'}`,
+                        }} />
+                        <span style={{ color: theme.text }}>{host}</span>
+                      </div>
+                      <span style={{ fontWeight: 600 }}>{count}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })()}
         </section>
       )}
     </main>
