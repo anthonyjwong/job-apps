@@ -56,6 +56,7 @@ services:
   frontend:
     build:
       context: ./frontend
+      # Use the final stage image; we'll install dev deps at runtime
     ports:
       - "3000:3000"
     volumes:
@@ -65,6 +66,8 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-    command: npm run dev
+    environment:
+      NODE_ENV: development
+    command: pnpm run dev
 volumes:
   db_data:

@@ -96,6 +96,7 @@ export default function UnapprovedApps(): ReactElement {
           throw new Error('Response was not an array');
         }
       } catch (err) {
+        console.error('Failed to fetch unapproved applications:', err);
         setError(err as Error);
       } finally {
         setLoading(false);

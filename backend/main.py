@@ -131,7 +131,8 @@ async def find_jobs(
     async def save_jobs_with_db():
         try:
             logging.info("Finding jobs...")
-            jobs = save_jobs(num_jobs=num_jobs)
+            # Offload potentially blocking scraping to a thread to avoid blocking the event loop
+            jobs = await asyncio.to_thread(save_jobs, num_jobs=num_jobs)
         except Exception:
             logging.error("/jobs/find: Error saving jobs", exc_info=True)
             await manager.broadcast(
@@ -202,7 +203,10 @@ async def review_job(job_id: UUID):
         # logic
         try:
             logging.info(f"Reviewing job {job_id}...")
-            reviewed_job = evaluate_candidate_aptitude(job, user)
+            # Offload OpenAI network calls and JSON processing to a worker thread
+            reviewed_job = await asyncio.to_thread(
+                evaluate_candidate_aptitude, job, user
+            )
         except JSONDecodeError:
             logging.error(
                 f"/job/{job_id}/review: evaluate_candidate_aptitude failed to return a valid JSON response"
@@ -288,7 +292,8 @@ async def create_job_application(job_id: UUID):
 
         # logic
         try:
-            app = scrape_job_app(job)
+            # Playwright sync API is blocking; run in a thread
+            app = await asyncio.to_thread(scrape_job_app, job)
         except ValueError:
             logging.error(f"/job/{job_id}/create_app: Job {job.id} is missing URLs")
             return JSONResponse(
@@ -413,7 +418,8 @@ async def prepare_application(app_id: UUID):
         # logic
         try:
             logging.info(f"Preparing app {app.id}...")
-            prepared_app = prepare_job_app(job, app, user)
+            # This performs OpenAI calls and processing; run in a thread
+            prepared_app = await asyncio.to_thread(prepare_job_app, job, app, user)
         except:
             logging.error(
                 f"/app/{app_id}/prepare: Failed to prepare app", exc_info=True
@@ -453,7 +459,7 @@ async def prepare_application(app_id: UUID):
 
 
 @app.post("/app/{app_id}/submit")
-def submit_application(app_id: UUID):
+async def submit_application(app_id: UUID):
     """Submit an application"""
     with SessionLocal() as db:
         # arg validation
@@ -509,7 +515,8 @@ def submit_application(app_id: UUID):
 
         # logic
         try:
-            applied_app = submit_app(app, job)
+            # Playwright sync automation is blocking; run in a thread
+            applied_app = await asyncio.to_thread(submit_app, app, job)
         except ValueError:
             logging.error(f"/app/{app_id}/submit: Job {job.id} is missing URLs")
             return JSONResponse(
