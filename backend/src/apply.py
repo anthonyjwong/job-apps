@@ -98,17 +98,18 @@ def evaluate_candidate_aptitude(job: Job, user: User) -> Job:
 
 async def scrape_job_app(job: Job) -> App:
     """Scrape job details and create an application."""
-    if not job.direct_job_url and not job.linkedin_job_url:
+    job_url = job.direct_job_url or job.linkedin_job_url
+    if not job_url:
         logging.error(f"Job {job.id} is missing URLs.")
         raise ValueError("Job must have a direct job URL or LinkedIn job URL.")
 
-    base_url = get_base_url(job.direct_job_url)
+    base_url = get_base_url(job_url)
     if base_url in DOMAIN_HANDLERS:
         job_site = DOMAIN_HANDLERS[base_url](job)
         app = await job_site.scrape_questions()
         app.scraped = True
         return app
-    raise NotImplementedError(f"Site not supported: {job.direct_job_url}")
+    raise NotImplementedError(f"Site not supported: {job_url}")
 
 
 def create_common_questions_regular_expression(common_questions: dict[str]):
