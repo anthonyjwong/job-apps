@@ -232,6 +232,7 @@ export default function Home() {
                                     background: colorAt(i, darkMode),
                                     border: `1px solid ${darkMode ? '#000' : '#fff'}`,
                                   }} />
+                                  <span style={{ color: theme.text }}>{host}</span>
                                 </div>
                                 <span style={{ fontWeight: 600 }}>{count}</span>
                               </li>
