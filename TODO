@@ -1,4 +1,8 @@
 - Update home page to show the following things:
-    - How many jobs have been unlooked at
-    - How many jobs have been approved
-    - How many jobs have been discarded
+    - How many jobs have been not approved and not discarded
+    - Classification distribution in a pie chart of every job
+    - Job site sources distribution in a pie chart
+    - How many jobs have been applied to
+    - How many apps have been prepared but unapproved or undiscarded
+    - Which companies have been applied to
+    - Current status of each applied application (acknowledged or rejected)
