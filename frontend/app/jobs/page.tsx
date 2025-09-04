@@ -38,7 +38,7 @@ export default function AllJobsPage() {
 
   const fetchJobs = useCallback(async () => {
     try {
-      const res = await fetch("http://localhost:8000/jobs", {
+      const res = await fetch("http://localhost:8000/jobs/unapproved", {
         headers: { Accept: "application/json" },
       });
       const json = await res.json();

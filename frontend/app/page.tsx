@@ -78,7 +78,7 @@ export default function Home() {
         const [jobs_summary, apps_summary, unapproved_jobs, unapproved_apps, applied_apps] = await Promise.all([
           fetch(`${base}/jobs/summary`).then((r) => r.json()),
           fetch(`${base}/apps/summary`).then((r) => r.json()),
-          fetch(`${base}/jobs`).then((r) => r.json()), // unapproved jobs list
+          fetch(`${base}/jobs/unapproved`).then((r) => r.json()), // unapproved jobs list
           fetch(`${base}/apps/unapproved`).then((r) => r.json()), // prepared but unapproved/undiscarded
           fetch(`${base}/apps/applied`).then((r) => r.json()), // submitted apps with company/title/status
         ]);

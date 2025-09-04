@@ -133,6 +133,26 @@ user = User(
 )
 
 
+@app.get("/job/{job_id}")
+async def get_job(job_id: UUID, db: Session = Depends(get_db)):
+    """Get a specific job by ID."""
+    job = get_job_by_id(db, job_id)
+    if job is None:
+        logging.error(f"/job/{job_id}: Job not found", exc_info=True)
+        return JSONResponse(
+            status_code=404,
+            content={
+                "status": "error",
+                "message": f"Job {job_id} not found",
+            },
+        )
+
+    return JSONResponse(
+        status_code=200,
+        content=job.to_json(),
+    )
+
+
 @app.post("/jobs/find")
 async def find_jobs(
     num_jobs: int = Query(
@@ -674,8 +694,8 @@ def submit_applications(db: Session = Depends(get_db)):
 
 @app.get("/jobs")
 async def list_all_jobs(db: Session = Depends(get_db)):
-    """List all saved job applications (for frontend page)."""
-    jobs = get_unapproved_jobs(db)
+    """List all saved job applications."""
+    jobs = get_all_jobs(db)
     return JSONResponse(
         status_code=200,
         content={"jobs": [job.to_json() for job in jobs]},
@@ -683,6 +703,16 @@ async def list_all_jobs(db: Session = Depends(get_db)):
 
 
 # frontend endpoints
+@app.get("/jobs/unapproved")
+async def list_all_jobs(db: Session = Depends(get_db)):
+    """List all unapproved job applications (for frontend page)."""
+    jobs = get_unapproved_jobs(db)
+    return JSONResponse(
+        status_code=200,
+        content={"jobs": [job.to_json() for job in jobs]},
+    )
+
+
 @app.get("/apps/unapproved")
 async def get_unapproved_apps(db: Session = Depends(get_db)):
     """Gets all applications that still need to be approved by the user."""
@@ -811,7 +841,7 @@ async def create_manual_application(
                     description=job_payload.get("description"),
                     review=None,
                     reviewed=False,
-                    approved=False,
+                    approved=True,
                     discarded=False,
                 )
             except KeyError as ke:

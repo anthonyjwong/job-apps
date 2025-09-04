@@ -132,20 +132,50 @@ export default function UnapprovedApps(): ReactElement {
     fetchData();
   }, [baseUrl]);
 
-  // Fetch jobs (for showing title/company/classification/description)
+  // Fetch only the specific jobs we need via /job/{job_id}
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      if (!apps || apps.length === 0) return;
+      // Determine which job IDs we still need to fetch
+      const have = new Set(jobs.map((j) => j.id));
+      const needed = Array.from(new Set(apps.map((a) => a.job_id))).filter(
+        (id) => !have.has(id)
+      );
+      if (needed.length === 0) return;
+
       try {
-        const res = await fetch(`${baseUrl}/jobs`, { headers: { Accept: 'application/json' } });
-        const json = await res.json();
-        if (!cancelled) setJobs(Array.isArray(json.jobs) ? json.jobs : []);
-      } catch (e) {
-        // non-fatal for this page; keep silent
+        const results = await Promise.all(
+          needed.map(async (id) => {
+            try {
+              const res = await fetch(`${baseUrl}/job/${id}`, {
+                headers: { Accept: 'application/json' },
+              });
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              return (await res.json()) as JobRecord;
+            } catch (err) {
+              // non-fatal; skip this job
+              return null as unknown as JobRecord;
+            }
+          })
+        );
+        if (cancelled) return;
+        const valid = results.filter(Boolean) as JobRecord[];
+        if (valid.length > 0) {
+          setJobs((prev) => {
+            const byId = new Map(prev.map((j) => [j.id, j] as const));
+            for (const j of valid) byId.set(j.id, j);
+            return Array.from(byId.values());
+          });
+        }
+      } catch {
+        // ignore batch errors
       }
     })();
-    return () => { cancelled = true; };
-  }, [baseUrl]);
+    return () => {
+      cancelled = true;
+    };
+  }, [apps, baseUrl, jobs]);
 
   const jobById = useMemo(() => {
     const m = new Map<string, JobRecord>();
@@ -505,7 +535,7 @@ export default function UnapprovedApps(): ReactElement {
         {(() => {
           const j = jobById.get(app.job_id);
           if (!j) return null;
-          const bestLink = j.direct_job_url || j.linkedin_job_url || undefined;
+          const bestLink = j.linkedin_job_url || j.direct_job_url || undefined;
           return (
             <div style={{
               border: `1px solid ${theme.border}`,
