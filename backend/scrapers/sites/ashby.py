@@ -306,30 +306,32 @@ class Ashby(JobSite):
                         await page.wait_for_selector(
                             f"{success_selector}, {failure_selector}", timeout=7000
                         )
-                    except Exception:
-                        error_message = "Timed out waiting for success or failure container. Submission may have been improperly filled out."
-                        logging.error(error_message)
-                        raise Exception(error_message)
+                    except Exception as e:
+                        logging.error(
+                            f"Timed out waiting for success or failure container for app {app.id}. Submission may have been improperly filled out."
+                        )
+                        raise e
 
                     success = (await page.locator(success_selector).count()) > 0
                     failure = (await page.locator(failure_selector).count()) > 0
                     if success:
-                        logging.info("Application submitted successfully!")
-                        return True
+                        logging.info(f"App {app.id} submitted successfully!")
+                        return
                     elif failure:
-                        logging.error(
-                            "Application submission failed; Failure container detected."
-                        )
-                        return False
+                        error_message = f"App {app.id} submission failed; Failure container detected."
+                        logging.error(error_message)
+                        raise RuntimeError(error_message)
                     else:
-                        logging.error(
-                            "Could not determine application submission result (no container detected). Assuming failure."
-                        )
-                        return False
+                        error_message = f"App {app.id} submission failed; No container detected. Assuming failure."
+                        logging.error(error_message)
+                        raise RuntimeError(error_message)
+
                 else:
                     logging.error("Application not approved by user.")
-                    return False
+                    raise RuntimeError(
+                        f"Failed to submit app {app.id}: User did not approve."
+                    )
 
         except Exception as e:
-            logging.error(f"Error occurred while applying: {e}")
-            return False
+            logging.error(f"Error occurred while submitting app {app.id}: {e}")
+            raise e

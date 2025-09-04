@@ -330,6 +330,7 @@ async def create_job_application(job_id: UUID):
 
         # logic
         try:
+            logging.info(f"Scraping job {job.id} questions...")
             app = await scrape_job_app(job)
         except ValueError:
             logging.error(f"/job/{job_id}/create_app: Job {job.id} is missing URLs")
@@ -553,6 +554,7 @@ async def submit_application(app_id: UUID):
 
         # logic
         try:
+            logging.info(f"Submitting app {app.id}...")
             applied_app = await submit_app(app, job)
         except ValueError:
             logging.error(f"/app/{app_id}/submit: Job {job.id} is missing URLs")
@@ -603,7 +605,6 @@ async def submit_application(app_id: UUID):
             )
 
     # response
-    logging.info(f"Application {app_id} submitted successfully!")
     return JSONResponse(
         status_code=200,
         content={
@@ -674,7 +675,7 @@ async def prepare_applications(db: Session = Depends(get_db)):
 
 
 @app.post("/apps/submit")
-def submit_applications(db: Session = Depends(get_db)):
+async def submit_applications(db: Session = Depends(get_db)):
     """Submits approved applications."""
     # arg validation
     apps = get_approved_applications(db)

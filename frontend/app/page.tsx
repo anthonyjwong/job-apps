@@ -13,7 +13,7 @@ type JobsSummary = {
 type AppsSummary = {
   total_apps: number;
   discarded: number;
-  approved?: number;
+  approved: number;
   submitted: number;
   acknowledged: number;
   rejected: number;

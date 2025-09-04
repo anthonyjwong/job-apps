@@ -142,110 +142,117 @@ class LinkedIn(JobSite):
                 job_id=self.job.id,
                 url=self.job.linkedin_job_url,
             )
-
-        async with async_playwright() as p:
-            browser = await p.firefox.launch(headless=True)
-            # Use a browser context so we can persist and restore auth state
-            context = await browser.new_context(
-                storage_state=str(_STORAGE_PATH) if _STORAGE_PATH.exists() else None
-            )
-            page = await context.new_page()
-
-            # If no storage or not logged in, perform login once and save storage
-            needs_login = not _STORAGE_PATH.exists()
-            if not needs_login:
-                try:
-                    await page.goto("https://www.linkedin.com/feed/")
-                    # If redirected to login, we still need to login
-                    await page.wait_for_load_state("domcontentloaded")
-                    if await page.locator("#username").count():
-                        needs_login = True
-                except Exception:
-                    needs_login = True
-
-            if needs_login:
-                # Ensure creds exist
-                if not (LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET):
-                    raise RuntimeError(
-                        "Missing LINKEDIN_CLIENT_ID or LINKEDIN_CLIENT_SECRET env vars."
-                    )
-                await self.login(page)
-                # Save auth state for reuse
-                await context.storage_state(path=str(_STORAGE_PATH))
-
-            # Now go to the job URL
-            print(f"Navigating to {app.url}")
-            await page.goto(app.url, timeout=10000)
-            await human_delay(3, 5)
-
-            # Wait for the "Easy Apply" button to appear
-            apply_button = page.locator("div.jobs-apply-button--top-card").first
-            await apply_button.click()
-            await human_delay(3, 5)
-
-            # Wait for the Easy Apply modal to become visible inside the modal outlet
-            await page.wait_for_selector(".jobs-easy-apply-modal__content")
-            await human_delay(1, 2)
-
-            async def detect_step():
-                """Detect which step the Easy Apply modal is currently on.
-
-                Returns a tuple of (step_name, locator) where step_name is one of
-                'next', 'review', 'submit', or None.
-                """
-                next_button = page.locator("button[aria-label='Continue to next step']")
-                if await next_button.count() > 0:
-                    return "next", next_button.first
-
-                review_button = page.locator(
-                    "button[aria-label='Review your application']"
+        try:
+            async with async_playwright() as p:
+                browser = await p.firefox.launch(headless=True)
+                # Use a browser context so we can persist and restore auth state
+                context = await browser.new_context(
+                    storage_state=str(_STORAGE_PATH) if _STORAGE_PATH.exists() else None
                 )
-                if await review_button.count() > 0:
-                    return "review", review_button.first
+                page = await context.new_page()
 
-                submit_button = page.locator("button[aria-label='Submit application']")
-                if await submit_button.count() > 0:
-                    return "submit", submit_button.first
+                # If no storage or not logged in, perform login once and save storage
+                needs_login = not _STORAGE_PATH.exists()
+                if not needs_login:
+                    try:
+                        await page.goto("https://www.linkedin.com/feed/")
+                        # If redirected to login, we still need to login
+                        await page.wait_for_load_state("domcontentloaded")
+                        if await page.locator("#username").count():
+                            needs_login = True
+                    except Exception:
+                        needs_login = True
 
-                return None, None
+                if needs_login:
+                    # Ensure creds exist
+                    if not (LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET):
+                        raise RuntimeError(
+                            "Missing LINKEDIN_CLIENT_ID or LINKEDIN_CLIENT_SECRET env vars."
+                        )
+                    await self.login(page)
+                    # Save auth state for reuse
+                    await context.storage_state(path=str(_STORAGE_PATH))
 
-            MAX_STEPS = 10  # safety to avoid infinite loops
-            for _ in range(MAX_STEPS):
-                step, button = await detect_step()
+                # Now go to the job URL
+                print(f"Navigating to {app.url}")
+                await page.goto(app.url, timeout=10000)
+                await human_delay(3, 5)
 
-                if step == "next":
-                    await self.find_questions(app, page, submit=submit)
-                    await self.next_page(button)
-                    continue
-                elif step == "review":
-                    await self.find_questions(app, page, submit=submit)
-                    if not submit:
-                        # caller only wants questions; stop before submitting
-                        await browser.close()
-                        return app
-                    await self.next_page(button)
-                    continue
-                elif step == "submit":
-                    # Optional checkbox shown on some flows
-                    follow_company_checkbox = page.locator(
-                        "input[type='checkbox']#follow-company-checkbox"
+                # Wait for the "Easy Apply" button to appear
+                apply_button = page.locator("div.jobs-apply-button--top-card").first
+                await apply_button.click()
+                await human_delay(3, 5)
+
+                # Wait for the Easy Apply modal to become visible inside the modal outlet
+                await page.wait_for_selector(".jobs-easy-apply-modal__content")
+                await human_delay(1, 2)
+
+                async def detect_step():
+                    """Detect which step the Easy Apply modal is currently on.
+
+                    Returns a tuple of (step_name, locator) where step_name is one of
+                    'next', 'review', 'submit', or None.
+                    """
+                    next_button = page.locator(
+                        "button[aria-label='Continue to next step']"
                     )
-                    if await follow_company_checkbox.count() > 0:
-                        await follow_company_checkbox.scroll_into_view_if_needed()
-                        await follow_company_checkbox.click()  # don't follow company
-                        await human_delay(0.2, 0.5)
+                    if await next_button.count() > 0:
+                        return "next", next_button.first
 
-                    if submit:  # dbl check
+                    review_button = page.locator(
+                        "button[aria-label='Review your application']"
+                    )
+                    if await review_button.count() > 0:
+                        return "review", review_button.first
+
+                    submit_button = page.locator(
+                        "button[aria-label='Submit application']"
+                    )
+                    if await submit_button.count() > 0:
+                        return "submit", submit_button.first
+
+                    return None, None
+
+                MAX_STEPS = 10  # safety to avoid infinite loops
+                for _ in range(MAX_STEPS):
+                    step, button = await detect_step()
+
+                    if step == "next":
+                        await self.find_questions(app, page, submit=submit)
                         await self.next_page(button)
-                        app.submitted = True
+                        continue
+                    elif step == "review":
+                        await self.find_questions(app, page, submit=submit)
+                        if not submit:
+                            # caller only wants questions; stop before submitting
+                            await browser.close()
+                            return app
+                        await self.next_page(button)
+                        continue
+                    elif step == "submit":
+                        # Optional checkbox shown on some flows
+                        follow_company_checkbox = page.locator(
+                            "input[type='checkbox']#follow-company-checkbox"
+                        )
+                        if await follow_company_checkbox.count() > 0:
+                            await follow_company_checkbox.scroll_into_view_if_needed()
+                            await follow_company_checkbox.click()  # don't follow company
+                            await human_delay(0.2, 0.5)
 
-                    return app
-                elif step is None:
-                    logging.error("Unexpected state: no navigation buttons found")
-                    raise RuntimeError("No navigation buttons found")
+                        if submit:  # dbl check
+                            await self.next_page(button)
+                            app.submitted = True
 
-            # If we exit the loop, we hit the safety cap
-            raise RuntimeError("Exceeded maximum Easy Apply steps; aborting.")
+                        return app
+                    elif step is None:
+                        logging.error("Unexpected state: no navigation buttons found")
+                        raise RuntimeError("No navigation buttons found")
+
+                # If we exit the loop, we hit the safety cap
+                raise RuntimeError("Exceeded maximum Easy Apply steps; aborting.")
+        except Exception as e:
+            logging.error(f"Error occurred during Easy Apply process for {app.id}: {e}")
+            raise e
 
     async def scrape_questions(self) -> App:
         return await self.scrape()
