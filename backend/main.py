@@ -1119,92 +1119,48 @@ async def get_jobs_summary(db: Session = Depends(get_db)):
 
 @app.get("/apps/summary")
 async def get_applications_summary(db: Session = Depends(get_db)):
-    """Get the status of applications, plus combined metrics for approved jobs without a scraped application (or no application)."""
+    """Get the status of applications, plus metrics for approved jobs without a scraped application."""
     try:
         apps = get_all_applications(db)
-        total_apps = len(apps)
-        discarded = 0
-        submitted = 0
-        acknowledged = 0
-        rejected = 0
+        summary = {
+            "total_apps": len(apps),
+            "approved": sum(app.approved for app in apps),
+            "discarded": sum(app.discarded for app in apps),
+            "submitted": sum(app.submitted for app in apps),
+            "acknowledged": sum(app.acknowledged for app in apps),
+            "rejected": sum(app.rejected for app in apps),
+        }
 
-        for app in apps:
-            if app.discarded:
-                discarded += 1
-            if app.submitted:
-                submitted += 1
-            if app.acknowledged:
-                acknowledged += 1
-            if app.rejected:
-                rejected += 1
-
-        # Combined metrics: Jobs that are reviewed, approved, not discarded,
-        # and either have no application OR have an application that is not scraped
-        approved_wo_app_count = (
-            db.query(func.count(func.distinct(JobORM.id)))
+        # Jobs that are reviewed, approved, not discarded, and have no app or unscraped app
+        approved_wo_app_query = (
+            db.query(JobORM.id)
             .outerjoin(ApplicationORM, ApplicationORM.job_id == JobORM.id)
-            .filter(JobORM.reviewed == True)
-            .filter(JobORM.approved == True)
-            .filter(JobORM.discarded == False)
-            .filter(or_(ApplicationORM.id == None, ApplicationORM.scraped == False))
-            .scalar()
+            .filter(JobORM.reviewed, JobORM.approved, ~JobORM.discarded)
+            .filter(or_(ApplicationORM.id == None, ~ApplicationORM.scraped))
+            .distinct()
         )
+        approved_wo_app_job_ids = [row[0] for row in approved_wo_app_query.all()]
+        summary["approved_without_app"] = {
+            "count": len(approved_wo_app_job_ids),
+            "base_urls": {},
+        }
 
-        # Avoid DISTINCT on full rows (JSON column) by selecting distinct Job IDs first
-        approved_wo_app_job_ids = [
-            row[0]
-            for row in (
-                db.query(JobORM.id)
-                .outerjoin(ApplicationORM, ApplicationORM.job_id == JobORM.id)
-                .filter(JobORM.reviewed == True)
-                .filter(JobORM.approved == True)
-                .filter(JobORM.discarded == False)
-                .filter(or_(ApplicationORM.id == None, ApplicationORM.scraped == False))
-                .distinct()
-                .all()
-            )
-        ]
-
-        approved_wo_app_base_urls = {}
-        if len(approved_wo_app_job_ids) > 0:
-            # Fetch only URL fields to build base URL distribution
+        if approved_wo_app_job_ids:
             url_rows = (
                 db.query(JobORM.direct_job_url, JobORM.linkedin_job_url)
                 .filter(JobORM.id.in_(approved_wo_app_job_ids))
                 .all()
             )
-
+            base_urls = {}
             for direct_url, linkedin_url in url_rows:
-                if direct_url:
-                    base_url = get_base_url(direct_url)
-                elif linkedin_url:
-                    base_url = get_base_url(linkedin_url)
-                else:
-                    base_url = "no URL"
-                approved_wo_app_base_urls[base_url] = (
-                    approved_wo_app_base_urls.get(base_url, 0) + 1
-                )
+                url = direct_url or linkedin_url or "no URL"
+                base = get_base_url(url)
+                base_urls[base] = base_urls.get(base, 0) + 1
+            summary["approved_without_app"]["base_urls"] = dict(
+                sorted(base_urls.items(), key=lambda x: x[1], reverse=True)
+            )
 
-        approved_wo_app_base_urls = dict(
-            sorted(approved_wo_app_base_urls.items(), key=lambda x: x[1], reverse=True)
-        )
-
-        return JSONResponse(
-            status_code=200,
-            content={
-                "data": {
-                    "total_apps": total_apps,
-                    "discarded": discarded,
-                    "submitted": submitted,
-                    "acknowledged": acknowledged,
-                    "rejected": rejected,
-                    "approved_without_app": {
-                        "count": int(approved_wo_app_count or 0),
-                        "base_urls": approved_wo_app_base_urls,
-                    },
-                },
-            },
-        )
+        return JSONResponse(status_code=200, content={"data": summary})
     except Exception as e:
         return JSONResponse(
             status_code=500, content={"status": "error", "message": str(e)}

@@ -13,6 +13,7 @@ type JobsSummary = {
 type AppsSummary = {
   total_apps: number;
   discarded: number;
+  approved?: number;
   submitted: number;
   acknowledged: number;
   rejected: number;
@@ -266,6 +267,9 @@ export default function Home() {
               <ul style={list(theme)}>
                 {typeof unapprovedAppsCount === 'number' && (
                   <li style={{marginBottom: 24}}>In approval queue: {unapprovedAppsCount}</li>
+                )}
+                {typeof apps.approved === 'number' && (
+                  <li>Approved: {apps.approved}</li>
                 )}
                 <li>Submitted: {apps.submitted}</li>
                 <UnimplementedContainer as="li">
