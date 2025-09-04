@@ -32,6 +32,8 @@ type AppliedApp = {
   rejected: boolean;
 };
 
+type AppStateName = "submitted" | "acknowledged" | "rejected";
+
 export default function Home() {
   const { dark: darkMode } = useTheme();
   const [jobs, setJobs] = useState<JobsSummary | null>(null);
@@ -44,6 +46,10 @@ export default function Home() {
   const [approvedNoAppSources, setApprovedNoAppSources] = useState<Record<string, number>>({});
   const [mounted, setMounted] = useState(false);
   const [expandedCompanies, setExpandedCompanies] = useState<Record<string, boolean>>({});
+  const [editingStatusFor, setEditingStatusFor] = useState<string | null>(null);
+  const [savingAppId, setSavingAppId] = useState<string | null>(null);
+
+  const API_BASE = "http://localhost:8000" as const;
 
   useEffect(() => setMounted(true), []);
 
@@ -72,6 +78,59 @@ export default function Home() {
     };
     load();
   }, []);
+
+  async function updateAppState(appId: string, next: AppStateName) {
+    setSavingAppId(appId);
+    let prevApp: AppliedApp | undefined;
+    setAppliedApps((prev) =>
+      prev.map((a) => {
+        if (a.app_id === appId) {
+          prevApp = a;
+          return {
+            ...a,
+            submitted: next === "submitted",
+            acknowledged: next === "acknowledged",
+            rejected: next === "rejected",
+          };
+        }
+        return a;
+      })
+    );
+    try {
+      const res = await fetch(`${API_BASE}/app/${appId}/state`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(next),
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to update state: ${res.status}`);
+      }
+      // Refresh Applications summary and approval queue count
+      try {
+        const [apps_summary, unapproved_apps] = await Promise.all([
+          fetch(`${API_BASE}/apps/summary`).then((r) => r.json()),
+          fetch(`${API_BASE}/apps/unapproved`).then((r) => r.json()),
+        ]);
+        if (apps_summary?.data) setApps(apps_summary.data as AppsSummary);
+        setUnapprovedAppsCount(
+          Array.isArray(unapproved_apps?.apps) ? unapproved_apps.apps.length : 0
+        );
+      } catch {
+        // Non-fatal: keep optimistic status even if summary refresh fails
+      }
+    } catch (e) {
+      // rollback optimistic change
+      if (prevApp) {
+        setAppliedApps((prev) =>
+          prev.map((a) => (a.app_id === appId ? prevApp as AppliedApp : a))
+        );
+      }
+      setError(e instanceof Error ? e.message : "Failed to update state");
+    } finally {
+      setSavingAppId(null);
+      setEditingStatusFor(null);
+    }
+  }
 
   const theme = {
     background: darkMode ? '#18181b' : '#f9f9f9',
@@ -290,12 +349,8 @@ export default function Home() {
               return (
                 <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                   {Object.entries(grouped).map(([company, items]) => {
-                    if (items.length <= 1) {
+        if (items.length <= 1) {
                       const a = items[0];
-                      const status = a.rejected ? 'Rejected' : a.acknowledged ? 'Acknowledged' : 'Submitted';
-                      const color = a.rejected ? (darkMode ? '#b91c1c' : '#ef4444') : a.acknowledged ? (darkMode ? '#2563eb' : '#3b82f6') : (darkMode ? '#6b7280' : '#9ca3af');
-                      const bg = a.rejected ? (darkMode ? '#3f1d1d' : '#fee2e2') : a.acknowledged ? (darkMode ? '#1e3a8a' : '#dbeafe') : (darkMode ? '#1f2937' : '#f3f4f6');
-                      const border = a.rejected ? (darkMode ? '#7f1d1d' : '#fecaca') : a.acknowledged ? (darkMode ? '#1d4ed8' : '#bfdbfe') : (darkMode ? '#374151' : '#e5e7eb');
                       return (
                         <li key={a.app_id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, padding: '10px 12px', borderBottom: `1px solid ${theme.border}` }}>
                           <div style={{ minWidth: 0 }}>
@@ -304,7 +359,7 @@ export default function Home() {
                               <span style={{ color: muted, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{a.title}</span>
                             </div>
                           </div>
-                          <span style={{ alignSelf: 'center', fontSize: 12, padding: '2px 8px', borderRadius: 999, background: bg, color, border: `1px solid ${border}` }}>{status}</span>
+          <StatusPill app={a} />
                         </li>
                       );
                     }
@@ -346,20 +401,14 @@ export default function Home() {
                         </button>
                         {isOpen && (
                           <ul style={{ listStyle: 'none', margin: 0, padding: 0  }}>
-                            {items.map((a) => {
-                              const status = a.rejected ? 'Rejected' : a.acknowledged ? 'Acknowledged' : 'Submitted';
-                              const color = a.rejected ? (darkMode ? '#b91c1c' : '#ef4444') : a.acknowledged ? (darkMode ? '#2563eb' : '#3b82f6') : (darkMode ? '#6b7280' : '#9ca3af');
-                              const bg = a.rejected ? (darkMode ? '#3f1d1d' : '#fee2e2') : a.acknowledged ? (darkMode ? '#1e3a8a' : '#dbeafe') : (darkMode ? '#1f2937' : '#f3f4f6');
-                              const border = a.rejected ? (darkMode ? '#7f1d1d' : '#fecaca') : a.acknowledged ? (darkMode ? '#1d4ed8' : '#bfdbfe') : (darkMode ? '#374151' : '#e5e7eb');
-                              return (
-                                <li key={a.app_id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, padding: '8px 12px', borderTop: `1px dashed ${theme.border}`, background: darkMode ? '#1d1d20' : '#fafafa' }}>
-                                  <div style={{ minWidth: 0 }}>
-                                    <div style={{ color: muted, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</div>
-                                  </div>
-                                  <span style={{ alignSelf: 'center', fontSize: 12, padding: '2px 8px', borderRadius: 999, background: bg, color, border: `1px solid ${border}` }}>{status}</span>
-                                </li>
-                              );
-                            })}
+                            {items.map((a) => (
+                              <li key={a.app_id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, padding: '8px 12px', borderTop: `1px dashed ${theme.border}`, background: darkMode ? '#1d1d20' : '#fafafa' }}>
+                                <div style={{ minWidth: 0 }}>
+                                  <div style={{ color: muted, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</div>
+                                </div>
+                                <StatusPill app={a} />
+                              </li>
+                            ))}
                           </ul>
                         )}
                       </li>
@@ -373,6 +422,113 @@ export default function Home() {
       )}
     </main>
   );
+
+  function StatusPill({ app }: { app: AppliedApp }) {
+    const isRejected = app.rejected;
+    const isAck = app.acknowledged;
+    const status = isRejected ? "Rejected" : isAck ? "Acknowledged" : "Submitted";
+    const color = isRejected
+      ? (darkMode ? "#b91c1c" : "#ef4444")
+      : isAck
+      ? (darkMode ? "#2563eb" : "#3b82f6")
+      : (darkMode ? "#6b7280" : "#9ca3af");
+    const bg = isRejected
+      ? (darkMode ? "#3f1d1d" : "#fee2e2")
+      : isAck
+      ? (darkMode ? "#1e3a8a" : "#dbeafe")
+      : (darkMode ? "#1f2937" : "#f3f4f6");
+    const border = isRejected
+      ? (darkMode ? "#7f1d1d" : "#fecaca")
+      : isAck
+      ? (darkMode ? "#1d4ed8" : "#bfdbfe")
+      : (darkMode ? "#374151" : "#e5e7eb");
+
+    const isEditing = editingStatusFor === app.app_id;
+    const isSaving = savingAppId === app.app_id;
+
+    const pillStyle: React.CSSProperties = {
+      alignSelf: 'center',
+      fontSize: 12,
+      padding: '2px 8px',
+      borderRadius: 999,
+      background: bg,
+      color,
+      border: `1px solid ${border}`,
+      cursor: isSaving ? 'progress' : 'pointer',
+      userSelect: 'none',
+    };
+
+    if (!isEditing) {
+      return (
+        <span
+          onClick={() => !isSaving && setEditingStatusFor(app.app_id)}
+          title="Click to change status"
+          style={pillStyle}
+        >
+          {status}
+        </span>
+      );
+    }
+
+    const optionStyle = (active: boolean, col: string, bgc: string, bdc: string): React.CSSProperties => ({
+      fontSize: 12,
+      padding: '2px 8px',
+      borderRadius: 999,
+      background: bgc,
+      color: col,
+      border: `1px solid ${bdc}`,
+      opacity: isSaving && !active ? 0.6 : 1,
+      cursor: isSaving ? 'progress' : 'pointer',
+    });
+
+    return (
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <button
+          disabled={isSaving}
+          onClick={() => updateAppState(app.app_id, 'submitted')}
+          style={{
+            all: 'unset',
+            ...optionStyle(status === 'Submitted', (darkMode ? '#6b7280' : '#111827'), (darkMode ? '#1f2937' : '#f3f4f6'), (darkMode ? '#374151' : '#e5e7eb')),
+          }}
+        >
+          Submitted
+        </button>
+        <button
+          disabled={isSaving}
+          onClick={() => updateAppState(app.app_id, 'acknowledged')}
+          style={{
+            all: 'unset',
+            ...optionStyle(status === 'Acknowledged', (darkMode ? '#2563eb' : '#1d4ed8'), (darkMode ? '#1e3a8a' : '#dbeafe'), (darkMode ? '#1d4ed8' : '#bfdbfe')),
+          }}
+        >
+          Acknowledged
+        </button>
+        <button
+          disabled={isSaving}
+          onClick={() => updateAppState(app.app_id, 'rejected')}
+          style={{
+            all: 'unset',
+            ...optionStyle(status === 'Rejected', (darkMode ? '#b91c1c' : '#991b1b'), (darkMode ? '#3f1d1d' : '#fee2e2'), (darkMode ? '#7f1d1d' : '#fecaca')),
+          }}
+        >
+          Rejected
+        </button>
+        <button
+          disabled={isSaving}
+          onClick={() => setEditingStatusFor(null)}
+          style={{
+            all: 'unset',
+            color: muted,
+            border: `1px solid ${theme.border}`,
+            borderRadius: 999,
+            padding: '2px 8px',
+          }}
+        >
+          Cancel
+        </button>
+      </div>
+    );
+  }
 }
 
 type Theme = { border: string; text: string; appBg: string };

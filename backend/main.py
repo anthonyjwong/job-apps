@@ -31,6 +31,7 @@ from db.utils import (
     get_unscraped_applications,
     update_application_by_id,
     update_application_by_id_with_fragment,
+    update_application_state_by_id,
     update_job_by_id,
 )
 from fastapi import Body, Depends, FastAPI, Query, WebSocket, WebSocketDisconnect
@@ -869,6 +870,52 @@ async def discard_application(app_id: UUID, db: Session = Depends(get_db)):
     except Exception as e:
         return JSONResponse(
             status_code=500, content={"status": "error", "message": str(e)}
+        )
+
+
+@app.put("/app/{app_id}/state")
+async def update_application_state(
+    app_id: UUID,
+    new_state: str = Body(None),
+    db: Session = Depends(get_db),
+):
+    """Update the state of an application (submitted, acknowledged, rejected)"""
+    try:
+        app = get_application_by_id(db, app_id)
+        if not app:
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "status": "error",
+                    "message": f"Application with ID {app_id} not found",
+                },
+            )
+
+        if new_state not in ["submitted", "acknowledged", "rejected"]:
+            logging.error(
+                f"/app/{app_id}/state: Invalid state field provided for app state update",
+            )
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "status": "error",
+                    "message": "Invalid state field provided for update",
+                },
+            )
+
+        update_application_state_by_id(db, app_id, new_state)
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "success",
+                "message": f"Application {app_id} state updated successfully",
+            },
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "message": str(e)},
         )
 
 

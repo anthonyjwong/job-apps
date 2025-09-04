@@ -170,6 +170,26 @@ def update_application_by_id(db_session, app_id, updated_app: App):
         db_session.commit()
 
 
+def update_application_state_by_id(db_session, app_id, new_state: str):
+    """Update the state of an application by its ID."""
+    app = db_session.query(ApplicationORM).filter(ApplicationORM.id == app_id).first()
+    if not app:
+        raise ValueError(f"Application with id {app_id} not found.")
+
+    if new_state == "submitted":
+        app.submitted = True
+        app.acknowledged = False
+        app.rejected = False
+    elif new_state == "acknowledged":
+        app.acknowledged = True
+        app.rejected = False
+    elif new_state == "rejected":
+        app.rejected = True
+
+    db_session.commit()
+    logging.debug(f"App {app_id} state updated to {new_state}")
+
+
 def update_application_by_id_with_fragment(db_session, app_id, fragment: AppFragment):
     """Update an application by its ID."""
     app = db_session.query(ApplicationORM).filter(ApplicationORM.id == app_id).first()
