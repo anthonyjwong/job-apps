@@ -499,22 +499,6 @@ export default function UnapprovedApps(): ReactElement {
         <h2 style={{ marginTop: 0, textAlign: 'center' }}>
           Application {currentIndex + 1} of {apps.length}
         </h2>
-        <p style={{ marginTop: 0, textAlign: 'center' }}>
-          <a
-            href={app.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              color: theme.link,
-              textDecoration: 'underline',
-              fontWeight: 500,
-              wordBreak: 'break-all',
-              transition: 'color 0.2s',
-            }}
-          >
-            {app.url}
-          </a>
-        </p>
         <p><strong>App ID:</strong> {app.id}</p>
         <p style={{ marginBottom: '1rem' }}><strong>Job ID:</strong> {app.job_id}</p>
         {/* Job details (title, company, classification, description) */}

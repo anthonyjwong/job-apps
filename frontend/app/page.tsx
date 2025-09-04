@@ -1,12 +1,12 @@
 "use client";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import PieChart from "./components/PieChart";
+import { UnimplementedContainer } from "./components/UnimplementedContainer";
 import { useTheme } from "./providers/ThemeProvider";
 
 type JobsSummary = {
   total_jobs: number;
-  classifications: { safety: number; target: number; reach: number; dream: number };
+  classifications: { safety: number; target: number; reach: number; dream: number; unreviewed?: number };
   base_urls: Record<string, number>;
 };
 
@@ -22,6 +22,10 @@ export default function Home() {
   const { dark: darkMode } = useTheme();
   const [jobs, setJobs] = useState<JobsSummary | null>(null);
   const [apps, setApps] = useState<AppsSummary | null>(null);
+  const [unapprovedJobsCount, setUnapprovedJobsCount] = useState<number | null>(null);
+  const [unapprovedAppsCount, setUnapprovedAppsCount] = useState<number | null>(null);
+  const [appliedApps, setAppliedApps] = useState<Array<{ app_id: string; job_id: string; company: string; title: string; submitted: boolean; acknowledged: boolean; rejected: boolean }>>([]);
+  const [approvedNoAppCount, setApprovedNoAppCount] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -31,12 +35,20 @@ export default function Home() {
     const base = "http://localhost:8000";
     const load = async () => {
       try {
-        const [j, a] = await Promise.all([
+        const [jobs_summary, apps_summary, unapproved_jobs, unapproved_apps, applied_apps, approved_without_app] = await Promise.all([
           fetch(`${base}/jobs/summary`).then((r) => r.json()),
           fetch(`${base}/apps/summary`).then((r) => r.json()),
+          fetch(`${base}/jobs`).then((r) => r.json()), // unapproved jobs list
+          fetch(`${base}/apps/unapproved`).then((r) => r.json()), // prepared but unapproved/undiscarded
+          fetch(`${base}/apps/applied`).then((r) => r.json()), // submitted apps with company/title/status
+          fetch(`${base}/jobs/approved_without_app`).then((r) => r.json()), // count of approved jobs without an app
         ]);
-        setJobs(j.data);
-        setApps(a.data);
+        setJobs(jobs_summary.data);
+        setApps(apps_summary.data);
+        setUnapprovedJobsCount(Array.isArray(unapproved_jobs.jobs) ? unapproved_jobs.jobs.length : 0);
+        setUnapprovedAppsCount(Array.isArray(unapproved_apps.apps) ? unapproved_apps.apps.length : 0);
+        setAppliedApps(Array.isArray(applied_apps.apps) ? applied_apps.apps : []);
+        setApprovedNoAppCount(typeof approved_without_app.count === 'number' ? approved_without_app.count : 0);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load stats");
       }
@@ -61,11 +73,6 @@ export default function Home() {
   return (
     <main style={{ padding: 16, maxWidth: 1000, margin: "0 auto", background: theme.background, color: theme.text, minHeight: '100vh' }}>
       <h1 style={{ marginBottom: 12 }}>Job Apps Dashboard</h1>
-      <nav style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-        <Link href="/approval" style={btn(theme, darkMode)}>Approval</Link>
-        <Link href="/jobs" style={btn(theme, darkMode)}>Job listings</Link>
-      </nav>
-
       {error && <p style={{ color: "red" }}>{error}</p>}
 
       <section style={cardRow}>
@@ -73,13 +80,85 @@ export default function Home() {
           <h3 style={cardTitle}>Jobs</h3>
           <div style={{ fontSize: 12, color: muted, marginTop: -6, marginBottom: 8 }}>Overview</div>
           {jobs ? (
-            <ul style={list(theme)}>
-              <li>Total: {jobs.total_jobs}</li>
-              <li>Safety: {jobs.classifications.safety}</li>
-              <li>Target: {jobs.classifications.target}</li>
-              <li>Reach: {jobs.classifications.reach}</li>
-              <li>Dream: {jobs.classifications.dream}</li>
-            </ul>
+            <div>
+              <ul style={list(theme)}>
+                {typeof jobs.classifications.unreviewed === 'number' && (
+                  <li>Unclassified: {jobs.classifications.unreviewed}</li>
+                )}
+                {typeof unapprovedJobsCount === 'number' && (
+                  <li>In discovery queue: {unapprovedJobsCount}</li>
+                )}
+              </ul>
+              {jobs && (
+                <section style={{ marginTop: 24 }}>
+                  {(() => {
+                    const cls = jobs.classifications;
+                    const items = [
+                      { label: 'Safety', value: cls.safety },
+                      { label: 'Target', value: cls.target },
+                      { label: 'Reach', value: cls.reach },
+                      { label: 'Dream', value: cls.dream },
+                      ...(typeof cls.unreviewed === 'number' ? [{ label: 'Unreviewed', value: cls.unreviewed }] : []),
+                    ].filter(d => typeof d.value === 'number' && d.value > 0);
+                    const total = items.reduce((a, b) => a + (isFinite(b.value) ? b.value : 0), 0);
+                    if (items.length === 0 || total === 0) {
+                      return (
+                        <div style={{
+                          border: `1px solid ${theme.border}`,
+                          borderRadius: 12,
+                          padding: 16,
+                          background: theme.appBg,
+                          color: muted,
+                          textAlign: 'center',
+                        }}>
+                          No classification data yet.
+                        </div>
+                      );
+                    }
+                    return (
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'minmax(180px, 1fr) 1fr',
+                        gap: 12,
+                        alignItems: 'center',
+                        border: `1px solid ${theme.border}`,
+                        borderRadius: 12,
+                        padding: 10,
+                        background: theme.appBg,
+                      }}>
+                        <div style={{ justifySelf: 'center' }}>
+                          <PieChart
+                            data={items}
+                            size={200}
+                            thickness={20}
+                            dark={darkMode}
+                            ariaLabel="Classification distribution"
+                          />
+                        </div>
+                        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6 }}>
+                          {items.map((item, i) => (
+                            <li key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{
+                                  display: 'inline-block',
+                                  width: 10,
+                                  height: 10,
+                                  borderRadius: 2,
+                                  background: colorAt(i, darkMode),
+                                  border: `1px solid ${darkMode ? '#000' : '#fff'}`,
+                                }} />
+                                <span style={{ color: theme.text }}>{item.label}</span>
+                              </div>
+                              <span style={{ fontWeight: 600 }}>{item.value}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })()}
+                </section>
+              )}
+            </div>
           ) : (
             <p>Loading…</p>
           )}
@@ -89,80 +168,117 @@ export default function Home() {
           <h3 style={cardTitle}>Applications</h3>
           <div style={{ fontSize: 12, color: muted, marginTop: -6, marginBottom: 8 }}>Overview</div>
           {apps ? (
-            <ul style={list(theme)}>
-              <li>Total: {apps.total_apps}</li>
-              <li>Discarded: {apps.discarded}</li>
-              <li>Submitted: {apps.submitted}</li>
-              <li>Acknowledged: {apps.acknowledged}</li>
-              <li>Rejected: {apps.rejected}</li>
-            </ul>
+            <div>
+              <ul style={list(theme)}>
+                {typeof unapprovedAppsCount === 'number' && (
+                  <li style={{marginBottom: 24}}>In approval queue: {unapprovedAppsCount}</li>
+                )}
+                <li>Submitted: {apps.submitted}</li>
+                <UnimplementedContainer as="li">
+                  <p style={{ margin: 0 }}>Acknowledged: {apps.acknowledged}</p>
+                  <p style={{ margin: 0 }}>Rejected: {apps.rejected}</p>
+                </UnimplementedContainer>
+                <li style={{marginTop: 24}}>Unprepared: {approvedNoAppCount}</li>
+                {/* Top Sources pie chart inside Applications card as requested */}
+                {jobs && jobs.base_urls && (
+                  <section>
+                    <h4>Site Sources</h4>
+                    {(() => {
+                      const entries = Object.entries(jobs.base_urls).slice(0, 8);
+                      const total = entries.reduce((acc, [, v]) => acc + (typeof v === 'number' ? v : 0), 0);
+                      if (entries.length === 0 || total === 0) {
+                        return (
+                          <div style={{
+                            border: `1px solid ${theme.border}`,
+                            borderRadius: 12,
+                            padding: 12,
+                            background: theme.appBg,
+                            color: muted,
+                            textAlign: 'center',
+                          }}>
+                            No source data yet.
+                          </div>
+                        );
+                      }
+                      return (
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'minmax(160px, 1fr) 1fr',
+                          gap: 12,
+                          alignItems: 'center',
+                          border: `1px solid ${theme.border}`,
+                          borderRadius: 12,
+                          padding: 10,
+                          background: theme.appBg,
+                        }}>
+                          <div style={{ justifySelf: 'center' }}>
+                            <PieChart
+                              data={entries.map(([label, value]) => ({ label, value }))}
+                              size={180}
+                              thickness={18}
+                              dark={darkMode}
+                              ariaLabel="Top Sources by job count"
+                            />
+                          </div>
+                          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6 }}>
+                            {entries.map(([host, count], i) => (
+                              <li key={host} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <span style={{
+                                    display: 'inline-block',
+                                    width: 10,
+                                    height: 10,
+                                    borderRadius: 2,
+                                    background: colorAt(i, darkMode),
+                                    border: `1px solid ${darkMode ? '#000' : '#fff'}`,
+                                  }} />
+                                </div>
+                                <span style={{ fontWeight: 600 }}>{count}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    })()}
+                  </section>
+                )}
+              </ul>
+            </div>
           ) : (
             <p>Loading…</p>
           )}
         </div>
       </section>
 
-      {jobs && jobs.base_urls && (
+      {/* Top Sources moved into Applications card */}
+
+      {appliedApps && appliedApps.length > 0 && (
         <section style={{ marginTop: 24 }}>
-          <h3 style={{ marginBottom: 8 }}>Top Sources</h3>
-          {(() => {
-            const entries = Object.entries(jobs.base_urls).slice(0, 8);
-            const total = entries.reduce((acc, [, v]) => acc + (typeof v === 'number' ? v : 0), 0);
-            if (entries.length === 0 || total === 0) {
-              return (
-                <div style={{
-                  border: `1px solid ${theme.border}`,
-                  borderRadius: 12,
-                  padding: 16,
-                  background: theme.appBg,
-                  color: muted,
-                  textAlign: 'center',
-                }}>
-                  No source data yet.
-                </div>
-              );
-            }
-            return (
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'minmax(180px, 1fr) 1fr',
-                gap: 12,
-                alignItems: 'center',
-                border: `1px solid ${theme.border}`,
-                borderRadius: 12,
-                padding: 10,
-                background: theme.appBg,
-              }}>
-                <div style={{ justifySelf: 'center' }}>
-                  <PieChart
-                    data={entries.map(([label, value]) => ({ label, value }))}
-                    size={200}
-                    thickness={20}
-                    dark={darkMode}
-                    ariaLabel="Top Sources by job count"
-                  />
-                </div>
-                <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6 }}>
-                  {entries.map(([host, count], i) => (
-                    <li key={host} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{
-                          display: 'inline-block',
-                          width: 10,
-                          height: 10,
-                          borderRadius: 2,
-                          background: colorAt(i, darkMode),
-                          border: `1px solid ${darkMode ? '#000' : '#fff'}`,
-                        }} />
-                        <span style={{ color: theme.text }}>{host}</span>
-                      </div>
-                      <span style={{ fontWeight: 600 }}>{count}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })()}
+          <h3 style={{ marginBottom: 8 }}>Applied companies and status</h3>
+          <div style={{
+            border: `1px solid ${theme.border}`,
+            borderRadius: 12,
+            background: theme.appBg,
+            overflow: 'hidden',
+          }}>
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+              {appliedApps.map((a) => {
+                const status = a.rejected ? 'Rejected' : a.acknowledged ? 'Acknowledged' : 'Submitted';
+                const color = a.rejected ? (darkMode ? '#b91c1c' : '#ef4444') : a.acknowledged ? (darkMode ? '#2563eb' : '#3b82f6') : (darkMode ? '#6b7280' : '#9ca3af');
+                const bg = a.rejected ? (darkMode ? '#3f1d1d' : '#fee2e2') : a.acknowledged ? (darkMode ? '#1e3a8a' : '#dbeafe') : (darkMode ? '#1f2937' : '#f3f4f6');
+                const border = a.rejected ? (darkMode ? '#7f1d1d' : '#fecaca') : a.acknowledged ? (darkMode ? '#1d4ed8' : '#bfdbfe') : (darkMode ? '#374151' : '#e5e7eb');
+                return (
+                  <li key={a.app_id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, padding: '10px 12px', borderBottom: `1px solid ${theme.border}` }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, color: theme.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.company}</div>
+                      <div style={{ color: muted, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</div>
+                    </div>
+                    <span style={{ alignSelf: 'center', fontSize: 12, padding: '2px 8px', borderRadius: 999, background: bg, color, border: `1px solid ${border}` }}>{status}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         </section>
       )}
     </main>

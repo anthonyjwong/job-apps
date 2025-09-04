@@ -106,6 +106,14 @@ def get_approved_applications(db_session) -> list[App]:
     return [orm_to_app(app) for app in apps]
 
 
+def get_submitted_applications(db_session) -> list[App]:
+    """Fetch all submitted applications."""
+    apps = (
+        db_session.query(ApplicationORM).filter(ApplicationORM.submitted == True).all()
+    )
+    return [orm_to_app(app) for app in apps]
+
+
 def get_all_applications(db_session) -> list[App]:
     """Fetch all applications."""
     apps = db_session.query(ApplicationORM).all()

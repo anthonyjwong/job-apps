@@ -46,6 +46,11 @@ def evaluate_candidate_aptitude(job: Job, user: User) -> Job:
         review_data = json.loads(response.output_text)
         job.review = Review(**review_data)
         job.reviewed = True
+        if (
+            job.review.classification == "safety"
+            or job.review.classification == "target"
+        ):
+            job.approved = True
     except json.JSONDecodeError as e:
         logging.error(
             {

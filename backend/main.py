@@ -8,6 +8,7 @@ from uuid import UUID
 
 import uvicorn
 from db.database import SessionLocal, get_db
+from db.models import ApplicationORM, JobORM
 from db.utils import (
     add_new_application,
     add_new_scraped_jobs,
@@ -22,6 +23,7 @@ from db.utils import (
     get_approved_applications,
     get_job_by_id,
     get_reviewed_jobs,
+    get_submitted_applications,
     get_unapproved_applications,
     get_unapproved_jobs,
     get_unprepared_applications,
@@ -695,6 +697,34 @@ async def get_unapproved_apps(db: Session = Depends(get_db)):
     )
 
 
+@app.get("/apps/applied")
+def get_applied_apps(db: Session = Depends(get_db)):
+    """List submitted (applied) applications with their job company/title and current status."""
+    try:
+        apps = get_submitted_applications(db)
+        result = []
+        for app in apps:
+            job = get_job_by_id(db, app.job_id)
+            result.append(
+                {
+                    "app_id": str(app.id),
+                    "job_id": str(app.job_id),
+                    "company": job.company,
+                    "title": job.title,
+                    "submitted": bool(app.submitted),
+                    "acknowledged": bool(app.acknowledged),
+                    "rejected": bool(app.rejected),
+                }
+            )
+
+        return JSONResponse(status_code=200, content={"apps": result})
+    except Exception as e:
+        logging.error("/apps/applied: error listing applied apps", exc_info=True)
+        return JSONResponse(
+            status_code=500, content={"status": "error", "message": str(e)}
+        )
+
+
 @app.put("/app/{app_id}/update")
 async def update_application_from_fragment(
     app_id: UUID, app_data: AppFragment = Body(...), db: Session = Depends(get_db)
@@ -931,6 +961,27 @@ async def get_applications_summary(db: Session = Depends(get_db)):
             },
         )
     except Exception as e:
+        return JSONResponse(
+            status_code=500, content={"status": "error", "message": str(e)}
+        )
+
+
+@app.get("/jobs/approved_without_app")
+def get_approved_jobs_without_application_count(db: Session = Depends(get_db)):
+    """Count jobs that are approved but do not have an associated application."""
+    try:
+        count = (
+            db.query(JobORM)
+            .outerjoin(ApplicationORM, ApplicationORM.job_id == JobORM.id)
+            .filter(JobORM.approved == True)
+            .filter(ApplicationORM.id == None)
+            .count()
+        )
+        return JSONResponse(status_code=200, content={"count": count})
+    except Exception as e:
+        logging.error(
+            "/jobs/approved_without_app: error computing count", exc_info=True
+        )
         return JSONResponse(
             status_code=500, content={"status": "error", "message": str(e)}
         )
