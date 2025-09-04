@@ -36,6 +36,7 @@ from db.utils import (
 from fastapi import Body, Depends, FastAPI, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 from src.apply import (
     DOMAIN_HANDLERS,
@@ -619,13 +620,7 @@ async def create_job_applications(db: Session = Depends(get_db)):
 
     # send-off
     for job in jobs:
-        if not job.discarded and (
-            (
-                job.review.classification in ["safety", "target"]
-                and job.job_type == "fulltime"
-            )
-            or job.approved
-        ):
+        if job.approved:
             app = get_application_by_job_id(db, job.id)
             if app is None or app.scraped == False:
                 asyncio.create_task(create_job_application(job.id))
@@ -929,7 +924,7 @@ async def get_jobs_summary(db: Session = Depends(get_db)):
 
 @app.get("/apps/summary")
 async def get_applications_summary(db: Session = Depends(get_db)):
-    """Get the status of applications"""
+    """Get the status of applications, plus combined metrics for approved jobs without a scraped application (or no application)."""
     try:
         apps = get_all_applications(db)
         total_apps = len(apps)
@@ -948,6 +943,57 @@ async def get_applications_summary(db: Session = Depends(get_db)):
             if app.rejected:
                 rejected += 1
 
+        # Combined metrics: Jobs that are reviewed, approved, not discarded,
+        # and either have no application OR have an application that is not scraped
+        approved_wo_app_count = (
+            db.query(func.count(func.distinct(JobORM.id)))
+            .outerjoin(ApplicationORM, ApplicationORM.job_id == JobORM.id)
+            .filter(JobORM.reviewed == True)
+            .filter(JobORM.approved == True)
+            .filter(JobORM.discarded == False)
+            .filter(or_(ApplicationORM.id == None, ApplicationORM.scraped == False))
+            .scalar()
+        )
+
+        # Avoid DISTINCT on full rows (JSON column) by selecting distinct Job IDs first
+        approved_wo_app_job_ids = [
+            row[0]
+            for row in (
+                db.query(JobORM.id)
+                .outerjoin(ApplicationORM, ApplicationORM.job_id == JobORM.id)
+                .filter(JobORM.reviewed == True)
+                .filter(JobORM.approved == True)
+                .filter(JobORM.discarded == False)
+                .filter(or_(ApplicationORM.id == None, ApplicationORM.scraped == False))
+                .distinct()
+                .all()
+            )
+        ]
+
+        approved_wo_app_base_urls = {}
+        if len(approved_wo_app_job_ids) > 0:
+            # Fetch only URL fields to build base URL distribution
+            url_rows = (
+                db.query(JobORM.direct_job_url, JobORM.linkedin_job_url)
+                .filter(JobORM.id.in_(approved_wo_app_job_ids))
+                .all()
+            )
+
+            for direct_url, linkedin_url in url_rows:
+                if direct_url:
+                    base_url = get_base_url(direct_url)
+                elif linkedin_url:
+                    base_url = get_base_url(linkedin_url)
+                else:
+                    base_url = "no URL"
+                approved_wo_app_base_urls[base_url] = (
+                    approved_wo_app_base_urls.get(base_url, 0) + 1
+                )
+
+        approved_wo_app_base_urls = dict(
+            sorted(approved_wo_app_base_urls.items(), key=lambda x: x[1], reverse=True)
+        )
+
         return JSONResponse(
             status_code=200,
             content={
@@ -957,31 +1003,14 @@ async def get_applications_summary(db: Session = Depends(get_db)):
                     "submitted": submitted,
                     "acknowledged": acknowledged,
                     "rejected": rejected,
+                    "approved_without_app": {
+                        "count": int(approved_wo_app_count or 0),
+                        "base_urls": approved_wo_app_base_urls,
+                    },
                 },
             },
         )
     except Exception as e:
-        return JSONResponse(
-            status_code=500, content={"status": "error", "message": str(e)}
-        )
-
-
-@app.get("/jobs/approved_without_app")
-def get_approved_jobs_without_application_count(db: Session = Depends(get_db)):
-    """Count jobs that are approved but do not have an associated application."""
-    try:
-        count = (
-            db.query(JobORM)
-            .outerjoin(ApplicationORM, ApplicationORM.job_id == JobORM.id)
-            .filter(JobORM.approved == True)
-            .filter(ApplicationORM.id == None)
-            .count()
-        )
-        return JSONResponse(status_code=200, content={"count": count})
-    except Exception as e:
-        logging.error(
-            "/jobs/approved_without_app: error computing count", exc_info=True
-        )
         return JSONResponse(
             status_code=500, content={"status": "error", "message": str(e)}
         )

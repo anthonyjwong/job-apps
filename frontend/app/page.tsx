@@ -16,6 +16,10 @@ type AppsSummary = {
   submitted: number;
   acknowledged: number;
   rejected: number;
+  approved_without_app?: {
+    count: number;
+    base_urls: Record<string, number>;
+  };
 };
 
 export default function Home() {
@@ -27,6 +31,7 @@ export default function Home() {
   const [appliedApps, setAppliedApps] = useState<Array<{ app_id: string; job_id: string; company: string; title: string; submitted: boolean; acknowledged: boolean; rejected: boolean }>>([]);
   const [approvedNoAppCount, setApprovedNoAppCount] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
+  const [approvedNoAppSources, setApprovedNoAppSources] = useState<Record<string, number>>({});
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
@@ -35,20 +40,21 @@ export default function Home() {
     const base = "http://localhost:8000";
     const load = async () => {
       try {
-        const [jobs_summary, apps_summary, unapproved_jobs, unapproved_apps, applied_apps, approved_without_app] = await Promise.all([
+        const [jobs_summary, apps_summary, unapproved_jobs, unapproved_apps, applied_apps] = await Promise.all([
           fetch(`${base}/jobs/summary`).then((r) => r.json()),
           fetch(`${base}/apps/summary`).then((r) => r.json()),
           fetch(`${base}/jobs`).then((r) => r.json()), // unapproved jobs list
           fetch(`${base}/apps/unapproved`).then((r) => r.json()), // prepared but unapproved/undiscarded
           fetch(`${base}/apps/applied`).then((r) => r.json()), // submitted apps with company/title/status
-          fetch(`${base}/jobs/approved_without_app`).then((r) => r.json()), // count of approved jobs without an app
         ]);
         setJobs(jobs_summary.data);
         setApps(apps_summary.data);
         setUnapprovedJobsCount(Array.isArray(unapproved_jobs.jobs) ? unapproved_jobs.jobs.length : 0);
         setUnapprovedAppsCount(Array.isArray(unapproved_apps.apps) ? unapproved_apps.apps.length : 0);
         setAppliedApps(Array.isArray(applied_apps.apps) ? applied_apps.apps : []);
-        setApprovedNoAppCount(typeof approved_without_app.count === 'number' ? approved_without_app.count : 0);
+        const approvedNoApp = apps_summary?.data?.approved_without_app;
+        setApprovedNoAppCount(typeof approvedNoApp?.count === 'number' ? approvedNoApp.count : 0);
+        setApprovedNoAppSources(approvedNoApp?.base_urls || {});
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load stats");
       }
@@ -180,11 +186,11 @@ export default function Home() {
                 </UnimplementedContainer>
                 <li style={{marginTop: 24}}>Unprepared: {approvedNoAppCount}</li>
                 {/* Top Sources pie chart inside Applications card as requested */}
-                {jobs && jobs.base_urls && (
+        {approvedNoAppSources && Object.keys(approvedNoAppSources).length > 0 && (
                   <section>
-                    <h4>Site Sources</h4>
+                    <h4>Top Site Sources</h4>
                     {(() => {
-                      const entries = Object.entries(jobs.base_urls).slice(0, 8);
+          const entries = Object.entries(approvedNoAppSources).slice(0, 8);
                       const total = entries.reduce((acc, [, v]) => acc + (typeof v === 'number' ? v : 0), 0);
                       if (entries.length === 0 || total === 0) {
                         return (
