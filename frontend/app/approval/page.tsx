@@ -1,5 +1,7 @@
 "use client"
-import { ReactElement, useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+import type { ComponentType } from 'react';
+import { ReactElement, useEffect, useMemo, useState } from 'react';
 import { useTheme } from "../providers/ThemeProvider";
 
 /**
@@ -23,6 +25,33 @@ export interface ApplicationRecord {
   url: string;
   fields: Field[];
 }
+
+// Job types (mirrors jobs page)
+type Review = {
+  action?: string;
+  classification?: "safety" | "target" | "reach" | "dream" | null;
+} | null;
+
+type Classification = "safety" | "target" | "reach" | "dream";
+
+type JobRecord = {
+  id: string;
+  jobspy_id: string;
+  title: string;
+  company: string;
+  location?: string | null;
+  min_salary?: number | null;
+  max_salary?: number | null;
+  date_posted?: string | null;
+  job_type?: string | null;
+  linkedin_job_url?: string | null;
+  direct_job_url?: string | null;
+  description?: string | null;
+  review?: Review;
+  reviewed?: boolean;
+  approved?: boolean;
+  discarded?: boolean;
+};
 
 /**
  * Component for reviewing unapproved applications. It fetches data from
@@ -48,6 +77,11 @@ export default function UnapprovedApps(): ReactElement {
   const [initialSizes, setInitialSizes] = useState<{ width: number, height: number }[][]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
+  const [jobs, setJobs] = useState<JobRecord[]>([]);
+  // Save feedback state
+  const [saving, setSaving] = useState(false);
+  const [saveOk, setSaveOk] = useState(false);
+  const [saveErr, setSaveErr] = useState<string | null>(null);
 
   // Determine API base URL from environment (defaults to empty string).
   const baseUrl: string = "http://localhost:8000";
@@ -98,6 +132,38 @@ export default function UnapprovedApps(): ReactElement {
     fetchData();
   }, [baseUrl]);
 
+  // Fetch jobs (for showing title/company/classification/description)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${baseUrl}/jobs`, { headers: { Accept: 'application/json' } });
+        const json = await res.json();
+        if (!cancelled) setJobs(Array.isArray(json.jobs) ? json.jobs : []);
+      } catch (e) {
+        // non-fatal for this page; keep silent
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [baseUrl]);
+
+  const jobById = useMemo(() => {
+    const m = new Map<string, JobRecord>();
+    for (const j of jobs) m.set(j.id, j);
+    return m;
+  }, [jobs]);
+
+  // Markdown modal state and handlers (must be before any early returns)
+  const [mdModal, setMdModal] = useState<{ open: boolean; content: string | null }>({ open: false, content: null });
+  const openMarkdownModal = (markdown: string) => setMdModal({ open: true, content: markdown });
+  const closeMarkdownModal = () => setMdModal({ open: false, content: null });
+  useEffect(() => {
+    if (!mdModal.open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeMarkdownModal(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mdModal.open]);
+
   /**
    * Move to the next application in the list. Wrap around at the end.
    */
@@ -120,6 +186,8 @@ export default function UnapprovedApps(): ReactElement {
 
   // Save button handler: collect all current textbox answers for the current app
   const handleSave = () => {
+    setSaving(true);
+    setSaveErr(null);
     const currentApp = apps[currentIndex];
     if (!currentApp) return;
 
@@ -151,13 +219,22 @@ export default function UnapprovedApps(): ReactElement {
           } catch (e) {
             console.error("Failed to read error response", e);
           }
+          setSaving(false);
+          setSaveErr('Failed to save application');
+          setTimeout(() => setSaveErr(null), 4000);
           alert("Failed to save application: Unprocessable Entity\n" + errorText);
         } else {
           console.log("Application saved successfully");
+          setSaving(false);
+          setSaveOk(true);
+          setTimeout(() => setSaveOk(false), 2000);
         }
       })
       .catch(err => {
         console.error("Network or fetch error:", err);
+        setSaving(false);
+        setSaveErr((err as Error).message || 'Network error');
+        setTimeout(() => setSaveErr(null), 4000);
         alert("Network error: " + (err as Error).message);
       });
   };
@@ -301,7 +378,102 @@ export default function UnapprovedApps(): ReactElement {
     approveBg: darkMode ? '#388e3c' : '#4caf50',
     discardBg: darkMode ? '#b71c1c' : '#f44336',
     buttonText: '#fff',
+    link: darkMode ? '#90cdf4' : '#1976d2',
+    muted: darkMode ? '#9ca3af' : '#6b7280',
   };
+
+  // classification badge styling (mirrors jobs page)
+  const classificationColors: Record<Classification, { bg: string; text: string; border: string }> = {
+    safety: {
+      bg: darkMode ? '#134e4a' : '#dcfce7',
+      text: darkMode ? '#a7f3d0' : '#065f46',
+      border: darkMode ? '#115e59' : '#86efac',
+    },
+    target: {
+      bg: darkMode ? '#1e3a8a' : '#dbeafe',
+      text: darkMode ? '#93c5fd' : '#1e40af',
+      border: darkMode ? '#1d4ed8' : '#93c5fd',
+    },
+    reach: {
+      bg: darkMode ? '#7c2d12' : '#ffedd5',
+      text: darkMode ? '#fdba74' : '#9a3412',
+      border: darkMode ? '#9a3412' : '#fdba74',
+    },
+    dream: {
+      bg: darkMode ? '#4c1d95' : '#f3e8ff',
+      text: darkMode ? '#d8b4fe' : '#6b21a8',
+      border: darkMode ? '#6b21a8' : '#d8b4fe',
+    },
+  };
+
+  const renderClassification = (c?: Classification | null) => {
+    if (!c) return null;
+    const colors = classificationColors[c];
+    const label = c.charAt(0).toUpperCase() + c.slice(1);
+    return (
+      <span
+        aria-label={`Classification ${label}`}
+        title={`Classification: ${label}`}
+        style={{
+          display: 'inline-block',
+          fontSize: 12,
+          padding: '2px 8px',
+          borderRadius: 999,
+          background: colors.bg,
+          color: colors.text,
+          border: `1px solid ${colors.border}`,
+          lineHeight: 1.6,
+          textTransform: 'none',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {label}
+      </span>
+    );
+  };
+
+  // Markdown lazy component and description preview (mirrors jobs page)
+  const Markdown = dynamic(() => import('../components/MarkdownRenderer'), { ssr: false });
+
+  const preview = (md?: string | null, n = 240) => {
+    if (!md) return '';
+    const text = md
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/`[^`]*`/g, '')
+      .replace(/\!\[[^\]]*\]\([^\)]*\)/g, '')
+      .replace(/\[[^\]]*\]\([^\)]*\)/g, '$1')
+      .replace(/[*_>#\-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return text.length > n ? text.slice(0, n) + '…' : text;
+  };
+
+  type SimpleTheme = { link: string; border: string; muted: string; text: string; appBg: string };
+  function DescriptionSection({ markdown, darkMode, theme, Markdown, onOpen }: { markdown: string; darkMode: boolean; theme: SimpleTheme; Markdown: ComponentType<{ markdown: string; theme: SimpleTheme; darkMode: boolean }>; onOpen: (markdown: string) => void }) {
+    const text = preview(markdown, 280);
+    return (
+      <div style={{ marginTop: 8 }}>
+        <p style={{ margin: '8px 0', color: theme.text, lineHeight: 1.5 }}>{text}</p>
+        {text.length < (markdown?.length || 0) && (
+          <button
+            type="button"
+            onClick={() => onOpen(markdown)}
+            style={{
+              padding: '4px 8px',
+              borderRadius: 6,
+              border: `1px solid ${theme.border}`,
+              background: theme.appBg,
+              color: theme.link,
+              cursor: 'pointer',
+            }}
+          >
+            Open details
+          </button>
+        )}
+      </div>
+    );
+  }
+
 
   return (
     <main style={{
@@ -333,7 +505,7 @@ export default function UnapprovedApps(): ReactElement {
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              color: darkMode ? '#90cdf4' : '#1976d2',
+              color: theme.link,
               textDecoration: 'underline',
               fontWeight: 500,
               wordBreak: 'break-all',
@@ -344,8 +516,47 @@ export default function UnapprovedApps(): ReactElement {
           </a>
         </p>
         <p><strong>App ID:</strong> {app.id}</p>
-        <p><strong>Job ID:</strong> {app.job_id}</p>
-
+        <p style={{ marginBottom: '1rem' }}><strong>Job ID:</strong> {app.job_id}</p>
+        {/* Job details (title, company, classification, description) */}
+        {(() => {
+          const j = jobById.get(app.job_id);
+          if (!j) return null;
+          const bestLink = j.direct_job_url || j.linkedin_job_url || undefined;
+          return (
+            <div style={{
+              border: `1px solid ${theme.border}`,
+              borderRadius: 8,
+              padding: '0.75rem',
+              background: theme.background,
+              marginBottom: '0.75rem',
+            }}>
+              <header style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
+                <div>
+                  <h3 style={{ margin: '0 0 4px 0' }}>
+                    {bestLink ? (
+                      <a href={bestLink} target="_blank" rel="noreferrer" style={{ color: theme.link, textDecoration: 'underline' }}>
+                        {j.title}
+                      </a>
+                    ) : (
+                      <span>{j.title}</span>
+                    )}
+                  </h3>
+                  <div style={{ color: theme.muted, fontSize: 14, marginBottom: 6 }}>
+                    {j.company}
+                  </div>
+                  <div style={{ marginTop: 4, display: 'flex', gap: 6, alignItems: 'center' }}>
+                    {renderClassification(j.review?.classification ?? null)}
+                  </div>
+                </div>
+              </header>
+              {j.description ? (
+                <DescriptionSection markdown={j.description} darkMode={darkMode} theme={theme} Markdown={Markdown} onOpen={openMarkdownModal} />
+              ) : (
+                <p style={{ marginTop: 8, marginBottom: 0, color: theme.muted }}>(No description provided)</p>
+              )}
+            </div>
+          );
+        })()}
         <div style={{ marginTop: '1rem' }}>
           {app.fields && app.fields.map((field, index) => {
             const initialSizeObj =
@@ -452,6 +663,97 @@ export default function UnapprovedApps(): ReactElement {
         </div>
       </section>
 
+      {/* Save feedback toasts */}
+      {(saveOk || saveErr) && (
+        <div
+          style={{
+            position: 'fixed',
+            right: 16,
+            bottom: 88,
+            zIndex: 2500,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '10px 12px',
+            borderRadius: 8,
+            border: `1px solid ${saveErr ? theme.discardBg : theme.approveBg}`,
+            background: theme.appBg,
+            color: theme.text,
+            boxShadow: '0 6px 20px rgba(0,0,0,0.2)'
+          }}
+          role="status"
+          aria-live="polite"
+        >
+          <span style={{
+            display: 'inline-flex',
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            background: saveErr ? theme.discardBg : theme.approveBg,
+          }} />
+          <span>{saveErr ? saveErr : 'Saved'}</span>
+        </div>
+      )}
+
+      {/* Markdown Pop-out Modal */}
+      {mdModal.open && (
+        <div
+          onClick={closeMarkdownModal}
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 3000,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: theme.appBg,
+              color: theme.text,
+              border: `1px solid ${theme.border}`,
+              borderRadius: 8,
+              boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+              width: 'min(900px, 92vw)',
+              maxHeight: '82vh',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderBottom: `1px solid ${theme.border}` }}>
+              <strong>Job Description</strong>
+              <button
+                aria-label="Close"
+                onClick={closeMarkdownModal}
+                style={{
+                  background: 'transparent',
+                  color: theme.text,
+                  border: 'none',
+                  fontSize: 20,
+                  lineHeight: 1,
+                  cursor: 'pointer',
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ padding: 12, overflow: 'auto' }}>
+              {mdModal.content && (
+                <div style={{ lineHeight: 1.6 }}>
+                  <Markdown markdown={mdModal.content} theme={theme} darkMode={darkMode} />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Fixed Bottom Bar for Navigation & Actions */}
       <div
         style={{
@@ -521,6 +823,7 @@ export default function UnapprovedApps(): ReactElement {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <button
             onClick={handleSave}
+            disabled={saving}
             style={{
               background: darkMode ? '#1976d2' : '#2196f3',
               color: theme.buttonText,
@@ -530,12 +833,13 @@ export default function UnapprovedApps(): ReactElement {
               fontWeight: 500,
               fontSize: '1rem',
               boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-              cursor: 'pointer',
+              cursor: saving ? 'not-allowed' : 'pointer',
               marginRight: '0.5rem',
               transition: 'background 0.2s',
+              opacity: saving ? 0.8 : 1,
             }}
           >
-            Save
+            {saving ? 'Saving…' : 'Save'}
           </button>
           <button
             onClick={handleApprove}

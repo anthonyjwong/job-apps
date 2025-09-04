@@ -1,2 +1,4 @@
-- Update jobs page to be similar to approval page.
-    - Show title, company, and job description
+- Update home page to show the following things:
+    - How many jobs have been unlooked at
+    - How many jobs have been approved
+    - How many jobs have been discarded

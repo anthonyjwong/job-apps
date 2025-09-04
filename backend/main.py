@@ -854,7 +854,13 @@ async def get_jobs_summary(db: Session = Depends(get_db)):
     try:
         jobs = get_all_jobs(db)
         total_jobs = len(jobs)
-        classification_counts = {"safety": 0, "target": 0, "reach": 0, "dream": 0}
+        classification_counts = {
+            "safety": 0,
+            "target": 0,
+            "reach": 0,
+            "dream": 0,
+            "unreviewed": 0,
+        }
         base_url_counts = {}
 
         for job in jobs:

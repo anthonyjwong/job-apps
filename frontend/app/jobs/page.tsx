@@ -56,6 +56,17 @@ export default function AllJobsPage() {
     })();
   }, [fetchJobs]);
 
+  // Markdown modal state and handlers (must be declared before any early returns)
+  const [mdModal, setMdModal] = useState<{ open: boolean; content: string | null }>({ open: false, content: null });
+  const openMarkdownModal = (markdown: string) => setMdModal({ open: true, content: markdown });
+  const closeMarkdownModal = () => setMdModal({ open: false, content: null });
+  useEffect(() => {
+    if (!mdModal.open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeMarkdownModal(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mdModal.open]);
+
   const theme = {
     background: darkMode ? '#18181b' : '#f9f9f9',
     appBg: darkMode ? '#232326' : '#fff',
@@ -137,35 +148,26 @@ export default function AllJobsPage() {
   const Markdown = dynamic(() => import('../components/MarkdownRenderer'), { ssr: false });
 
   type SimpleTheme = { link: string; border: string; muted: string; text: string; appBg: string };
-  function DescriptionSection({ markdown, darkMode, theme, Markdown }: { markdown: string; darkMode: boolean; theme: SimpleTheme; Markdown: ComponentType<{ markdown: string; theme: SimpleTheme; darkMode: boolean }> }) {
-    const [expanded, setExpanded] = useState(false);
+  function DescriptionSection({ markdown, darkMode, theme, Markdown, onOpen }: { markdown: string; darkMode: boolean; theme: SimpleTheme; Markdown: ComponentType<{ markdown: string; theme: SimpleTheme; darkMode: boolean }>; onOpen: (md: string) => void }) {
     const text = preview(markdown, 280);
     return (
       <div style={{ marginTop: 8 }}>
-        {!expanded ? (
-          <>
-            <p style={{ margin: '8px 0', color: theme.text, lineHeight: 1.5 }}>{text}</p>
-            {text.length < (markdown?.length || 0) && (
-              <button
-                type="button"
-                onClick={() => setExpanded(true)}
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: 6,
-                  border: `1px solid ${theme.border}`,
-                  background: theme.appBg,
-                  color: theme.link,
-                  cursor: 'pointer',
-                }}
-              >
-                Read more
-              </button>
-            )}
-          </>
-        ) : (
-          <div style={{ lineHeight: 1.6 }}>
-            <Markdown markdown={markdown} theme={theme} darkMode={darkMode} />
-          </div>
+        <p style={{ margin: '8px 0', color: theme.text, lineHeight: 1.5 }}>{text}</p>
+        {text.length < (markdown?.length || 0) && (
+          <button
+            type="button"
+            onClick={() => onOpen(markdown)}
+            style={{
+              padding: '4px 8px',
+              borderRadius: 6,
+              border: `1px solid ${theme.border}`,
+              background: theme.appBg,
+              color: theme.link,
+              cursor: 'pointer',
+            }}
+          >
+            Open details
+          </button>
         )}
       </div>
     );
@@ -295,13 +297,71 @@ export default function AllJobsPage() {
                 </div>
               </header>
               {j.description ? (
-                <DescriptionSection markdown={j.description} darkMode={darkMode} theme={theme} Markdown={Markdown} />
+                <DescriptionSection markdown={j.description} darkMode={darkMode} theme={theme} Markdown={Markdown} onOpen={openMarkdownModal} />
               ) : (
                 <p style={{ marginTop: 8, marginBottom: 0, color: theme.muted }}>(No description provided)</p>
               )}
             </article>
           ))}
         </section>
+      )}
+      {/* Markdown Pop-out Modal */}
+      {mdModal.open && (
+        <div
+          onClick={closeMarkdownModal}
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 3000,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: theme.appBg,
+              color: theme.text,
+              border: `1px solid ${theme.border}`,
+              borderRadius: 8,
+              boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+              width: 'min(900px, 92vw)',
+              maxHeight: '82vh',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderBottom: `1px solid ${theme.border}` }}>
+              <strong>Job Description</strong>
+              <button
+                aria-label="Close"
+                onClick={closeMarkdownModal}
+                style={{
+                  background: 'transparent',
+                  color: theme.text,
+                  border: 'none',
+                  fontSize: 20,
+                  lineHeight: 1,
+                  cursor: 'pointer',
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ padding: 12, overflow: 'auto' }}>
+              {mdModal.content && (
+                <div style={{ lineHeight: 1.6 }}>
+                  <Markdown markdown={mdModal.content} theme={theme} darkMode={darkMode} />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </main>
   );
