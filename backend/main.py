@@ -37,6 +37,7 @@ from db.utils import (
 from fastapi import Body, Depends, FastAPI, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
+from pydantic import BaseModel
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 from src.apply import (
@@ -747,6 +748,123 @@ async def update_application_from_fragment(
             },
         )
     except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "message": str(e)},
+        )
+
+
+class ManualAppCreate(BaseModel):
+    job_id: UUID | None = None
+    job: dict | None = None  # minimal job payload if creating new
+    url: str | None = None
+    submitted: bool | None = False
+
+
+@app.post("/apps/manual")
+async def create_manual_application(
+    req: ManualAppCreate, db: Session = Depends(get_db)
+):
+    """Create a new application manually, or update existing one for a job.
+
+    Body options:
+    - { job_id: UUID, url?: string, submitted?: boolean }
+    - { job: { title: string, company: string, location?: string, min_salary?: number, max_salary?: number,
+               date_posted?: YYYY-MM-DD, job_type?: string, linkedin_job_url?: string, direct_job_url?: string,
+               description?: string }, url?: string, submitted?: boolean }
+    """
+    try:
+        # Resolve or create the job first
+        if req.job_id is not None:
+            job = get_job_by_id(db, req.job_id)
+            if not job:
+                return JSONResponse(
+                    status_code=404,
+                    content={
+                        "status": "error",
+                        "message": f"Job with ID {req.job_id} not found",
+                    },
+                )
+            job_id = job.id
+        else:
+            if not req.job:
+                return JSONResponse(
+                    status_code=400,
+                    content={
+                        "status": "error",
+                        "message": "Either job_id or job payload is required",
+                    },
+                )
+            job_payload = req.job
+            try:
+                new_job = Job(
+                    jobspy_id=job_payload.get("jobspy_id", "manual-"),
+                    title=job_payload["title"],
+                    company=job_payload["company"],
+                    location=job_payload.get("location"),
+                    min_salary=job_payload.get("min_salary"),
+                    max_salary=job_payload.get("max_salary"),
+                    date_posted=job_payload.get("date_posted"),
+                    job_type=job_payload.get("job_type"),
+                    linkedin_job_url=job_payload.get("linkedin_job_url"),
+                    direct_job_url=job_payload.get("direct_job_url"),
+                    description=job_payload.get("description"),
+                    review=None,
+                    reviewed=False,
+                    approved=False,
+                    discarded=False,
+                )
+            except KeyError as ke:
+                return JSONResponse(
+                    status_code=400,
+                    content={
+                        "status": "error",
+                        "message": f"Missing required job field: {str(ke)}",
+                    },
+                )
+            from db.utils import add_new_job
+
+            add_new_job(db, new_job)
+            job_id = new_job.id
+
+        # Create or update the application for this job
+        existing_app = get_application_by_job_id(db, job_id)
+        if existing_app:
+            updated = existing_app
+            if req.url is not None:
+                updated.url = req.url or ""
+            if bool(req.submitted):
+                updated.submitted = True
+            update_application_by_id(db, existing_app.id, updated)
+            app_id = existing_app.id
+            created = False
+        else:
+            new_app = App(
+                job_id=job_id,
+                url=req.url or "",
+                scraped=False,
+                prepared=False,
+                approved=False,
+                discarded=False,
+                submitted=bool(req.submitted),
+                acknowledged=False,
+                rejected=False,
+            )
+            add_new_application(db, new_app)
+            app_id = new_app.id
+            created = True
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "success",
+                "message": "Application created" if created else "Application updated",
+                "app_id": str(app_id),
+                "job_id": str(job_id),
+            },
+        )
+    except Exception as e:
+        logging.error("/apps/manual: error creating manual app", exc_info=True)
         return JSONResponse(
             status_code=500,
             content={"status": "error", "message": str(e)},

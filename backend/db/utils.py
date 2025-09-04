@@ -259,3 +259,10 @@ def add_new_application(db_session, new_app: App):
     db_session.add(app_to_orm(new_app))
     db_session.commit()
     logging.debug(f"New app {new_app.id} added to the database")
+
+
+def add_new_job(db_session, new_job: Job):
+    """Add a new job to the database."""
+    db_session.add(job_to_orm(new_job))
+    db_session.commit()
+    logging.debug(f"New job {new_job.id} added to the database")
