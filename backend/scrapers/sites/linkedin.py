@@ -59,7 +59,7 @@ class LinkedIn(JobSite):
         await element.click()
         await human_delay(1, 2)
 
-    async def find_questions(self, page):
+    async def find_questions(self, app: App, page, submit: bool = False):
         # resume
         # file_upload = question.locator("input[type='file']").first
         #     if await file_upload.count() > 0:
@@ -67,36 +67,79 @@ class LinkedIn(JobSite):
         #         await next_button.scroll_into_view_if_needed()
         #         await next_button.click()
         #         await human_delay(1, 2)
+        if app is None:
+            raise ValueError("App cannot be None")
+
         question_elements = page.locator(".DklSpvuYKpZWRlAbeBtitReCzWRCFaZjmnnIMw")
         total = await question_elements.count()
         for i in range(total):
             element = question_elements.nth(i)
             text_input = element.locator("input[type='text']").first
             if await text_input.count() > 0:
-                question = await element.locator("label").first.text_content()
-                print(f"Text input question: {question}")
+                question = (await element.locator("label").first.text_content()).strip()
+                answer = (await text_input.input_value()).strip()
+                if not submit:
+                    app.fields.append(
+                        AppField(
+                            question=question,
+                            multiple_choice=False,
+                            choices=None,
+                            answer=answer,
+                        )
+                    )
+                print(f"Question: {question}\nAnswer: {answer}")
 
             dropdown = element.locator("select").first
             if await dropdown.count() > 0:
-                question = await element.locator("label").first.text_content()
+                question = (await element.locator("label").first.text_content()).strip()
+                question = question[0 : len(question) // 2]
                 options = dropdown.locator("option")
-                print(f"Dropdown question: {question}")
-                print(f"Dropdown options: {await options.count()}")
+                if not submit:
+                    app.fields.append(
+                        AppField(
+                            question=question,
+                            multiple_choice=True,
+                            choices=[
+                                (await options.nth(i).text_content()).strip()
+                                for i in range(await options.count())
+                            ],
+                            answer=None,
+                        )
+                    )
+                print(f"Question: {question}")
+                print(
+                    f"Options: {[(await options.nth(i).text_content()).strip() for i in range(await options.count())]}"
+                )
 
             radio_options = element.locator("input[type='radio']")
             if await radio_options.count() > 0:
-                question = await element.locator("legend").first.text_content()
+                question = (
+                    await element.locator("legend").first.text_content()
+                ).strip()
                 option_labels = element.locator("label")
                 option_inputs = element.locator("input[type='radio']")
-                print(f"Radio button question: {question}")
-                print(f"Radio button options: {await option_labels.count()}")
-                print(f"Radio button inputs: {await option_inputs.count()}")
+                if not submit:
+                    app.fields.append(
+                        AppField(
+                            question=question,
+                            multiple_choice=True,
+                            choices=[
+                                (await option_labels.nth(i).text_content()).strip()
+                                for i in range(await option_labels.count())
+                            ],
+                            answer=None,
+                        )
+                    )
+                print(f"Question: {question}")
+                print(
+                    f"Options: {[(await option_labels.nth(i).text_content()).strip() for i in range(await option_labels.count())]}"
+                )
 
     async def scrape(self, app: App = None, submit: bool = False) -> App:
-        if app == None:
+        if app is None:
             app = App(
                 job_id=self.job.id,
-                url=self.job.linkedin_job_url if self.job.linkedin_job_url else None,
+                url=self.job.linkedin_job_url,
             )
 
         async with async_playwright() as p:
@@ -130,6 +173,7 @@ class LinkedIn(JobSite):
                 await context.storage_state(path=str(_STORAGE_PATH))
 
             # Now go to the job URL
+            print(f"Navigating to {app.url}")
             await page.goto(app.url)
             await human_delay(3, 5)
 
@@ -151,10 +195,14 @@ class LinkedIn(JobSite):
                 or await submit_button.count() > 0
             ):
                 if await next_button.count() > 0:
-                    await self.find_questions(page)
+                    print(app)
+                    await self.find_questions(app, page, submit=submit)
                     await self.next_page(next_button)
                 elif await review_button.count() > 0:
-                    await self.find_questions(page)
+                    await self.find_questions(app, page, submit=submit)
+                    if submit:
+                        print("Application scraped!")
+                        return app
                     await self.next_page(review_button)
                 elif await submit_button.count() > 0:
                     follow_company_checkbox = page.locator(
