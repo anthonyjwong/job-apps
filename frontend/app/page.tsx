@@ -22,17 +22,28 @@ type AppsSummary = {
   };
 };
 
+type AppliedApp = {
+  app_id: string;
+  job_id: string;
+  company: string;
+  title: string;
+  submitted: boolean;
+  acknowledged: boolean;
+  rejected: boolean;
+};
+
 export default function Home() {
   const { dark: darkMode } = useTheme();
   const [jobs, setJobs] = useState<JobsSummary | null>(null);
   const [apps, setApps] = useState<AppsSummary | null>(null);
   const [unapprovedJobsCount, setUnapprovedJobsCount] = useState<number | null>(null);
   const [unapprovedAppsCount, setUnapprovedAppsCount] = useState<number | null>(null);
-  const [appliedApps, setAppliedApps] = useState<Array<{ app_id: string; job_id: string; company: string; title: string; submitted: boolean; acknowledged: boolean; rejected: boolean }>>([]);
+  const [appliedApps, setAppliedApps] = useState<AppliedApp[]>([]);
   const [approvedNoAppCount, setApprovedNoAppCount] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [approvedNoAppSources, setApprovedNoAppSources] = useState<Record<string, number>>({});
   const [mounted, setMounted] = useState(false);
+  const [expandedCompanies, setExpandedCompanies] = useState<Record<string, boolean>>({});
 
   useEffect(() => setMounted(true), []);
 
@@ -84,7 +95,7 @@ export default function Home() {
       <section style={cardRow}>
         <div style={card(theme)}>
           <h3 style={cardTitle}>Jobs</h3>
-          <div style={{ fontSize: 12, color: muted, marginTop: -6, marginBottom: 8 }}>Overview</div>
+          <div style={{ fontSize: 12, color: muted, marginTop: -6, marginBottom: 8 }}>Summary</div>
           {jobs ? (
             <div>
               <ul style={list(theme)}>
@@ -172,7 +183,7 @@ export default function Home() {
 
         <div style={card(theme)}>
           <h3 style={cardTitle}>Applications</h3>
-          <div style={{ fontSize: 12, color: muted, marginTop: -6, marginBottom: 8 }}>Overview</div>
+          <div style={{ fontSize: 12, color: muted, marginTop: -6, marginBottom: 8 }}>Summary</div>
           {apps ? (
             <div>
               <ul style={list(theme)}>
@@ -268,23 +279,95 @@ export default function Home() {
             background: theme.appBg,
             overflow: 'hidden',
           }}>
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-              {appliedApps.map((a) => {
-                const status = a.rejected ? 'Rejected' : a.acknowledged ? 'Acknowledged' : 'Submitted';
-                const color = a.rejected ? (darkMode ? '#b91c1c' : '#ef4444') : a.acknowledged ? (darkMode ? '#2563eb' : '#3b82f6') : (darkMode ? '#6b7280' : '#9ca3af');
-                const bg = a.rejected ? (darkMode ? '#3f1d1d' : '#fee2e2') : a.acknowledged ? (darkMode ? '#1e3a8a' : '#dbeafe') : (darkMode ? '#1f2937' : '#f3f4f6');
-                const border = a.rejected ? (darkMode ? '#7f1d1d' : '#fecaca') : a.acknowledged ? (darkMode ? '#1d4ed8' : '#bfdbfe') : (darkMode ? '#374151' : '#e5e7eb');
-                return (
-                  <li key={a.app_id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, padding: '10px 12px', borderBottom: `1px solid ${theme.border}` }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, color: theme.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.company}</div>
-                      <div style={{ color: muted, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</div>
-                    </div>
-                    <span style={{ alignSelf: 'center', fontSize: 12, padding: '2px 8px', borderRadius: 999, background: bg, color, border: `1px solid ${border}` }}>{status}</span>
-                  </li>
-                );
-              })}
-            </ul>
+            {(() => {
+              const grouped: Record<string, AppliedApp[]> = appliedApps.reduce((acc, a) => {
+                const key = a.company || 'Unknown';
+                (acc[key] ||= []).push(a);
+                return acc;
+              }, {} as Record<string, AppliedApp[]>);
+              const toggle = (company: string) =>
+                setExpandedCompanies((prev) => ({ ...prev, [company]: !prev[company] }));
+              return (
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                  {Object.entries(grouped).map(([company, items]) => {
+                    if (items.length <= 1) {
+                      const a = items[0];
+                      const status = a.rejected ? 'Rejected' : a.acknowledged ? 'Acknowledged' : 'Submitted';
+                      const color = a.rejected ? (darkMode ? '#b91c1c' : '#ef4444') : a.acknowledged ? (darkMode ? '#2563eb' : '#3b82f6') : (darkMode ? '#6b7280' : '#9ca3af');
+                      const bg = a.rejected ? (darkMode ? '#3f1d1d' : '#fee2e2') : a.acknowledged ? (darkMode ? '#1e3a8a' : '#dbeafe') : (darkMode ? '#1f2937' : '#f3f4f6');
+                      const border = a.rejected ? (darkMode ? '#7f1d1d' : '#fecaca') : a.acknowledged ? (darkMode ? '#1d4ed8' : '#bfdbfe') : (darkMode ? '#374151' : '#e5e7eb');
+                      return (
+                        <li key={a.app_id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, padding: '10px 12px', borderBottom: `1px solid ${theme.border}` }}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+                              <span style={{ fontWeight: 700, color: theme.text, whiteSpace: 'nowrap' }}>{company}</span>
+                              <span style={{ color: muted, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{a.title}</span>
+                            </div>
+                          </div>
+                          <span style={{ alignSelf: 'center', fontSize: 12, padding: '2px 8px', borderRadius: 999, background: bg, color, border: `1px solid ${border}` }}>{status}</span>
+                        </li>
+                      );
+                    }
+                    const isOpen = !!expandedCompanies[company];
+                    return (
+                      <li key={company} style={{ borderBottom: `1px solid ${theme.border}` }}>
+                        <button
+                          onClick={() => toggle(company)}
+                          aria-expanded={isOpen}
+                          style={{
+                            all: 'unset',
+                            display: 'grid',
+                            gridTemplateColumns: 'auto 1fr auto',
+                            alignItems: 'center',
+                            gap: 8,
+                            width: '100%',
+                            padding: '10px 12px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <span aria-hidden style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 120ms ease' }}>▸</span>
+                          <span style={{ fontWeight: 700, color: theme.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{company}</span>
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              lineHeight: 1,
+                              fontSize: 12,
+                              color: muted,
+                              border: `1px solid ${theme.border}`,
+                              borderRadius: 999,
+                              padding: '3px 10px',
+                              marginRight: 24,
+                            }}
+                          >
+                            {items.length}
+                          </span>
+                        </button>
+                        {isOpen && (
+                          <ul style={{ listStyle: 'none', margin: 0, padding: 0  }}>
+                            {items.map((a) => {
+                              const status = a.rejected ? 'Rejected' : a.acknowledged ? 'Acknowledged' : 'Submitted';
+                              const color = a.rejected ? (darkMode ? '#b91c1c' : '#ef4444') : a.acknowledged ? (darkMode ? '#2563eb' : '#3b82f6') : (darkMode ? '#6b7280' : '#9ca3af');
+                              const bg = a.rejected ? (darkMode ? '#3f1d1d' : '#fee2e2') : a.acknowledged ? (darkMode ? '#1e3a8a' : '#dbeafe') : (darkMode ? '#1f2937' : '#f3f4f6');
+                              const border = a.rejected ? (darkMode ? '#7f1d1d' : '#fecaca') : a.acknowledged ? (darkMode ? '#1d4ed8' : '#bfdbfe') : (darkMode ? '#374151' : '#e5e7eb');
+                              return (
+                                <li key={a.app_id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, padding: '8px 12px', borderTop: `1px dashed ${theme.border}`, background: darkMode ? '#1d1d20' : '#fafafa' }}>
+                                  <div style={{ minWidth: 0 }}>
+                                    <div style={{ color: muted, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</div>
+                                  </div>
+                                  <span style={{ alignSelf: 'center', fontSize: 12, padding: '2px 8px', borderRadius: 999, background: bg, color, border: `1px solid ${border}` }}>{status}</span>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              );
+            })()}
           </div>
         </section>
       )}
