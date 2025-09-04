@@ -1,3 +1,4 @@
+import logging
 import os
 import uuid
 from pathlib import Path
@@ -143,7 +144,7 @@ class LinkedIn(JobSite):
             )
 
         async with async_playwright() as p:
-            browser = await p.firefox.launch(headless=False)
+            browser = await p.firefox.launch(headless=True)
             # Use a browser context so we can persist and restore auth state
             context = await browser.new_context(
                 storage_state=str(_STORAGE_PATH) if _STORAGE_PATH.exists() else None
@@ -174,7 +175,7 @@ class LinkedIn(JobSite):
 
             # Now go to the job URL
             print(f"Navigating to {app.url}")
-            await page.goto(app.url)
+            await page.goto(app.url, timeout=10000)
             await human_delay(3, 5)
 
             # Wait for the "Easy Apply" button to appear
@@ -186,37 +187,65 @@ class LinkedIn(JobSite):
             await page.wait_for_selector(".jobs-easy-apply-modal__content")
             await human_delay(1, 2)
 
-            next_button = page.locator("button[aria-label='Continue to next step']")
-            review_button = page.locator("button[aria-label='Review your application']")
-            submit_button = page.locator("button[aria-label='Submit application']")
-            while (
-                await next_button.count() > 0
-                or await review_button.count() > 0
-                or await submit_button.count() > 0
-            ):
+            async def detect_step():
+                """Detect which step the Easy Apply modal is currently on.
+
+                Returns a tuple of (step_name, locator) where step_name is one of
+                'next', 'review', 'submit', or None.
+                """
+                next_button = page.locator("button[aria-label='Continue to next step']")
                 if await next_button.count() > 0:
-                    print(app)
+                    return "next", next_button.first
+
+                review_button = page.locator(
+                    "button[aria-label='Review your application']"
+                )
+                if await review_button.count() > 0:
+                    return "review", review_button.first
+
+                submit_button = page.locator("button[aria-label='Submit application']")
+                if await submit_button.count() > 0:
+                    return "submit", submit_button.first
+
+                return None, None
+
+            MAX_STEPS = 10  # safety to avoid infinite loops
+            for _ in range(MAX_STEPS):
+                step, button = await detect_step()
+
+                if step == "next":
                     await self.find_questions(app, page, submit=submit)
-                    await self.next_page(next_button)
-                elif await review_button.count() > 0:
+                    await self.next_page(button)
+                    continue
+                elif step == "review":
                     await self.find_questions(app, page, submit=submit)
-                    if submit:
-                        print("Application scraped!")
+                    if not submit:
+                        # caller only wants questions; stop before submitting
+                        await browser.close()
                         return app
-                    await self.next_page(review_button)
-                elif await submit_button.count() > 0:
+                    await self.next_page(button)
+                    continue
+                elif step == "submit":
+                    # Optional checkbox shown on some flows
                     follow_company_checkbox = page.locator(
                         "input[type='checkbox']#follow-company-checkbox"
                     )
-                    await follow_company_checkbox.scroll_into_view_if_needed()
-                    await follow_company_checkbox.click()  # don't follow company
-                    await human_delay(0.2, 0.5)
+                    if await follow_company_checkbox.count() > 0:
+                        await follow_company_checkbox.scroll_into_view_if_needed()
+                        await follow_company_checkbox.click()  # don't follow company
+                        await human_delay(0.2, 0.5)
 
-                    if submit:
-                        await self.next_page(submit_button)
+                    if submit:  # dbl check
+                        await self.next_page(button)
                         app.submitted = True
 
-        return app
+                    return app
+                elif step is None:
+                    logging.error("Unexpected state: no navigation buttons found")
+                    raise RuntimeError("No navigation buttons found")
+
+            # If we exit the loop, we hit the safety cap
+            raise RuntimeError("Exceeded maximum Easy Apply steps; aborting.")
 
     async def scrape_questions(self) -> App:
         return await self.scrape()

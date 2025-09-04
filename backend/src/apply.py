@@ -9,8 +9,10 @@ from scrapers.sites import Ashby
 from src.definitions import App, AppField, Job, Review, User
 from src.utils import get_base_url
 
+from backend.scrapers.sites.linkedin import LinkedIn
+
 client = OpenAI()
-DOMAIN_HANDLERS = {"jobs.ashbyhq.com": Ashby}
+DOMAIN_HANDLERS = {"jobs.ashbyhq.com": Ashby, "www.linkedin.com": LinkedIn}
 
 
 def evaluate_candidate_aptitude(job: Job, user: User) -> Job:
