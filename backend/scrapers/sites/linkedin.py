@@ -1,12 +1,25 @@
 import os
 import uuid
+from pathlib import Path
 
+from dotenv import load_dotenv
 from playwright.async_api import async_playwright
 from scrapers.scraper import EMULATE_HUMAN, JobSite, human_delay
 from src.definitions import App, AppField, Job, Review
 
+# Load .env from repo root (job-apps/.env) regardless of CWD
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+_ENV_PATH = _REPO_ROOT / ".env"
+if _ENV_PATH.exists():
+    load_dotenv(_ENV_PATH)
+
 LINKEDIN_CLIENT_ID = os.getenv("LINKEDIN_CLIENT_ID")
 LINKEDIN_CLIENT_SECRET = os.getenv("LINKEDIN_CLIENT_SECRET")
+
+# Where to store Playwright auth state (cookies, localStorage)
+_STORAGE_DIR = Path(__file__).resolve().parents[1].parent / ".db" / "playwright_storage"
+_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+_STORAGE_PATH = _STORAGE_DIR / "linkedin.json"
 
 
 class LinkedIn(JobSite):
@@ -20,28 +33,64 @@ class LinkedIn(JobSite):
             await element.type(char)
             await human_delay(0.05, 0.15)
 
-    async def login(self, browser):
-        page = await browser.new_page()
+    async def login(self, page):
         await page.goto("https://www.linkedin.com/login")
-        await human_delay()
+        await human_delay(3, 5)
 
         username_input = page.locator("input[type='email']#username")
         password_input = page.locator("input[type='password']#password")
-        await self.write(username_input, LINKEDIN_CLIENT_ID)
-        await self.write(password_input, LINKEDIN_CLIENT_SECRET)
+        await username_input.click()
+        await self.write(username_input, LINKEDIN_CLIENT_ID or "")
+        await human_delay(1, 2)
+        await password_input.click()
+        await self.write(password_input, LINKEDIN_CLIENT_SECRET or "")
+        await human_delay(1, 2)
 
         login_button = page.locator("button[aria-label='Sign in']")
         await login_button.scroll_into_view_if_needed()
         await login_button.click()
 
         # Wait for navigation after clicking the login button
-        await page.wait_for_load_state("networkidle")
+        await human_delay(3, 5)
         return page
 
     async def next_page(self, element):
         await element.scroll_into_view_if_needed()
         await element.click()
         await human_delay(1, 2)
+
+    async def find_questions(self, page):
+        # resume
+        # file_upload = question.locator("input[type='file']").first
+        #     if await file_upload.count() > 0:
+        #         # linkedin autofills resume
+        #         await next_button.scroll_into_view_if_needed()
+        #         await next_button.click()
+        #         await human_delay(1, 2)
+        question_elements = page.locator(".DklSpvuYKpZWRlAbeBtitReCzWRCFaZjmnnIMw")
+        total = await question_elements.count()
+        for i in range(total):
+            element = question_elements.nth(i)
+            text_input = element.locator("input[type='text']").first
+            if await text_input.count() > 0:
+                question = await element.locator("label").first.text_content()
+                print(f"Text input question: {question}")
+
+            dropdown = element.locator("select").first
+            if await dropdown.count() > 0:
+                question = await element.locator("label").first.text_content()
+                options = dropdown.locator("option")
+                print(f"Dropdown question: {question}")
+                print(f"Dropdown options: {await options.count()}")
+
+            radio_options = element.locator("input[type='radio']")
+            if await radio_options.count() > 0:
+                question = await element.locator("legend").first.text_content()
+                option_labels = element.locator("label")
+                option_inputs = element.locator("input[type='radio']")
+                print(f"Radio button question: {question}")
+                print(f"Radio button options: {await option_labels.count()}")
+                print(f"Radio button inputs: {await option_inputs.count()}")
 
     async def scrape(self, app: App = None, submit: bool = False) -> App:
         if app == None:
@@ -52,84 +101,69 @@ class LinkedIn(JobSite):
 
         async with async_playwright() as p:
             browser = await p.firefox.launch(headless=False)
-            page = await self.login(browser)
+            # Use a browser context so we can persist and restore auth state
+            context = await browser.new_context(
+                storage_state=str(_STORAGE_PATH) if _STORAGE_PATH.exists() else None
+            )
+            page = await context.new_page()
+
+            # If no storage or not logged in, perform login once and save storage
+            needs_login = not _STORAGE_PATH.exists()
+            if not needs_login:
+                try:
+                    await page.goto("https://www.linkedin.com/feed/")
+                    # If redirected to login, we still need to login
+                    await page.wait_for_load_state("domcontentloaded")
+                    if await page.locator("#username").count():
+                        needs_login = True
+                except Exception:
+                    needs_login = True
+
+            if needs_login:
+                # Ensure creds exist
+                if not (LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET):
+                    raise RuntimeError(
+                        "Missing LINKEDIN_CLIENT_ID or LINKEDIN_CLIENT_SECRET env vars."
+                    )
+                await self.login(page)
+                # Save auth state for reuse
+                await context.storage_state(path=str(_STORAGE_PATH))
+
+            # Now go to the job URL
             await page.goto(app.url)
+            await human_delay(3, 5)
 
             # Wait for the "Easy Apply" button to appear
-            await page.wait_for_selector("button#jobs-apply-button-id")
-            await human_delay()
-
-            apply_button = page.locator("button#jobs-apply-button-id")
-            await apply_button.scroll_into_view_if_needed()
+            apply_button = page.locator("div.jobs-apply-button--top-card").first
             await apply_button.click()
+            await human_delay(3, 5)
 
             # Wait for the Easy Apply modal to become visible inside the modal outlet
-            modal = page.locator(".jobs-easy-apply-modal__content")
-            await modal.wait_for(state="visible")
+            await page.wait_for_selector(".jobs-easy-apply-modal__content")
             await human_delay(1, 2)
 
-            next_button = modal.locator("button[aria-label='Continue to next step']")
-            review_button = modal.locator(
-                "button[aria-label='Review your application']"
-            )
-            submit_button = modal.locator("button[aria-label='Submit application']")
-            while next_button or review_button or submit_button:
-                if next_button:
-                    # resume
-                    # file_upload = question.locator("input[type='file']").first
-                    #     if await file_upload.count() > 0:
-                    #         # linkedin autofills resume
-                    #         await next_button.scroll_into_view_if_needed()
-                    #         await next_button.click()
-                    #         await human_delay(1, 2)
-
-                    # get questions
-                    question_elements = page.locator(
-                        ".DklSpvuYKpZWRlAbeBtitReCzWRCFaZjmnnIMw"
-                    )
-                    for question in question_elements:
-                        text_input = question.locator("input[type='text']").first
-                        if await text_input.count() > 0:
-                            question = await question.locator(
-                                "label"
-                            ).first.text_content()
-                            print(f"Text input question: {question}")
-
-                        dropdown = question.locator("select").first
-                        if await dropdown.count() > 0:
-                            question = await question.locator(
-                                "label"
-                            ).first.text_content()
-                            options = await question.locator("option")
-                            print(f"Dropdown question: {question}")
-                            print(f"Dropdown options: {await options.count()}")
-
-                        radio_options = question.locator("input[type='radio']")
-                        if await radio_options.count() > 0:
-                            question = await question.locator(
-                                "legend"
-                            ).first.text_content()
-                            option_labels = question.locator("label")
-                            option_inputs = await question.locator(
-                                "input[type='radio']"
-                            )
-                            print(f"Radio button question: {question}")
-                            print(
-                                f"Radio button options: {await option_labels.count()}"
-                            )
-                            print(f"Radio button inputs: {await option_inputs.count()}")
-
+            next_button = page.locator("button[aria-label='Continue to next step']")
+            review_button = page.locator("button[aria-label='Review your application']")
+            submit_button = page.locator("button[aria-label='Submit application']")
+            while (
+                await next_button.count() > 0
+                or await review_button.count() > 0
+                or await submit_button.count() > 0
+            ):
+                if await next_button.count() > 0:
+                    await self.find_questions(page)
                     await self.next_page(next_button)
-                elif review_button:
-                    follow_company_checkbox = modal.locator(
+                elif await review_button.count() > 0:
+                    await self.find_questions(page)
+                    await self.next_page(review_button)
+                elif await submit_button.count() > 0:
+                    follow_company_checkbox = page.locator(
                         "input[type='checkbox']#follow-company-checkbox"
                     )
                     await follow_company_checkbox.scroll_into_view_if_needed()
                     await follow_company_checkbox.click()  # don't follow company
                     await human_delay(0.2, 0.5)
 
-                    await self.next_page(review_button)
-                elif submit_button:
                     if submit:
                         await self.next_page(submit_button)
                         app.submitted = True
