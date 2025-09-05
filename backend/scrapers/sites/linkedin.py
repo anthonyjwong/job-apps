@@ -44,47 +44,6 @@ class LinkedIn(JobSite):
             await element.type(char)
             await human_delay(0.05, 0.15)
 
-    async def check_for_captcha(self, page):
-        await asyncio.sleep(5)
-        if "/checkpoint/challenge" in page.url:
-            if self.headless:
-                raise LinkedInCheckpointError(
-                    "Checkpoint challenge in headless mode; cannot proceed."
-                )
-            else:
-                logging.warning(
-                    "LinkedIn triggered a checkpoint challenge (e.g., CAPTCHA or verification). Manual intervention required."
-                )
-                await page.wait_for_selector("div.feed-container-theme")
-
-    async def login(self, page):
-        await page.goto("https://www.linkedin.com/login")
-        await human_delay(3, 5)
-
-        if await page.locator("div.feed-container-theme").count():
-            # Already logged in
-            return page
-
-        await page.wait_for_selector("input[type='email']#username")
-        username_input = page.locator("input[type='email']#username")
-        password_input = page.locator("input[type='password']#password")
-        await username_input.click()
-        await self.write(username_input, LINKEDIN_CLIENT_ID or "")
-        await human_delay(1, 2)
-        await password_input.click()
-        await self.write(password_input, LINKEDIN_CLIENT_SECRET or "")
-        await human_delay(1, 2)
-
-        login_button = page.locator("button[aria-label='Sign in']")
-        await login_button.scroll_into_view_if_needed()
-        await login_button.click()
-
-        await self.check_for_captcha(page)
-
-        # Wait for navigation after clicking the login button
-        await human_delay(3, 5)
-        return page
-
     async def next_page(self, element):
         await element.scroll_into_view_if_needed()
         await element.click()
@@ -166,6 +125,52 @@ class LinkedIn(JobSite):
                     f"Options: {[(await option_labels.nth(i).text_content()).strip() for i in range(await option_labels.count())]}"
                 )
 
+    async def check_for_captcha(self, page):
+        await asyncio.sleep(5)
+        if "/checkpoint/challenge" in page.url:
+            if self.headless:
+                raise LinkedInCheckpointError(
+                    "Checkpoint challenge in headless mode; cannot proceed."
+                )
+            else:
+                logging.warning(
+                    "LinkedIn triggered a checkpoint challenge (e.g., CAPTCHA or verification). Manual intervention required."
+                )
+                await page.wait_for_selector("div.feed-container-theme")
+
+    async def login(self, page):
+        await page.goto("https://www.linkedin.com/login")
+        await human_delay(3, 5)
+
+        try:
+            await page.wait_for_selector("div.feed-container-theme", timeout=5000)
+            # Already logged in
+            return page
+        except Exception:
+            pass
+
+        await page.wait_for_selector("input[type='password']#password")
+        username_input = page.locator("input[type='email']#username")
+        if await username_input.count():
+            await username_input.click()
+            await self.write(username_input, LINKEDIN_CLIENT_ID or "")
+            await human_delay(1, 2)
+
+        password_input = page.locator("input[type='password']#password")
+        await password_input.click()
+        await self.write(password_input, LINKEDIN_CLIENT_SECRET or "")
+        await human_delay(1, 2)
+
+        login_button = page.locator("button[aria-label='Sign in']")
+        await login_button.scroll_into_view_if_needed()
+        await login_button.click()
+
+        await self.check_for_captcha(page)
+
+        # Wait for navigation after clicking the login button
+        await human_delay(3, 5)
+        return page
+
     async def scrape(self, app: App = None, submit: bool = False) -> App:
         if app is None:
             app = App(
@@ -190,6 +195,7 @@ class LinkedIn(JobSite):
                         # If redirected to login, we still need to login
                         await page.wait_for_load_state("domcontentloaded")
 
+                        # Check if the "Remember me" checkbox is present
                         if await page.locator("div#rememberme-div").count():
                             await self.next_page(
                                 page.locator("button.member-profile__details").first
@@ -198,7 +204,8 @@ class LinkedIn(JobSite):
                             await self.check_for_captcha(page)
                             await context.storage_state(path=str(_STORAGE_PATH))
 
-                        if await page.locator("#username").count():
+                        # Check if we need to reenter password
+                        if await page.locator("#password").count():
                             needs_login = True
                     except Exception:
                         needs_login = True
@@ -219,10 +226,9 @@ class LinkedIn(JobSite):
                 await page.wait_for_load_state("domcontentloaded")
                 await human_delay(3, 5)
 
-                # Wait for any apply-related buttons to be attached to the DOM
+                # Wait for any apply-related buttons
                 await page.wait_for_selector(
-                    "button.jobs-apply-button",
-                    state="attached",
+                    "button.jobs-apply-button", state="attached"
                 )
                 apply_button = page.locator("button.jobs-apply-button").nth(1)
                 await apply_button.scroll_into_view_if_needed()
