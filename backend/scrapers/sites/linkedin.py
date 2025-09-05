@@ -144,7 +144,7 @@ class LinkedIn(JobSite):
             )
         try:
             async with async_playwright() as p:
-                browser = await p.firefox.launch(headless=False)
+                browser = await p.firefox.launch(headless=True)
                 # Use a browser context so we can persist and restore auth state
                 context = await browser.new_context(
                     storage_state=str(_STORAGE_PATH) if _STORAGE_PATH.exists() else None
