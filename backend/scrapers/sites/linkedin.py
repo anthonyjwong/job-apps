@@ -55,7 +55,7 @@ class LinkedIn(JobSite):
                 logging.warning(
                     "LinkedIn triggered a checkpoint challenge (e.g., CAPTCHA or verification). Manual intervention required."
                 )
-                await page.wait_for_selector("div.feed-container-theme", timeout=60000)
+                await page.wait_for_selector("div.feed-container-theme")
 
     async def login(self, page):
         await page.goto("https://www.linkedin.com/login")
@@ -179,6 +179,7 @@ class LinkedIn(JobSite):
                 context = await browser.new_context(
                     storage_state=str(_STORAGE_PATH) if _STORAGE_PATH.exists() else None
                 )
+                context.set_default_timeout(60000)  # 60s
                 page = await context.new_page()
 
                 # If no storage or not logged in, perform login once and save storage
@@ -214,7 +215,7 @@ class LinkedIn(JobSite):
 
                 # Now go to the job URL
                 print(f"Navigating to {app.url}")
-                await page.goto(app.url, timeout=60000)
+                await page.goto(app.url)
                 await page.wait_for_load_state("domcontentloaded")
                 await human_delay(3, 5)
 
@@ -222,7 +223,6 @@ class LinkedIn(JobSite):
                 await page.wait_for_selector(
                     "button.jobs-apply-button",
                     state="attached",
-                    timeout=60000,
                 )
                 apply_button = page.locator("button.jobs-apply-button").nth(1)
                 await apply_button.scroll_into_view_if_needed()

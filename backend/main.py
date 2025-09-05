@@ -718,7 +718,6 @@ async def list_all_jobs(db: Session = Depends(get_db)):
 async def get_unapproved_apps(db: Session = Depends(get_db)):
     """Gets all applications that still need to be approved by the user."""
     apps = get_unapproved_applications(db)
-    logging.info(f"Found {len(apps)} unapproved applications.")
     return JSONResponse(
         status_code=200,
         content={"apps": [app.to_json() for app in apps]},
