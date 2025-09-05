@@ -136,7 +136,9 @@ class LinkedIn(JobSite):
                     f"Options: {[(await option_labels.nth(i).text_content()).strip() for i in range(await option_labels.count())]}"
                 )
 
-    async def scrape(self, app: App = None, submit: bool = False) -> App:
+    async def scrape(
+        self, app: App = None, submit: bool = False, headless: bool = True
+    ) -> App:
         if app is None:
             app = App(
                 job_id=self.job.id,
@@ -144,7 +146,7 @@ class LinkedIn(JobSite):
             )
         try:
             async with async_playwright() as p:
-                browser = await p.firefox.launch(headless=True)
+                browser = await p.firefox.launch(headless=headless)
                 # Use a browser context so we can persist and restore auth state
                 context = await browser.new_context(
                     storage_state=str(_STORAGE_PATH) if _STORAGE_PATH.exists() else None
@@ -288,7 +290,7 @@ if __name__ == "__main__":
     scraper = LinkedIn(job)
 
     async def main():
-        app = await scraper.scrape_questions()
+        app = await scraper.scrape(headless=False)
         print("Done!")
 
     asyncio.run(main())
