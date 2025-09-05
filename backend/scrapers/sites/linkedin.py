@@ -144,7 +144,7 @@ class LinkedIn(JobSite):
             )
         try:
             async with async_playwright() as p:
-                browser = await p.firefox.launch(headless=True)
+                browser = await p.firefox.launch(headless=False)
                 # Use a browser context so we can persist and restore auth state
                 context = await browser.new_context(
                     storage_state=str(_STORAGE_PATH) if _STORAGE_PATH.exists() else None
@@ -158,6 +158,11 @@ class LinkedIn(JobSite):
                         await page.goto("https://www.linkedin.com/feed/")
                         # If redirected to login, we still need to login
                         await page.wait_for_load_state("domcontentloaded")
+
+                        if await page.locator("div#rememberme-div").count():
+                            await self.next_page(
+                                page.locator("button.member-profile__details").first
+                            )
                         if await page.locator("#username").count():
                             needs_login = True
                     except Exception:
@@ -179,7 +184,10 @@ class LinkedIn(JobSite):
                 await human_delay(3, 5)
 
                 # Wait for the "Easy Apply" button to appear
-                apply_button = page.locator("div.jobs-apply-button--top-card").first
+                apply_buttons = page.locator("button#jobs-apply-button-id")
+                if await apply_buttons.count() != 2:
+                    raise RuntimeError("Unusual number of apply buttons found")
+                apply_button = apply_buttons.nth(1)
                 await apply_button.click()
                 await human_delay(3, 5)
 
@@ -251,7 +259,7 @@ class LinkedIn(JobSite):
                 # If we exit the loop, we hit the safety cap
                 raise RuntimeError("Exceeded maximum Easy Apply steps; aborting.")
         except Exception as e:
-            logging.error(f"Error occurred during Easy Apply process for {app.id}: {e}")
+            logging.error(f"Error occurred app scraping/submitting for {app.id}: {e}")
             raise e
 
     async def scrape_questions(self) -> App:
