@@ -1,0 +1,10 @@
+Here is the rewritten commit message in **Conventional Commits** format:
+
+```
+update dependencies to latest versions
+---------------------------------------
+
+update psycopg2-binary to 2.9.10
+update golang image to 1.23.4-alpine
+update context and dockerfile paths for dev and prod environments
+```
