@@ -1,0 +1,7 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`remove hardcoded db env vars`
+
+Remove hardcoded DB environment variables from database.py and docker-compose.dev.yml, replacing with references to environment variables. Also update crud.py to use correct date_posted parsing.
+
+Note that I've kept the subject line ≤ 72 characters as required by the Conventional Commits format.
