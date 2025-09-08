@@ -1,0 +1,11 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+fix: update logging levels and error codes
+```
+
+Body:
+```
+Update backend code to use logging.info() for successful job additions,
+and change error codes from 404 to 204 for create_job_applications, prepare_applications, and submit_applications endpoints.
+```
