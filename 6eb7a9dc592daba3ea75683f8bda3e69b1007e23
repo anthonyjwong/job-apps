@@ -1,0 +1,10 @@
+Here is the rewritten commit message in **Conventional Commits** format:
+
+```
+feat(approval): update home page with job metrics and refactor backend/main.py for classification counts
+
+Update TODO list to include displaying job metrics on the home page.
+- Display how many jobs have been unlooked at, approved, or discarded
+Add a new field `unreviewed` to the classification counts dictionary in backend/main.py
+Refactor the approval page to use dynamic imports and add missing type definitions for JobRecord
+```
