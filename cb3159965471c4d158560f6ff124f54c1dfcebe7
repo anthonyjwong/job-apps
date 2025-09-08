@@ -1,0 +1,5 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`remove direct url checks and update scraper`
+
+Remove direct URL checks from `apply.py` and update LinkedIn scraper to use Chromium instead of Firefox. Update code to reflect new functionality, including automatically submitting LinkedIn jobs after approval and incrementing approval page.
