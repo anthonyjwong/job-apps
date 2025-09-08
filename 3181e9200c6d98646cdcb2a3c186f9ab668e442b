@@ -1,0 +1,10 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`fix(page): add host display on home page`
+
+This follows the rules by:
+
+* Using an imperative mood
+* Being ≤ 72 characters
+* All lowercase
+* Following the structure of a conventional commit (type, scope, description)
