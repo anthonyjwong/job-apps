@@ -1,0 +1,7 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+fix: add headless option to linkedin scraper
+
+update scrape method to accept an optional headless parameter, defaulting to True. update launch call to respect this parameter.
+```
