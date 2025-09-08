@@ -1,0 +1,12 @@
+Here is the rewritten commit message:
+
+`fix: improve error message formatting in backend/main.py`
+
+```
+The subject was rewritten to use Conventional Commits format, with a length of 45 characters or less. The body has been removed as it's not part of the conventional commit specification.
+
+Note that the `Conventional Commits` format is used for the commit message, which includes:
+
+- A type (e.g., fix)
+- A brief description
+```
