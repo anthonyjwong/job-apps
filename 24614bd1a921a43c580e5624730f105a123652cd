@@ -1,0 +1,13 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+feat: add multiple pages to frontend
+
+Implement a new TODO page, update backend/src/definitions.py to convert id fields to strings, and create two new pages:
+- An approval page for listing saved applications
+- A job listings page for listing all saved jobs
+
+The TODO page includes a list of tasks for implementing these features.
+
+Note that this is the first step in completing these features. Further development will be required to fully implement them.
+```
