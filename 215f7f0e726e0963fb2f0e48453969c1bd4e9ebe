@@ -1,0 +1,8 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+**feat: update linkedin scraper for better handling of easy apply modal**
+
+* Fix infinite loops when navigating through Easy Apply modal
+* Add timeout for page.goto calls to improve stability
+* Simplify logic for detecting current step and clicking buttons
+* Remove unnecessary imports and code duplication
