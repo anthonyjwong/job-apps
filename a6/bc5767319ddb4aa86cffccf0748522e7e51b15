@@ -1,0 +1,10 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+move backend dependencies to scheduler directory
+
+- moved `go.mod` and `scheduler.go` files from `backend/` to `backend/scheduler/`
+- created new `Dockerfile`s for backend and scheduler services
+- updated `docker-compose.dev.yml` and `docker-compose.prod.yml` to reflect changes
+- added Dockerfiles for frontend service
+```
