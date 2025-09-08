@@ -1,0 +1,7 @@
+Here is the rewritten commit message in **Conventional Commits** format:
+
+`feat(app/jobs/page): update fetch and display of jobs`
+
+`update useEffect for fetching jobs to use useCallback
+fix display of total jobs count
+add loading animation for jobs fetch `
