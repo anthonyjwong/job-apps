@@ -1,0 +1,9 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+**feat: migrate db models to use correct column names**
+
+The following changes were made:
+- In `backend/alembic/versions/ce99548b1099_create_tables.py`, changed column names from camel case to underscore notation.
+- Added a "created_at" and "updated_at" timestamp columns to all tables.
+- Updated foreign key constraints in `backend/db/crud.py` and `backend/db/models.py`.
+- In `backend/db/models.py`, added an "approved" field to the JobORM model.
