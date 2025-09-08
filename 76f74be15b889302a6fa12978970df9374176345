@@ -1,0 +1,5 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+fix: improve get_applications_summary function to better handle approved jobs without a scraped application
+```
