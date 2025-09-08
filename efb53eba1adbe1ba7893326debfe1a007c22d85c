@@ -1,0 +1,8 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+fix(async-parallelization): offload blocking operations to threads
+-----------------------------------------------
+
+Offload potentially blocking scraping and OpenAI network calls to worker threads using asyncio.to_thread. Also, update frontend Dockerfile to use pnpm instead of npm for better caching.
+```
