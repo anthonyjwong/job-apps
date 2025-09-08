@@ -1,0 +1,17 @@
+Here is the rewritten Git commit message in Conventional Commits format:
+
+`add debug log ignore and update docker dependencies`
+
+```
+backend/.gitignore           | 1 +
+ backend/Dockerfile           | 3 +++
+ backend/scheduler/.gitignore | 3 +--
+ docker-compose.dev.yml       | 2 +-
+
+ Changes:
+ - Added `debug.log` to `.gitignore` in backend
+ - Updated Docker dependencies in backend Dockerfile
+ - Modified start_period in docker-compose.dev.yml
+
+ Reason for changes: Update dependencies and ignore files for better project organization.
+```
