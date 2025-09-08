@@ -1,0 +1,9 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`refactor: simplify responses and remove redundant code`
+
+```
+- Removed redundant `JSONResponse` instances
+- Simplified response handling for 204 status codes
+- Consolidated scheduler intervals
+```
