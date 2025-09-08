@@ -1,0 +1,11 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+fix: migrate scraper logic to async/await syntax
+
+async/await was used for blocking operations, but not other parts of the code.
+This change ensures consistent use of async/await and eliminates potential
+blocking issues on Python 3.7 and later.
+
+Added new endpoint "/jobs" to list all saved job applications.
+```
