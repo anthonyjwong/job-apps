@@ -1,0 +1,7 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+feat: update page.tsx to display top sources by job count
+```
+
+This follows the rules you specified, with a subject line that is ≤ 72 characters, in the imperative mood (starting with "update"), and all lowercase.
