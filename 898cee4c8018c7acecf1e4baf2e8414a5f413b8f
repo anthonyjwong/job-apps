@@ -1,0 +1,5 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+**refactor: update frontend components for improved navigation**
+
+Refine frontend to look professional for investors. Update layouts and styles in `Header.tsx`, `page.tsx`, `jobs/page.tsx`, and `layout.tsx` to enhance user experience and navigation between pages.
