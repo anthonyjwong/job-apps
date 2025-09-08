@@ -1,0 +1,14 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`update Dockerfile to use mcr.microsoft.com/playwright/python`
+
+```
+update Dockerfile to use mcr.microsoft.com/playwright/python
+
+Update `Dockerfile` to use the official Playwright image. Remove unnecessary base images and layers, simplifying the build process.
+
+Changes:
+- Update `FROM` statement to use `mcr.microsoft.com/playwright/python:v1.55.0-noble`
+- Simplify dependencies layer by removing redundant commands
+- Update `pip install` command to use `--no-cache-dir` option
+```
