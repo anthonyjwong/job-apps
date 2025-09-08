@@ -1,0 +1,14 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`feat(scheduler): update scheduler intervals`
+
+```
+Update the scheduler to use updated intervals for job review and app creation/prepare.
+
+The updated intervals are as follows:
+* /jobs/review: 0s, 20m, 40m, 60m, 80m
+* /apps/create: 5s, 21m, 41m, 61m, 81m
+* /apps/prepare: 10s, 22m, 42m, 62m, 82m
+* /apps/submit: 5m, 25m
+* /jobs/find: 30s, 30m
+```
