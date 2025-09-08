@@ -1,0 +1,7 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+**feat(frontend): migrate to pnpm and optimize Dockerfile**
+
+remove unnecessary dependencies, update package-lock.json to pnpm-lock.yaml, and optimize Dockerfile for faster builds and smaller image size.
+
+Note: I kept the original message's content as much as possible while adhering to the Conventional Commits format rules. If you'd like me to make any adjustments, feel free to let me know!
