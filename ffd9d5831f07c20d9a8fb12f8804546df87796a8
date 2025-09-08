@@ -1,0 +1,8 @@
+Here is the rewritten Git commit message in Conventional Commits format:
+
+`fix(scrapers/linkedin): improve login flow and error handling`
+
+`* removed redundant checks for already logged-in state
+* fixed typo in password field locator (#username -> #password)
+* improved error handling for checkpoint challenges
+* reduced wait times for navigation after clicking the login button`
