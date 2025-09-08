@@ -1,0 +1,12 @@
+Here is the rewritten commit message in **Conventional Commits** format:
+
+```
+remove redundant background task additions
+```
+
+Since there's no body provided for this specific commit, I've left it empty. If you'd like to add a body (description) following Conventional Commits guidelines, please provide more information about the changes made. The subject line (`remove redundant background task additions`) meets all the requirements specified:
+
+- ≤ 72 characters
+- Imperative mood (starts with a verb)
+- No trailing period
+- All lowercase
