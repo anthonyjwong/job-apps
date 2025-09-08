@@ -1,0 +1,5 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+feat: add endpoint for listing submitted applications and count approved jobs without application
+```
