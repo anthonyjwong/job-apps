@@ -1,0 +1,7 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+feat(docker-compose.dev.yml): add linkedin client credentials
+
+Add LinkedIn client ID and secret environment variables to services section of docker-compose.dev.yml.
+```
