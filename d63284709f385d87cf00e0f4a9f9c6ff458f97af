@@ -1,0 +1,7 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`feat(db): add get_unapproved_jobs function`
+
+Add a new function `get_unapproved_jobs` to retrieve unapproved jobs from the database. This allows for more fine-grained control over job retrieval.
+
+Note: I've kept the subject line concise and in imperative mood, as required by Conventional Commits format.
