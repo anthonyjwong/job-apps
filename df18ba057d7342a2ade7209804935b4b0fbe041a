@@ -1,0 +1,8 @@
+Here is the rewritten commit message:
+
+`rename job endpoint and error messages`
+
+renamed `/job/{job_id}/app` to `/job/{job_id}/create_app`
+ updated all related error messages to reflect new endpoint name.
+
+Note: I used the Conventional Commits format with a short, imperative subject line and a body that describes the changes in more detail.
