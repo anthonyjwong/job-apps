@@ -1,0 +1,5 @@
+Here is the rewritten commit message:
+
+`update scheduler service and makefiles to use backend hostname`
+
+`update scheduler service to connect to ws://backend:8000/ws/jobs/review and http://backend:8000; update start_period in docker-compose.dev.yml; create Makefile in backend/scheduler directory; simplify go build command in Makefiles`
