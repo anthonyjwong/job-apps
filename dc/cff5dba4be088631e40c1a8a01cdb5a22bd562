@@ -1,0 +1,5 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`add makefiles for dev and prod environments`
+
+`this commit adds Makefiles for development and production environments. it includes commands to start a dev or prod environment with Docker Compose, as well as stop and clean up after use.`
