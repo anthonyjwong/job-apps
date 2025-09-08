@@ -1,0 +1,7 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+feat: migrate backend database schema to fix date_posted type
+
+Migrated backend database schema to use timestamp instead of VARCHAR for date_posted field. This was done by creating a new revision with Alembic, updating the existing migration scripts to correctly handle date conversions.
+```
