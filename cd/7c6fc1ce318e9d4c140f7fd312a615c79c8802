@@ -1,0 +1,9 @@
+Here is the rewritten commit message in **Conventional Commits** format:
+
+`update: refactor database operations for better scraping`
+
+```
+Update backend database models and utilities to improve job scraping.
+
+Refactored database models to track scraped jobs, updated database utilities to fetch unscraped jobs and approved applications. Also modified the web API to support scraping and preparation of individual jobs.
+```
