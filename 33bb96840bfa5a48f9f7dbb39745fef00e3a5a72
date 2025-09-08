@@ -1,0 +1,9 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+feat(backendscheduler): adjust scheduler intervals and backend url
+
+---
+
+* Adjusted scheduler intervals to be more granular
+* Updated `backend/main.py` to use a different URL for development
+* Added `http://localhost:3000` as an origin in `backend/main.py`
