@@ -1,0 +1,9 @@
+Here is the rewritten commit message in **Conventional Commits** format:
+
+`refactor: update logging and error handling in backend/db/utils.py and main.py`
+
+Body (optional):
+
+* updated logging to use `debug` level for application updates and job additions
+* added error handling for database operations in `main.py`
+* simplified code in `find_jobs` and `review_job` functions
