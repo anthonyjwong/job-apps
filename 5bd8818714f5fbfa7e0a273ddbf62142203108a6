@@ -1,0 +1,18 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+feat: add README.md with project details and tech stack
+
+This file provides an overview of the project's purpose, motivation, and technical components. It also includes setup instructions and API documentation.
+
+The README now includes information on:
+- Project goal and motivation
+- Tech stack (backend, frontend, orchestration)
+- Environment variables
+- Quick start guide with Docker Compose
+- Common workflows
+
+This update will help new contributors understand the project's context and get started more easily.
+```
+
+Note that I've kept the subject line concise (≤ 72 chars) and in imperative mood.
