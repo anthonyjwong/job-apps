@@ -1,0 +1,5 @@
+Here is the rewritten commit message:
+
+feat: enable firefox headless mode and remove manual approval prompts
+
+Enabled Firefox headless mode for Ashby scraper by setting `headless=True` in `firefox.launch`. Removed manual approval prompts to improve automation experience.
