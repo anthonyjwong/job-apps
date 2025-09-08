@@ -1,0 +1,7 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`feat(frontend): add unapproved apps page`
+
+```
+Add a new page to review unapproved applications, fetch data from `/apps/unapproved`, and display one application at a time with controls to navigate, approve or discard each entry. The page includes features such as navigation between applications, saving current answers for each app, and sending approval requests.
+```
