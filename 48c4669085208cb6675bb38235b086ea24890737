@@ -1,0 +1,7 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`feat(scrapers): add linkedin scraper`
+
+* `feat`: type of change (new feature)
+* `(scrapers)`: scope and category of the change (scrapers, in this case)
+* `add linkedin scraper`: brief description of the change
