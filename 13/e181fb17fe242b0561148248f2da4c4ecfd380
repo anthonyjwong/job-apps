@@ -1,0 +1,9 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+feat: update application submission and approval logic
+
+update backend/main.py to include submit_and_update_application function, which submits an application and updates it in the database. Also update approve_application function to use background tasks for submission.
+
+update backend/scheduler.go to remove unnecessary daily scheduler task.
+```
