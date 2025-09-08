@@ -1,0 +1,18 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`remove-unused-code: remove unused imports and functions`
+
+The body of the commit message would be a brief description of the changes made.
+
+Since there's no summary or diffstat provided, I'll just leave this blank for now. If you provide that information, I can help add it to the commit message accordingly.
+
+Here is an updated version with some added context:
+
+`remove-unused-code: remove unused imports and functions
+
+- Remove unused ReviewMessage type
+- Remove unused waitForReviewCompletion function
+- Remove unused main() function
+- Simplify Makefile cleanup command`
+
+Note that this body is based on the provided patch, and might not be a comprehensive summary of all changes.
