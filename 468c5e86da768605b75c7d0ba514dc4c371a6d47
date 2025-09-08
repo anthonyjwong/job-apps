@@ -1,0 +1,5 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+feat: remove unused function from backend/main.py
+
+Remove unnecessary code to improve application performance.
