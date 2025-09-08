@@ -1,0 +1,10 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`feat(db): allow nullable location column`
+
+The changes include:
+- A new file `backend/alembic/versions/d710a8134fb6_.py` containing Alembic migration code for changing the `location` column to be nullable.
+- Modifications to `backend/db/crud.py`, `backend/db/models.py`, and `backend/src/definitions.py` to reflect the changes in the database schema.
+- Updates to `docker-compose.dev.yml` to map container ports correctly.
+
+Note that I've kept the subject line short and in imperative mood, as required by Conventional Commits.
