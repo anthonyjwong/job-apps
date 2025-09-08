@@ -1,0 +1,5 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`add approval and discard flags to job crud methods`
+
+The diff introduces two new parameters, `approved` and `discarded`, to the `job_to_orm` and `orm_to_job` functions, respectively. These parameters are used to track the status of jobs in the database.
