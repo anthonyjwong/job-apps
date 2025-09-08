@@ -1,0 +1,7 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+feat(app): apply theme provider and fix layout issues
+```
+
+No body is needed for a feat-type commit.
