@@ -1,0 +1,5 @@
+Here is the rewritten commit message in **Conventional Commits** format:
+
+`update backend scrape settings`
+
+remove unnecessary flag and add emulate_human option to scraper.py
