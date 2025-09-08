@@ -1,0 +1,7 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+feat: initial backend setup and infrastructure creation
+
+added various files including .gitignore, Makefile, README.md, alembic.ini, database models, jobs scraper, reviewer, applier services, and more.
+```
