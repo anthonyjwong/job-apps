@@ -1,0 +1,11 @@
+Here is the rewritten commit message in **Conventional Commits** format:
+
+```
+fix: update requirements.txt with new dependencies and versions
+```
+
+Body (optional, but since there were many changes, I included a brief description):
+
+```
+update backend/requirements.txt to include latest versions of dependencies, including Django 4.2.18, Pydantic 2.10.4, and others. Also removed unnecessary packages.
+```
