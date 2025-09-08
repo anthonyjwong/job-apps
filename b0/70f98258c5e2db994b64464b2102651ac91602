@@ -1,0 +1,10 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`refactor: scraper and backend improvements`
+
+Body:
+```
+Refactored Ashby scraper to wait for manual approval before submitting application. Improved submission process by introducing human delays and checking for success or failure containers.
+
+Updated scrape.py, src/apply.py, src/definitions.py, utils.py, main.py, scrapers/sites/ashby.py
+```
