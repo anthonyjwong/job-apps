@@ -1,0 +1,8 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`feat: add job approval and discard functionality`
+
+Body:
+```
+Implement job approval and discard routes on backend. Update frontend to show approved and discarded jobs. Modify TODO list.
+```
