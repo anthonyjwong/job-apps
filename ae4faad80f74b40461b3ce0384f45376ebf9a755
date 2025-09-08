@@ -1,0 +1,5 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`remove hardcoded app submit intervals`
+
+Remove hardcoded intervals for submitting apps from scheduler. Update to use a single interval of 1 hour between submissions.
