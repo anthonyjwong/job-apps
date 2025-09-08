@@ -1,0 +1,7 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`fix(scheduler): log schedule start times with correct location`
+
+```
+fixes issue where schedule start times were logged without including their location.
+```
