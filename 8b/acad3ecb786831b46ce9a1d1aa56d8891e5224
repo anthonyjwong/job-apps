@@ -1,0 +1,7 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`feat: add new dependencies to requirements.txt`
+
+```
+Add Alembic 1.16.5, Mako 1.3.10, MarkupSafe 3.0.2 and markdownify 0.13.1 to backend/requirements.txt.
+```
