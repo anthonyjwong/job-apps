@@ -1,0 +1,17 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+feat: implement connection pool settings and task semaphore
+```
+
+Body:
+
+```
+Implement database connection pool settings via environment variables:
+- `DB_POOL_SIZE`: 10 (default)
+- `DB_MAX_OVERFLOW`: 20 (default)
+- `DB_POOL_TIMEOUT`: 30 seconds (default)
+- `DB_POOL_RECYCLE`: 1800 seconds (default)
+
+Introduce a task semaphore to limit concurrent background operations that might use DB connections.
+```
