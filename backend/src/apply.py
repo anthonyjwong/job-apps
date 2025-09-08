@@ -228,13 +228,13 @@ def prepare_job_app(job: Job, app: App, user: User) -> App:
 
 async def submit_app(app: App, job: Job) -> App:
     """Submit an application."""
-    if not job.direct_job_url or not job.linkedin_job_url:
-        raise ValueError("Job must have a direct job URL or LinkedIn job URL.")
+    if not app.url:
+        raise ValueError("App must have a URL.")
 
-    base_url = get_base_url(job.direct_job_url)
+    base_url = get_base_url(app.url)
     if base_url in DOMAIN_HANDLERS:
         job_site: JobSite = DOMAIN_HANDLERS[base_url](job)
         if await job_site.apply(app):
             app.submitted = True
             return app
-    raise NotImplementedError(f"Site not supported: {job.direct_job_url}")
+    raise NotImplementedError(f"Site not supported: {base_url}")

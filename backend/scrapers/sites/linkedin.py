@@ -179,7 +179,7 @@ class LinkedIn(JobSite):
             )
         try:
             async with async_playwright() as p:
-                browser = await p.firefox.launch(headless=self.headless)
+                browser = await p.chromium.launch(headless=self.headless)
                 # Use a browser context so we can persist and restore auth state
                 context = await browser.new_context(
                     storage_state=str(_STORAGE_PATH) if _STORAGE_PATH.exists() else None
@@ -277,6 +277,7 @@ class LinkedIn(JobSite):
                         if not submit:
                             # caller only wants questions; stop before submitting
                             await browser.close()
+                            app.scraped = True
                             return app
                         await self.next_page(button)
                         continue
@@ -311,7 +312,12 @@ class LinkedIn(JobSite):
             raise
 
     async def scrape_questions(self) -> App:
-        return await self.scrape()
+        return App(
+            job_id=self.job.id,
+            url=self.job.linkedin_job_url,
+            scraped=False,
+            prepared=True,
+        )  # don't actually scrape questions for now
 
     async def apply(self, app: App) -> bool:
         app = await self.scrape(app, submit=True)

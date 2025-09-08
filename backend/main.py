@@ -567,13 +567,13 @@ async def submit_application(app_id: UUID):
             )
         except NotImplementedError:
             logging.warning(
-                f"/app/{app_id}/submit: {get_base_url(job.direct_job_url)} app submission is not supported at this time"
+                f"/app/{app_id}/submit: {get_base_url(app.url)} app submission is not supported at this time"
             )
             return JSONResponse(
                 status_code=400,
                 content={
                     "status": "warning",
-                    "message": f"{get_base_url(job.direct_job_url)} app prep is not supported at this time",
+                    "message": f"{get_base_url(app.url)} app prep is not supported at this time",
                 },
             )
         except:

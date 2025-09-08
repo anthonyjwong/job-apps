@@ -14,7 +14,6 @@ __pycache__/
 # Not needed in image
 _playground.ipynb
 .debug/
-.db/
 .git
 .gitignore
 .debug.log
