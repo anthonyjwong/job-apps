@@ -1,0 +1,5 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`fix(apply): handle missing job urls`
+
+`Apply.py improvements to handle cases where a Job object has no direct or LinkedIn job URLs. Replaced checks and variables with a more concise `job_url` assignment. Fixes edge cases where scraping would fail due to unsupported sites.`
