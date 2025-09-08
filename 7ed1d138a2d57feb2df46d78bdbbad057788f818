@@ -1,0 +1,10 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+fix: update scraping logic for linkedin and ashby sites
+
+update Makefile to include new backend task
+add error handling to AshbyJob submission
+add LinkedIn login functionality with error handling
+update logging and exception handling throughout scrapers
+```
