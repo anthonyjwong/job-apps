@@ -1,0 +1,8 @@
+Here is the rewritten commit message in **Conventional Commits** format:
+
+`add ignore files for secrets and env vars`
+
+update `.gitignore` to ignore sensitive data
+
+- updated backend's `.gitignore` to remove unnecessary entries
+- added environment variable expansion in `docker-compose.dev.yml`
