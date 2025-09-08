@@ -1,0 +1,5 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`feat: add job review classification badges`
+
+feat: added a new feature to display job review classification badges with dynamic colors based on dark mode. The badges are rendered using a `renderClassification` function that takes a classification string as an argument. The colors for each classification type are stored in a record object called `classificationColors`.
