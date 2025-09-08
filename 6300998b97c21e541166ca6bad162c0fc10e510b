@@ -1,0 +1,8 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`feat: implement job fetching and approval logic`
+
+Body:
+```
+Implement job fetching and approval logic. Added new API endpoints for fetching specific jobs by ID, listing all saved job applications, and listing unapproved job applications. Updated frontend code to fetch only the necessary job data via these new endpoints.
+```
