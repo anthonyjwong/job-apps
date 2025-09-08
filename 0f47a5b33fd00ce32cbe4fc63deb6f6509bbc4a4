@@ -1,0 +1,13 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`refactor: simplify error handling and logging in backend/main.py`
+
+Body:
+```markdown
+Extracted common error handling logic into separate functions for better readability.
+Removed redundant try-except blocks to reduce code duplication.
+Improved logging statements for easier debugging.
+
+Note: This refactoring does not change any business logic or functionality of the code. It only improves maintainability and adherence to best practices.
+```
+Please let me know if this meets your requirements!
