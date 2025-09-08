@@ -1,0 +1,11 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`fix(database): update database configurations for production`
+
+```
+fix(database): update database configurations for production
+
+update database URL to use environment variables
+update date_posted field in JobORM model to DateTime type
+update Docker Compose configuration for PostgreSQL
+```
