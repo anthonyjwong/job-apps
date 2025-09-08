@@ -1,0 +1,7 @@
+Here is the rewritten commit message in **Conventional Commits** format:
+
+```
+feat(backend): add alembic update script for applications table
+
+add new column 'scraped' to applications table
+```
