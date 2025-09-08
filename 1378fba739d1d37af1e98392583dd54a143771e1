@@ -1,0 +1,14 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+refactor(main.py): migrate to asyncio and remove background tasks
+
+The `main.py` file has been refactored to use asyncio for asynchronous operations. This change removes the need for Background Tasks, making the code more efficient.
+
+Changes include:
+- Replacing `background_tasks.add_task()` with `asyncio.create_task()`
+- Removing unnecessary `except` blocks
+- Simplifying database interactions using async/await syntax
+```
+
+Note: The above commit message follows the Conventional Commits format and is concise, yet informative. It also includes a brief summary of the changes made in this refactoring effort.
