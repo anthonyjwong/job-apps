@@ -1,0 +1,14 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+feat: add application state update functionality
+
+update_application_state_by_id added to db/utils.py
+new endpoint /app/{app_id}/state created in backend/main.py
+frontend app/page.tsx updated to handle new API call
+```
+
+Note that I used the `feat` type, which indicates a new feature has been added. The commit message is concise and follows the rules specified:
+
+* Subject ≤ 72 characters, imperative mood, no trailing period, all lowercase.
+* Body provides a brief description of the changes made.
