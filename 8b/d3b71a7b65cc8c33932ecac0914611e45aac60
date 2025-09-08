@@ -1,0 +1,7 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`remove unnecessary dependencies and human delays`
+
+```
+Implementing changes to remove unnecessary dependencies on `background_tasks` and `human_delay` functions. The code was refactored to improve readability, reduce complexity, and optimize performance.
+```
