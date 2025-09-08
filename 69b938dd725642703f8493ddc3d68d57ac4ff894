@@ -1,0 +1,11 @@
+Here is the rewritten commit message:
+
+feat: add new TODO items
+
+- Added tasks for tracking jobs and applications, including:
+  - Unapproved and undiscarded job count
+  - Classification distribution in pie chart
+  - Job site sources distribution in pie chart
+  - Applied job and app counts
+  - Company application status
+  - Current status of each applied application (acknowledged or rejected)
