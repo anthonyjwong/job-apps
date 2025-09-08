@@ -1,0 +1,14 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+feat(frontend, backend): add markdown rendering and job filtering
+
+Implement markdown rendering using rehype-sanitize and remark-gfm.
+Add job filtering based on review status.
+
+Changes include:
+- Add MarkdownRenderer component with theme customization
+- Update Dockerfile to install pnpm-lock.yaml
+- Implement reviewed jobs filter in backend/main.py
+- Update frontend/app/jobs/page.tsx for job preview and description display
+```
