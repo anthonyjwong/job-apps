@@ -1,0 +1,5 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`fix(jobs): correct type casting for date_posted`
+
+`When cleaning the listing data, ensure that "date_posted" is converted to a string before being passed to clean_val function.`
