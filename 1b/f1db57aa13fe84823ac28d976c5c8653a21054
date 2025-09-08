@@ -1,0 +1,9 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+remove unnecessary time.sleep() calls and introduce human_delay()
+
+The human_delay function introduces delays in a more consistent way than
+time.sleep(). It also allows for easier debugging by allowing delays to be
+emulated.
+```
