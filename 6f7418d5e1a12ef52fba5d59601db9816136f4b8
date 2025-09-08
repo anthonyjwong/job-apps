@@ -1,0 +1,14 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`feat: add support for manual application creation`
+
+Body:
+```markdown
+Added endpoints and UI to create applications manually.
+This includes two ways of creating a new application:
+1. By providing a `job_id` or
+2. By providing a minimal job payload.
+
+The application is then saved to the database with the newly created job, if applicable.
+```
+Note that I've kept the body concise while still conveying the main changes made in this commit.
