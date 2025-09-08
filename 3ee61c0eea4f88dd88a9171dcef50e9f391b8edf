@@ -1,0 +1,7 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+feat: remove unused fastapi imports and simplify async tasks
+```
+
+No additional body or description is provided as it's a single feature change. If you want to add more details, you can use the "body" field in conventional commits, but for this specific commit, a brief subject line is sufficient.
