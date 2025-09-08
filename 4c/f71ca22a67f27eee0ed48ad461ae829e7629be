@@ -1,0 +1,10 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+feat: add application submission and approval endpoints
+
+- added `get_unsubmitted_applications` function to fetch unsubmitted applications
+- added `approve_application_by_id` function to approve an application by ID
+- updated `main.py` to include new functions and routes for submitting and approving applications
+- updated `scheduler.go` to schedule the `/apps/submit` endpoint every hour
+```
