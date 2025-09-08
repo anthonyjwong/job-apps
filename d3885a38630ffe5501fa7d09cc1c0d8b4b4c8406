@@ -1,0 +1,9 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+**feat: refactor db/utils.py and backend/main.py**
+
+Refactor `db/utils.py` to remove duplicate code and improve function naming.
+Update `backend/main.py` to use new functions from `db/utils.py`.
+Remove unnecessary imports and update scheduler configuration.
+
+Note that I assumed the commit message type is a "feature" (feat) because it introduces new functionality or refactors existing code. If this assumption is incorrect, please let me know the correct type (e.g., fix, docs, etc.).
