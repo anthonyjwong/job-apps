@@ -1,0 +1,12 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`feat: added combined metrics for approved jobs without an associated application`
+
+Body:
+```
+Added combined metrics for approved jobs without an associated application to applications summary endpoint. This includes counts and base URL distributions for these jobs.
+
+Also removed deprecated count endpoint `/jobs/approved_without_app`.
+
+Updated frontend code to use new data structure from the API.
+```
