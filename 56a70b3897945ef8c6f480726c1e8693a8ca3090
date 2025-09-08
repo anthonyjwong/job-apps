@@ -1,0 +1,5 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`refactor: improve applied apps display`
+
+Refactor applied apps list to group by company and add toggleable expansion for each company. Update UI to show summary instead of overview text. Implement improved styling for job status indicators.
