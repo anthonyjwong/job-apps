@@ -1,0 +1,5 @@
+Here is the rewritten commit message in **Conventional Commits** format:
+
+`fix: update scheduler config and job logging`
+
+`Update backend/main.py to log new job count correctly. Update scheduler config to resubmit jobs after 5 minutes instead of an hour.`
