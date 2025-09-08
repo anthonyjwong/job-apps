@@ -1,0 +1,8 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`remove unnecessary error responses`
+
+fix: remove unused JSONResponse error messages
+```
+The subject line is ≤ 72 characters, in imperative mood, and all lowercase. The body includes a brief description of the changes made, following the conventional `fix` type since it's a correction to existing code.
+```
