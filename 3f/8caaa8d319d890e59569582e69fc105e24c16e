@@ -1,0 +1,23 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+feat: auto-approve ashby applications
+```
+
+However, since the diffstat and summary indicate multiple changes across three files, it's more accurate to use a category that encompasses these changes. The `feat` category typically refers to a new feature, which might not be the best fit in this case.
+
+A more suitable category would be `fix`, as it suggests correcting or improving existing behavior:
+
+```
+fix: auto-approve ashby applications
+```
+
+If you'd like to specify additional details about the changes made, you can include them in the body of the commit message. However, according to Conventional Commits guidelines, this should be kept concise and focused on the essential information.
+
+Here is an updated version with a brief description:
+
+```
+fix: auto-approve ashby applications
+
+Updated logic for filtering unapproved applications and adjusted frontend code to recalculate initial sizes after removing items.
+```
