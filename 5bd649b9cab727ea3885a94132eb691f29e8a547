@@ -1,0 +1,6 @@
+Here is the rewritten commit message:
+
+fix(main.py): remove unused logging statement
+remove unnecessary timeout from LinkedIn scraper
+
+Note: I assumed that the changes were made to a file named "main.py" in the backend directory. If this is not correct, please provide more information about the files involved and I will rewrite the commit message accordingly.
