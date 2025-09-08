@@ -1,0 +1,7 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+```
+feat(main.py): refactor asynchronous code to improve performance and readability
+```
+
+This follows the rules you specified: subject is ≤ 72 characters, in the imperative mood, all lowercase, and no trailing period. The body of the commit message can be added after a blank line if necessary, but since this is a single feature change, it's not needed in this case.
