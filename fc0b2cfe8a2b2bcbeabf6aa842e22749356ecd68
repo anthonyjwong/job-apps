@@ -1,0 +1,12 @@
+Here is the rewritten Git commit message in Conventional Commits format:
+
+`fix(scrapers/linkedin): handle missing app and improve question handling`
+
+Body (if necessary):
+```
+Fix issues with missing `app` parameter and improve handling of questions in LinkedIn scraper.
+
+* Add default value for `app` parameter to prevent `NoneType` errors
+* Improve question handling by stripping whitespace from text content and extracting options from dropdowns
+* Add support for radio button questions
+```
