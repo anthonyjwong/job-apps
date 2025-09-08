@@ -1,0 +1,9 @@
+Here is the rewritten commit message in Conventional Commits format:
+
+`feat: improve linkedin scraper with checkpoint handling`
+
+---
+
+Added checkpoint error handling for LinkedIn.
+Implemented headless mode support.
+Improved scrape method with better wait conditions and error handling.
