@@ -1,0 +1,7 @@
+Here is the rewritten commit message:
+
+feat: add alembic migration for schema update
+
+update backend database schema to include approved fields in applications and jobs tables. Also modified create_job_applications function to filter by approved status.
+
+Note: I've followed the Conventional Commits format, keeping the subject line ≤ 72 characters, in imperative mood, all lowercase, and added a brief body describing the changes made.
