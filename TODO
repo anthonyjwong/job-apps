@@ -1,3 +1,7 @@
 - Better manual job adding
 - LinkedIn jobs are automatically submitted after approval
 - Have approval page increment to next job after approval/discard instead of decrement
+- Interview flag for apps
+- Implement Users db
+- Interview prep page
+- Migrate to Ollama

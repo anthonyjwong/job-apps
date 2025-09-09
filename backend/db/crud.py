@@ -46,7 +46,7 @@ def orm_to_job(db_job: JobORM) -> Job:
             try:
                 review = Review(**dict(db_job.review))
             except Exception:
-                raise ValueError("Review missing while reviewed = true")
+                review = None
 
     return Job(
         id=db_job.id,

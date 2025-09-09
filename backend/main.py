@@ -1,12 +1,18 @@
 import asyncio
 import logging
 import os
-import time
 from json import JSONDecodeError
 from typing import List
 from uuid import UUID
 
 import uvicorn
+from fastapi import Body, Depends, FastAPI, Query, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, Response
+from pydantic import BaseModel
+from sqlalchemy import func, or_
+from sqlalchemy.orm import Session
+
 from db.database import SessionLocal, get_db
 from db.models import ApplicationORM, JobORM
 from db.utils import (
@@ -34,12 +40,6 @@ from db.utils import (
     update_application_state_by_id,
     update_job_by_id,
 )
-from fastapi import Body, Depends, FastAPI, Query, WebSocket, WebSocketDisconnect
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel
-from sqlalchemy import func, or_
-from sqlalchemy.orm import Session
 from src.apply import (
     DOMAIN_HANDLERS,
     evaluate_candidate_aptitude,
