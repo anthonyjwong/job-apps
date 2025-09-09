@@ -27,6 +27,7 @@ class JobORM(Base):
     reviewed = Column(Boolean, default=False)
     approved = Column(Boolean, default=False)
     discarded = Column(Boolean, default=False)
+    manual = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
     updated_at = Column(
         DateTime,
@@ -56,6 +57,7 @@ class JobORM(Base):
             "reviewed": self.reviewed,
             "approved": self.approved,
             "discarded": self.discarded,
+            "manual": self.manual,
         }
 
 
@@ -72,6 +74,8 @@ class ApplicationORM(Base):
     discarded = Column(Boolean, default=False)
     submitted = Column(Boolean, default=False)
     acknowledged = Column(Boolean, default=False)
+    assessment = Column(Boolean, default=False)
+    interview = Column(Boolean, default=False)
     rejected = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
     updated_at = Column(
@@ -95,6 +99,8 @@ class ApplicationORM(Base):
             "discarded": self.discarded,
             "submitted": self.submitted,
             "acknowledged": self.acknowledged,
+            "assessment": self.assessment,
+            "interview": self.interview,
             "rejected": self.rejected,
         }
 

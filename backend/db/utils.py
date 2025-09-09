@@ -179,9 +179,17 @@ def update_application_state_by_id(db_session, app_id, new_state: str):
     if new_state == "submitted":
         app.submitted = True
         app.acknowledged = False
+        app.assessment = False
+        app.interview = False
         app.rejected = False
     elif new_state == "acknowledged":
         app.acknowledged = True
+        app.rejected = False
+    elif new_state == "assessment":
+        app.assessment = True
+        app.rejected = False
+    elif new_state == "interview":
+        app.interview = True
         app.rejected = False
     elif new_state == "rejected":
         app.rejected = True

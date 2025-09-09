@@ -335,3 +335,5 @@ class Ashby(JobSite):
         except Exception as e:
             logging.error(f"Error occurred while submitting app {app.id}: {e}")
             raise e
+
+        return True

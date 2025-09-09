@@ -35,6 +35,7 @@ class Job(BaseModel):
     reviewed: bool = False
     approved: bool = False
     discarded: bool = False
+    manual: bool = False
 
     def log(self):
         """Log job details."""
@@ -59,6 +60,7 @@ class Job(BaseModel):
             "reviewed": self.reviewed,
             "approved": self.approved,
             "discarded": self.discarded,
+            "manual": self.manual,
         }
 
     def to_prompt(self):
@@ -188,6 +190,8 @@ class App(BaseModel):
     discarded: bool = False
     submitted: bool = False
     acknowledged: bool = False
+    assessment: bool = False
+    interview: bool = False
     rejected: bool = False
 
     def find_answer(self, question: str):
@@ -225,6 +229,8 @@ class App(BaseModel):
             "discarded": self.discarded,
             "submitted": self.submitted,
             "acknowledged": self.acknowledged,
+            "assessment": self.assessment,
+            "interview": self.interview,
             "rejected": self.rejected,
         }
 

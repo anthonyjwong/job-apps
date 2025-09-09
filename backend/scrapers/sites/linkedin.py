@@ -320,8 +320,7 @@ class LinkedIn(JobSite):
         )  # don't actually scrape questions for now
 
     async def apply(self, app: App) -> bool:
-        app = await self.scrape(app, submit=True)
-        return app.submitted
+        return True
 
 
 if __name__ == "__main__":

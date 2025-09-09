@@ -6,13 +6,6 @@ from typing import List
 from uuid import UUID
 
 import uvicorn
-from fastapi import Body, Depends, FastAPI, Query, WebSocket, WebSocketDisconnect
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel
-from sqlalchemy import func, or_
-from sqlalchemy.orm import Session
-
 from db.database import SessionLocal, get_db
 from db.models import ApplicationORM, JobORM
 from db.utils import (
@@ -40,6 +33,12 @@ from db.utils import (
     update_application_state_by_id,
     update_job_by_id,
 )
+from fastapi import Body, Depends, FastAPI, Query, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, Response
+from pydantic import BaseModel
+from sqlalchemy import func, or_
+from sqlalchemy.orm import Session
 from src.apply import (
     DOMAIN_HANDLERS,
     evaluate_candidate_aptitude,
@@ -232,6 +231,18 @@ async def review_job(job_id: UUID):
                     content={
                         "status": "error",
                         "message": f"Job {job_id} not found",
+                    },
+                )
+
+            if job.manual:
+                logging.info(
+                    f"/job/{job_id}/review: Job is marked manual, skipping review"
+                )
+                return JSONResponse(
+                    status_code=200,
+                    content={
+                        "status": "success",
+                        "message": f"Job {job_id} is marked manual, skipping review",
                     },
                 )
 
@@ -740,6 +751,8 @@ def get_applied_apps(db: Session = Depends(get_db)):
                     "title": job.title,
                     "submitted": bool(app.submitted),
                     "acknowledged": bool(app.acknowledged),
+                    "assessment": bool(app.assessment),
+                    "interview": bool(app.interview),
                     "rejected": bool(app.rejected),
                 }
             )
@@ -1039,7 +1052,13 @@ async def update_application_state(
                 },
             )
 
-        if new_state not in ["submitted", "acknowledged", "rejected"]:
+        if new_state not in [
+            "submitted",
+            "acknowledged",
+            "assessment",
+            "interview",
+            "rejected",
+        ]:
             logging.error(
                 f"/app/{app_id}/state: Invalid state field provided for app state update",
             )
@@ -1084,7 +1103,11 @@ async def get_jobs_summary(db: Session = Depends(get_db)):
         base_url_counts = {}
 
         for job in jobs:
-            classification = job.review.classification if job.reviewed else "unreviewed"
+            classification = (
+                job.review.classification
+                if not job.manual and job.reviewed
+                else "unreviewed"
+            )
             if classification:
                 classification_counts[classification] += 1
 

@@ -1,8 +1,352 @@
 "use client";
-import { useEffect, useState } from "react";
+
+// ManualCreateModal moved outside Home for stable identity
+import React, { useEffect, useState } from "react";
 import PieChart from "./components/PieChart";
 import { UnimplementedContainer } from "./components/UnimplementedContainer";
 import { useTheme } from "./providers/ThemeProvider";
+type ManualCreateModalProps = {
+  show: boolean;
+  onClose: () => void;
+  manualUseDetails: boolean;
+  setManualUseDetails: (v: boolean) => void;
+  manualJobId: string;
+  setManualJobId: (v: string) => void;
+  manualUrl: string;
+  setManualUrl: (v: string) => void;
+  manualSubmitted: boolean;
+  setManualSubmitted: (v: boolean) => void;
+  manualJobTitle: string;
+  setManualJobTitle: (v: string) => void;
+  manualJobCompany: string;
+  setManualJobCompany: (v: string) => void;
+  manualJobLocation: string;
+  setManualJobLocation: (v: string) => void;
+  manualJobType: string;
+  setManualJobType: (v: string) => void;
+  manualLinkedinUrl: string;
+  setManualLinkedinUrl: (v: string) => void;
+  manualDirectUrl: string;
+  setManualDirectUrl: (v: string) => void;
+  manualMinSalary: string;
+  setManualMinSalary: (v: string) => void;
+  manualMaxSalary: string;
+  setManualMaxSalary: (v: string) => void;
+  manualDatePosted: string;
+  setManualDatePosted: (v: string) => void;
+  manualDescription: string;
+  setManualDescription: (v: string) => void;
+  creating: boolean;
+  onSubmit: () => void;
+  darkMode: boolean;
+  theme: Theme;
+  muted: string;
+};
+
+function ManualCreateModal({
+  show,
+  onClose,
+  manualUseDetails,
+  setManualUseDetails,
+  manualJobId,
+  setManualJobId,
+  manualUrl,
+  setManualUrl,
+  manualSubmitted,
+  setManualSubmitted,
+  manualJobTitle,
+  setManualJobTitle,
+  manualJobCompany,
+  setManualJobCompany,
+  manualJobLocation,
+  setManualJobLocation,
+  manualJobType,
+  setManualJobType,
+  manualLinkedinUrl,
+  setManualLinkedinUrl,
+  manualDirectUrl,
+  setManualDirectUrl,
+  manualMinSalary,
+  setManualMinSalary,
+  manualMaxSalary,
+  setManualMaxSalary,
+  manualDatePosted,
+  setManualDatePosted,
+  manualDescription,
+  setManualDescription,
+  creating,
+  onSubmit,
+  darkMode,
+  theme,
+  muted,
+}: ManualCreateModalProps) {
+  React.useEffect(() => {
+    if (!show) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [show, onClose]);
+  if (!show) return null;
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Create application manually"
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          border: `1px solid ${theme.border}`,
+          borderRadius: 12,
+          padding: 16,
+          background: theme.appBg,
+          minWidth: 520,
+          maxWidth: '90vw',
+          boxShadow: darkMode ? '0 10px 30px rgba(0,0,0,0.6)' : '0 10px 30px rgba(0,0,0,0.2)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <h3 style={{ margin: 0 }}>Add application</h3>
+          <button
+            onClick={onClose}
+            style={{ all: 'unset', cursor: 'pointer', color: muted }}
+            aria-label="Close"
+            title="Close"
+          >
+            ✕
+          </button>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <div style={{ fontSize: 13, color: muted }}>
+            {manualUseDetails ? 'Enter minimal job details' : 'Use an existing Job ID'}
+          </div>
+          <button
+            onClick={() => setManualUseDetails(!manualUseDetails)}
+            style={{ all: 'unset', color: theme.link, cursor: 'pointer' }}
+          >
+            {manualUseDetails ? 'Add by app' : 'Add by job'}
+          </button>
+        </div>
+        {!manualUseDetails ? (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8 }}>
+            <input
+              placeholder="Job ID (UUID)"
+              value={manualJobId}
+              onChange={(e) => setManualJobId(e.target.value)}
+              style={{
+                padding: '8px 10px',
+                borderRadius: 8,
+                border: `1px solid ${theme.border}`,
+                background: darkMode ? '#1d1d20' : '#fff',
+                color: theme.text,
+              }}
+            />
+            <input
+              placeholder="Application URL (optional)"
+              value={manualUrl}
+              onChange={(e) => setManualUrl(e.target.value)}
+              style={{
+                padding: '8px 10px',
+                borderRadius: 8,
+                border: `1px solid ${theme.border}`,
+                background: darkMode ? '#1d1d20' : '#fff',
+                color: theme.text,
+              }}
+            />
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, color: theme.text }} title="Mark as already submitted">
+              <input type="checkbox" checked={manualSubmitted} onChange={(e) => setManualSubmitted(e.target.checked)} />
+              Submitted
+            </label>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <input
+              placeholder="Job title"
+              value={manualJobTitle}
+              onChange={(e) => setManualJobTitle(e.target.value)}
+              style={{
+                padding: '8px 10px',
+                borderRadius: 8,
+                border: `1px solid ${theme.border}`,
+                background: darkMode ? '#1d1d20' : '#fff',
+                color: theme.text,
+              }}
+            />
+            <input
+              placeholder="Company"
+              value={manualJobCompany}
+              onChange={(e) => setManualJobCompany(e.target.value)}
+              style={{
+                padding: '8px 10px',
+                borderRadius: 8,
+                border: `1px solid ${theme.border}`,
+                background: darkMode ? '#1d1d20' : '#fff',
+                color: theme.text,
+              }}
+            />
+            <input
+              placeholder="Location (optional)"
+              value={manualJobLocation}
+              onChange={(e) => setManualJobLocation(e.target.value)}
+              style={{
+                padding: '8px 10px',
+                borderRadius: 8,
+                border: `1px solid ${theme.border}`,
+                background: darkMode ? '#1d1d20' : '#fff',
+                color: theme.text,
+              }}
+            />
+            <input
+              placeholder="Job type (e.g., fulltime)"
+              value={manualJobType}
+              onChange={(e) => setManualJobType(e.target.value)}
+              style={{
+                padding: '8px 10px',
+                borderRadius: 8,
+                border: `1px solid ${theme.border}`,
+                background: darkMode ? '#1d1d20' : '#fff',
+                color: theme.text,
+              }}
+            />
+            <input
+              placeholder="Min salary (optional)"
+              value={manualMinSalary}
+              onChange={(e) => setManualMinSalary(e.target.value)}
+              style={{
+                padding: '8px 10px',
+                borderRadius: 8,
+                border: `1px solid ${theme.border}`,
+                background: darkMode ? '#1d1d20' : '#fff',
+                color: theme.text,
+              }}
+            />
+            <input
+              placeholder="Max salary (optional)"
+              value={manualMaxSalary}
+              onChange={(e) => setManualMaxSalary(e.target.value)}
+              style={{
+                padding: '8px 10px',
+                borderRadius: 8,
+                border: `1px solid ${theme.border}`,
+                background: darkMode ? '#1d1d20' : '#fff',
+                color: theme.text,
+              }}
+            />
+            <input
+              type="date"
+              placeholder="Date posted (YYYY-MM-DD)"
+              value={manualDatePosted}
+              onChange={(e) => setManualDatePosted(e.target.value)}
+              style={{
+                padding: '8px 10px',
+                borderRadius: 8,
+                border: `1px solid ${theme.border}`,
+                background: darkMode ? '#1d1d20' : '#fff',
+                color: theme.text,
+              }}
+            />
+            <input
+              placeholder="LinkedIn job URL (optional)"
+              value={manualLinkedinUrl}
+              onChange={(e) => setManualLinkedinUrl(e.target.value)}
+              style={{
+                padding: '8px 10px',
+                borderRadius: 8,
+                border: `1px solid ${theme.border}`,
+                background: darkMode ? '#1d1d20' : '#fff',
+                color: theme.text,
+              }}
+            />
+            <input
+              placeholder="Direct job URL (optional)"
+              value={manualDirectUrl}
+              onChange={(e) => setManualDirectUrl(e.target.value)}
+              style={{
+                padding: '8px 10px',
+                borderRadius: 8,
+                border: `1px solid ${theme.border}`,
+                background: darkMode ? '#1d1d20' : '#fff',
+                color: theme.text,
+              }}
+            />
+            <input
+              placeholder="Application URL (optional)"
+              value={manualUrl}
+              onChange={(e) => setManualUrl(e.target.value)}
+              style={{
+                gridColumn: '1 / span 1',
+                padding: '8px 10px',
+                borderRadius: 8,
+                border: `1px solid ${theme.border}`,
+                background: darkMode ? '#1d1d20' : '#fff',
+                color: theme.text,
+              }}
+            />
+            <textarea
+              placeholder="Job description (optional)"
+              value={manualDescription}
+              onChange={(e) => setManualDescription(e.target.value)}
+              rows={3}
+              style={{
+                gridColumn: '1 / span 2',
+                padding: '8px 10px',
+                borderRadius: 8,
+                border: `1px solid ${theme.border}`,
+                background: darkMode ? '#1d1d20' : '#fff',
+                color: theme.text,
+              }}
+            />
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, color: theme.text }} title="Mark as already submitted">
+              <input type="checkbox" checked={manualSubmitted} onChange={(e) => setManualSubmitted(e.target.checked)} />
+              Submitted
+            </label>
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
+          <button
+            onClick={onClose}
+            disabled={creating}
+            style={{
+              all: 'unset',
+              padding: '8px 12px',
+              borderRadius: 8,
+              border: `1px solid ${theme.border}`,
+              color: muted,
+              cursor: 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onSubmit}
+            disabled={creating}
+            style={{
+              all: 'unset',
+              padding: '8px 12px',
+              borderRadius: 8,
+              border: `1px solid ${theme.border}`,
+              background: darkMode ? '#2563eb' : '#3b82f6',
+              color: '#fff',
+              cursor: 'pointer',
+            }}
+          >
+            {creating ? 'Creating…' : 'Create'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 type JobsSummary = {
   total_jobs: number;
@@ -30,10 +374,12 @@ type AppliedApp = {
   title: string;
   submitted: boolean;
   acknowledged: boolean;
+  assessment: boolean;
+  interview: boolean;
   rejected: boolean;
 };
 
-type AppStateName = "submitted" | "acknowledged" | "rejected";
+type AppStateName = "submitted" | "acknowledged" | "assessment" | "interview" | "rejected";
 
 export default function Home() {
   const { dark: darkMode } = useTheme();
@@ -109,6 +455,8 @@ export default function Home() {
             ...a,
             submitted: next === "submitted",
             acknowledged: next === "acknowledged",
+            assessment: next === "assessment",
+            interview: next === "interview",
             rejected: next === "rejected",
           };
         }
@@ -177,9 +525,6 @@ export default function Home() {
           {jobs ? (
             <div>
               <ul style={list(theme)}>
-                {typeof jobs.classifications.unreviewed === 'number' && (
-                  <li>Unclassified: {jobs.classifications.unreviewed}</li>
-                )}
                 {typeof unapprovedJobsCount === 'number' && (
                   <li>In discovery queue: {unapprovedJobsCount}</li>
                 )}
@@ -372,9 +717,43 @@ export default function Home() {
               +
             </button>
           </div>
-          {showManualCreate && (
-            <ManualCreateModal />
-          )}
+          <ManualCreateModal
+            show={showManualCreate}
+            onClose={() => setShowManualCreate(false)}
+            manualUseDetails={manualUseDetails}
+            setManualUseDetails={setManualUseDetails}
+            manualJobId={manualJobId}
+            setManualJobId={setManualJobId}
+            manualUrl={manualUrl}
+            setManualUrl={setManualUrl}
+            manualSubmitted={manualSubmitted}
+            setManualSubmitted={setManualSubmitted}
+            manualJobTitle={manualJobTitle}
+            setManualJobTitle={setManualJobTitle}
+            manualJobCompany={manualJobCompany}
+            setManualJobCompany={setManualJobCompany}
+            manualJobLocation={manualJobLocation}
+            setManualJobLocation={setManualJobLocation}
+            manualJobType={manualJobType}
+            setManualJobType={setManualJobType}
+            manualLinkedinUrl={manualLinkedinUrl}
+            setManualLinkedinUrl={setManualLinkedinUrl}
+            manualDirectUrl={manualDirectUrl}
+            setManualDirectUrl={setManualDirectUrl}
+            manualMinSalary={manualMinSalary}
+            setManualMinSalary={setManualMinSalary}
+            manualMaxSalary={manualMaxSalary}
+            setManualMaxSalary={setManualMaxSalary}
+            manualDatePosted={manualDatePosted}
+            setManualDatePosted={setManualDatePosted}
+            manualDescription={manualDescription}
+            setManualDescription={setManualDescription}
+            creating={creating}
+            onSubmit={submitManualCreate}
+            darkMode={darkMode}
+            theme={theme}
+            muted={muted}
+          />
           <div style={{
             border: `1px solid ${theme.border}`,
             borderRadius: 12,
@@ -382,7 +761,13 @@ export default function Home() {
             overflow: 'hidden',
           }}>
             {(() => {
-              const grouped: Record<string, AppliedApp[]> = appliedApps.reduce((acc, a) => {
+              // Sort appliedApps alphabetically by company before grouping
+              const sortedApps = [...appliedApps].sort((a, b) => {
+                const ca = (a.company || 'Unknown').toLowerCase();
+                const cb = (b.company || 'Unknown').toLowerCase();
+                return ca.localeCompare(cb);
+              });
+              const grouped: Record<string, AppliedApp[]> = sortedApps.reduce((acc, a) => {
                 const key = a.company || 'Unknown';
                 (acc[key] ||= []).push(a);
                 return acc;
@@ -467,24 +852,34 @@ export default function Home() {
   );
 
   function StatusPill({ app }: { app: AppliedApp }) {
-    const isRejected = app.rejected;
-    const isAck = app.acknowledged;
-    const status = isRejected ? "Rejected" : isAck ? "Acknowledged" : "Submitted";
-    const color = isRejected
-      ? (darkMode ? "#b91c1c" : "#ef4444")
-      : isAck
-      ? (darkMode ? "#2563eb" : "#3b82f6")
-      : (darkMode ? "#6b7280" : "#9ca3af");
-    const bg = isRejected
-      ? (darkMode ? "#3f1d1d" : "#fee2e2")
-      : isAck
-      ? (darkMode ? "#1e3a8a" : "#dbeafe")
-      : (darkMode ? "#1f2937" : "#f3f4f6");
-    const border = isRejected
-      ? (darkMode ? "#7f1d1d" : "#fecaca")
-      : isAck
-      ? (darkMode ? "#1d4ed8" : "#bfdbfe")
-      : (darkMode ? "#374151" : "#e5e7eb");
+    // Determine status
+    let status: string = "Submitted";
+    if (app.rejected) status = "Rejected";
+    else if (app.interview) status = "Interview";
+    else if (app.assessment) status = "Assessment";
+    else if (app.acknowledged) status = "Acknowledged";
+
+    // Color logic for each state
+    let color = darkMode ? "#6b7280" : "#9ca3af";
+    let bg = darkMode ? "#1f2937" : "#f3f4f6";
+    let border = darkMode ? "#374151" : "#e5e7eb";
+    if (status === "Rejected") {
+      color = darkMode ? "#b91c1c" : "#ef4444";
+      bg = darkMode ? "#3f1d1d" : "#fee2e2";
+      border = darkMode ? "#7f1d1d" : "#fecaca";
+    } else if (status === "Acknowledged") {
+      color = darkMode ? "#2563eb" : "#3b82f6";
+      bg = darkMode ? "#1e3a8a" : "#dbeafe";
+      border = darkMode ? "#1d4ed8" : "#bfdbfe";
+    } else if (status === "Assessment") {
+      color = darkMode ? "#f59e42" : "#b45309";
+      bg = darkMode ? "#78350f" : "#fef3c7";
+      border = darkMode ? "#b45309" : "#fde68a";
+    } else if (status === "Interview") {
+      color = darkMode ? "#10b981" : "#047857";
+      bg = darkMode ? "#064e3b" : "#d1fae5";
+      border = darkMode ? "#047857" : "#6ee7b7";
+    }
 
     const isEditing = editingStatusFor === app.app_id;
     const isSaving = savingAppId === app.app_id;
@@ -545,6 +940,26 @@ export default function Home() {
           }}
         >
           Acknowledged
+        </button>
+        <button
+          disabled={isSaving}
+          onClick={() => updateAppState(app.app_id, 'assessment')}
+          style={{
+            all: 'unset',
+            ...optionStyle(status === 'Assessment', (darkMode ? '#f59e42' : '#b45309'), (darkMode ? '#78350f' : '#fef3c7'), (darkMode ? '#b45309' : '#fde68a')),
+          }}
+        >
+          Assessment
+        </button>
+        <button
+          disabled={isSaving}
+          onClick={() => updateAppState(app.app_id, 'interview')}
+          style={{
+            all: 'unset',
+            ...optionStyle(status === 'Interview', (darkMode ? '#10b981' : '#047857'), (darkMode ? '#064e3b' : '#d1fae5'), (darkMode ? '#047857' : '#6ee7b7')),
+          }}
+        >
+          Interview
         </button>
         <button
           disabled={isSaving}
@@ -644,279 +1059,9 @@ export default function Home() {
     }
   }
 
-  function ManualCreateModal() {
-    // Close on Escape, mirror pattern used in approval page
-    useEffect(() => {
-      if (!showManualCreate) return;
-      const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowManualCreate(false); };
-      window.addEventListener('keydown', onKey);
-      return () => window.removeEventListener('keydown', onKey);
-    }, [showManualCreate]);
-
-    return (
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Create application manually"
-        onClick={() => setShowManualCreate(false)}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-        }}
-      >
-        <div
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            border: `1px solid ${theme.border}`,
-            borderRadius: 12,
-            padding: 16,
-            background: theme.appBg,
-            minWidth: 520,
-            maxWidth: '90vw',
-            boxShadow: darkMode ? '0 10px 30px rgba(0,0,0,0.6)' : '0 10px 30px rgba(0,0,0,0.2)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <h3 style={{ margin: 0 }}>Create application</h3>
-            <button
-              onClick={() => setShowManualCreate(false)}
-              style={{ all: 'unset', cursor: 'pointer', color: muted }}
-              aria-label="Close"
-              title="Close"
-            >
-              ✕
-            </button>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <div style={{ fontSize: 13, color: muted }}>
-              {manualUseDetails ? 'Enter minimal job details' : 'Use an existing Job ID'}
-            </div>
-            <button
-              onClick={() => setManualUseDetails((v) => !v)}
-              style={{ all: 'unset', color: theme.link, cursor: 'pointer' }}
-            >
-              {manualUseDetails ? 'Use Job ID instead' : 'Enter job details instead'}
-            </button>
-          </div>
-
-          {!manualUseDetails ? (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8 }}>
-              <input
-                placeholder="Job ID (UUID)"
-                value={manualJobId}
-                onChange={(e) => setManualJobId(e.target.value)}
-                style={{
-                  padding: '8px 10px',
-                  borderRadius: 8,
-                  border: `1px solid ${theme.border}`,
-                  background: darkMode ? '#1d1d20' : '#fff',
-                  color: theme.text,
-                }}
-              />
-              <input
-                placeholder="Application URL (optional)"
-                value={manualUrl}
-                onChange={(e) => setManualUrl(e.target.value)}
-                style={{
-                  padding: '8px 10px',
-                  borderRadius: 8,
-                  border: `1px solid ${theme.border}`,
-                  background: darkMode ? '#1d1d20' : '#fff',
-                  color: theme.text,
-                }}
-              />
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, color: theme.text }} title="Mark as already submitted">
-                <input type="checkbox" checked={manualSubmitted} onChange={(e) => setManualSubmitted(e.target.checked)} />
-                Submitted
-              </label>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <input
-                placeholder="Job title"
-                value={manualJobTitle}
-                onChange={(e) => setManualJobTitle(e.target.value)}
-                style={{
-                  padding: '8px 10px',
-                  borderRadius: 8,
-                  border: `1px solid ${theme.border}`,
-                  background: darkMode ? '#1d1d20' : '#fff',
-                  color: theme.text,
-                }}
-              />
-              <input
-                placeholder="Company"
-                value={manualJobCompany}
-                onChange={(e) => setManualJobCompany(e.target.value)}
-                style={{
-                  padding: '8px 10px',
-                  borderRadius: 8,
-                  border: `1px solid ${theme.border}`,
-                  background: darkMode ? '#1d1d20' : '#fff',
-                  color: theme.text,
-                }}
-              />
-              <input
-                placeholder="Location (optional)"
-                value={manualJobLocation}
-                onChange={(e) => setManualJobLocation(e.target.value)}
-                style={{
-                  padding: '8px 10px',
-                  borderRadius: 8,
-                  border: `1px solid ${theme.border}`,
-                  background: darkMode ? '#1d1d20' : '#fff',
-                  color: theme.text,
-                }}
-              />
-              <input
-                placeholder="Job type (e.g., fulltime)"
-                value={manualJobType}
-                onChange={(e) => setManualJobType(e.target.value)}
-                style={{
-                  padding: '8px 10px',
-                  borderRadius: 8,
-                  border: `1px solid ${theme.border}`,
-                  background: darkMode ? '#1d1d20' : '#fff',
-                  color: theme.text,
-                }}
-              />
-              <input
-                placeholder="Min salary (optional)"
-                value={manualMinSalary}
-                onChange={(e) => setManualMinSalary(e.target.value)}
-                style={{
-                  padding: '8px 10px',
-                  borderRadius: 8,
-                  border: `1px solid ${theme.border}`,
-                  background: darkMode ? '#1d1d20' : '#fff',
-                  color: theme.text,
-                }}
-              />
-              <input
-                placeholder="Max salary (optional)"
-                value={manualMaxSalary}
-                onChange={(e) => setManualMaxSalary(e.target.value)}
-                style={{
-                  padding: '8px 10px',
-                  borderRadius: 8,
-                  border: `1px solid ${theme.border}`,
-                  background: darkMode ? '#1d1d20' : '#fff',
-                  color: theme.text,
-                }}
-              />
-              <input
-                type="date"
-                placeholder="Date posted (YYYY-MM-DD)"
-                value={manualDatePosted}
-                onChange={(e) => setManualDatePosted(e.target.value)}
-                style={{
-                  padding: '8px 10px',
-                  borderRadius: 8,
-                  border: `1px solid ${theme.border}`,
-                  background: darkMode ? '#1d1d20' : '#fff',
-                  color: theme.text,
-                }}
-              />
-              <input
-                placeholder="LinkedIn job URL (optional)"
-                value={manualLinkedinUrl}
-                onChange={(e) => setManualLinkedinUrl(e.target.value)}
-                style={{
-                  padding: '8px 10px',
-                  borderRadius: 8,
-                  border: `1px solid ${theme.border}`,
-                  background: darkMode ? '#1d1d20' : '#fff',
-                  color: theme.text,
-                }}
-              />
-              <input
-                placeholder="Direct job URL (optional)"
-                value={manualDirectUrl}
-                onChange={(e) => setManualDirectUrl(e.target.value)}
-                style={{
-                  padding: '8px 10px',
-                  borderRadius: 8,
-                  border: `1px solid ${theme.border}`,
-                  background: darkMode ? '#1d1d20' : '#fff',
-                  color: theme.text,
-                }}
-              />
-              <input
-                placeholder="Application URL (optional)"
-                value={manualUrl}
-                onChange={(e) => setManualUrl(e.target.value)}
-                style={{
-                  gridColumn: '1 / span 1',
-                  padding: '8px 10px',
-                  borderRadius: 8,
-                  border: `1px solid ${theme.border}`,
-                  background: darkMode ? '#1d1d20' : '#fff',
-                  color: theme.text,
-                }}
-              />
-              <textarea
-                placeholder="Job description (optional)"
-                value={manualDescription}
-                onChange={(e) => setManualDescription(e.target.value)}
-                rows={3}
-                style={{
-                  gridColumn: '1 / span 2',
-                  padding: '8px 10px',
-                  borderRadius: 8,
-                  border: `1px solid ${theme.border}`,
-                  background: darkMode ? '#1d1d20' : '#fff',
-                  color: theme.text,
-                }}
-              />
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, color: theme.text }} title="Mark as already submitted">
-                <input type="checkbox" checked={manualSubmitted} onChange={(e) => setManualSubmitted(e.target.checked)} />
-                Submitted
-              </label>
-            </div>
-          )}
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
-            <button
-              onClick={() => setShowManualCreate(false)}
-              disabled={creating}
-              style={{
-                all: 'unset',
-                padding: '8px 12px',
-                borderRadius: 8,
-                border: `1px solid ${theme.border}`,
-                color: muted,
-                cursor: 'pointer',
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={submitManualCreate}
-              disabled={creating}
-              style={{
-                all: 'unset',
-                padding: '8px 12px',
-                borderRadius: 8,
-                border: `1px solid ${theme.border}`,
-                background: darkMode ? '#2563eb' : '#3b82f6',
-                color: '#fff',
-                cursor: 'pointer',
-              }}
-            >
-              {creating ? 'Creating…' : 'Create'}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 }
 
-type Theme = { border: string; text: string; appBg: string };
+type Theme = { border: string; text: string; appBg: string; link: string };
 
 const btn = (theme: Theme, darkMode: boolean): React.CSSProperties => ({
   display: "inline-block",

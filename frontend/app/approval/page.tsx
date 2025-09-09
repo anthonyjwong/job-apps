@@ -535,7 +535,7 @@ export default function UnapprovedApps(): ReactElement {
         {(() => {
           const j = jobById.get(app.job_id);
           if (!j) return null;
-          const bestLink = j.linkedin_job_url || j.direct_job_url || undefined;
+          const bestLink = app.url;
           return (
             <div style={{
               border: `1px solid ${theme.border}`,

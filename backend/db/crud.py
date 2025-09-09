@@ -30,6 +30,7 @@ def job_to_orm(job: Job) -> JobORM:
         reviewed=job.reviewed,
         approved=job.approved,
         discarded=job.discarded,
+        manual=job.manual,
     )
 
 
@@ -46,7 +47,7 @@ def orm_to_job(db_job: JobORM) -> Job:
             try:
                 review = Review(**dict(db_job.review))
             except Exception:
-                review = None
+                raise ValueError("Review missing while reviewed = true")
 
     return Job(
         id=db_job.id,
@@ -67,6 +68,7 @@ def orm_to_job(db_job: JobORM) -> Job:
         reviewed=db_job.reviewed,
         approved=db_job.approved,
         discarded=db_job.discarded,
+        manual=db_job.manual,
     )
 
 
@@ -83,6 +85,8 @@ def app_to_orm(app: App) -> ApplicationORM:
         discarded=app.discarded,
         submitted=app.submitted,
         acknowledged=app.acknowledged,
+        assessment=app.assessment,
+        interview=app.interview,
         rejected=app.rejected,
     )
 
@@ -105,5 +109,7 @@ def orm_to_app(db_app: ApplicationORM) -> App:
         discarded=db_app.discarded,
         submitted=db_app.submitted,
         acknowledged=db_app.acknowledged,
+        assessment=db_app.assessment,
+        interview=db_app.interview,
         rejected=db_app.rejected,
     )
