@@ -284,11 +284,6 @@ class Ashby(JobSite):
                                 await option.locator("input").first.click()
                                 await human_delay()
 
-                # get manual approval first
-                # user_approval = input("Do you approve this application? (y/n): ")
-                # app.approved = user_approval.lower() == "y"
-                app.approved = True  # auto-approve for now
-
                 if app.approved:
                     # submit
                     await human_delay(1, 2, override=True)
@@ -316,7 +311,7 @@ class Ashby(JobSite):
                     failure = (await page.locator(failure_selector).count()) > 0
                     if success:
                         logging.info(f"App {app.id} submitted successfully!")
-                        return
+                        return True
                     elif failure:
                         error_message = f"App {app.id} submission failed; Failure container detected."
                         logging.error(error_message)
@@ -335,5 +330,3 @@ class Ashby(JobSite):
         except Exception as e:
             logging.error(f"Error occurred while submitting app {app.id}: {e}")
             raise e
-
-        return True
