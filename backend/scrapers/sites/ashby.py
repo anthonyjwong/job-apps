@@ -213,7 +213,7 @@ class Ashby(JobSite):
         return app
 
     async def apply(self, app: App) -> bool:
-        url = self.job.direct_job_url
+        url = app.url
         if not url.endswith("/application"):
             url += "/application"
 

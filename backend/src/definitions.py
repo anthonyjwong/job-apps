@@ -5,6 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 from pydantic import Field as PydanticField
+from src.errors import QuestionNotFoundError
 
 
 class Review(BaseModel):
@@ -199,7 +200,7 @@ class App(BaseModel):
             if field.question == question:
                 return field.answer
 
-        raise ValueError(f"Question not found: {question}")
+        raise QuestionNotFoundError(f"Question not found: {question}")
 
     def get_questions(self):
         """Returns the current list of questions."""

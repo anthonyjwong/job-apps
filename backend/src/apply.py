@@ -9,6 +9,7 @@ from openai.types.responses import Response
 from scrapers.scraper import JobSite
 from scrapers.sites import Ashby, LinkedIn
 from src.definitions import App, AppField, Job, Review, User
+from src.errors import MissingAppUrlError
 from src.utils import get_base_url
 
 client = OpenAI(timeout=60)
@@ -229,7 +230,7 @@ def prepare_job_app(job: Job, app: App, user: User) -> App:
 async def submit_app(app: App, job: Job) -> App:
     """Submit an application."""
     if not app.url:
-        raise ValueError("App must have a URL.")
+        raise MissingAppUrlError("App must have a URL.")
 
     base_url = get_base_url(app.url)
     if base_url in DOMAIN_HANDLERS:

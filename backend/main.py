@@ -47,6 +47,7 @@ from src.apply import (
     submit_app,
 )
 from src.definitions import App, AppFragment, Job, User
+from src.errors import MissingAppUrlError, QuestionNotFoundError
 from src.jobs import save_jobs
 from src.utils import get_base_url
 
@@ -63,6 +64,20 @@ _datefmt = "%Y-%m-%d %H:%M:%S"
 _formatter = logging.Formatter(fmt=_fmt, datefmt=_datefmt)
 for _h in logging.getLogger().handlers:
     _h.setFormatter(_formatter)
+
+# Enable in-process debugpy when requested (works with Uvicorn --reload)
+if os.environ.get("DEBUGPY", "0") == "1":
+    try:
+        import debugpy  # type: ignore
+
+        _port = int(os.environ.get("DEBUGPY_PORT", "5678"))
+        debugpy.listen(("0.0.0.0", _port))
+        logging.info(f"debugpy listening on 0.0.0.0:{_port}")
+        if os.environ.get("DEBUGPY_WAIT_FOR_CLIENT", "0") == "1":
+            logging.info("Waiting for debugger to attach...")
+            debugpy.wait_for_client()
+    except Exception:
+        logging.error("Failed to initialize debugpy", exc_info=True)
 
 app = FastAPI(title="Job Application API")
 
@@ -103,7 +118,7 @@ class ConnectionManager:
                     f"WebSocket disconnected during broadcast: {connection.client}"
                 )
                 self.disconnect(connection)
-            except:
+            except Exception:
                 logging.error(
                     f"Error broadcasting to {connection.client}",
                     exc_info=True,
@@ -235,9 +250,6 @@ async def review_job(job_id: UUID):
                 )
 
             if job.manual:
-                logging.info(
-                    f"/job/{job_id}/review: Job is marked manual, skipping review"
-                )
                 return JSONResponse(
                     status_code=200,
                     content={
@@ -261,7 +273,7 @@ async def review_job(job_id: UUID):
                     status_code=500,
                     content={"status": "error", "message": "Failed to review job"},
                 )
-            except:
+            except Exception:
                 logging.error(
                     f"/job/{job_id}/review: Error reviewing job", exc_info=True
                 )
@@ -273,7 +285,7 @@ async def review_job(job_id: UUID):
             # database operation
             try:
                 update_job_by_id(db, job_id, reviewed_job)
-            except:
+            except Exception:
                 logging.error(
                     f"/job/{job_id}/review: Error updating job in database",
                     exc_info=True,
@@ -363,7 +375,7 @@ async def create_job_application(job_id: UUID):
                     "message": f"{get_base_url(job.direct_job_url)} app prep is not supported at this time",
                 },
             )
-        except:
+        except Exception:
             logging.error(
                 f"/job/{job_id}/create_app: Error scraping job", exc_info=True
             )
@@ -382,7 +394,7 @@ async def create_job_application(job_id: UUID):
             else:
                 app.id = existing_app.id  # must be first for correct error messaging
                 update_application_by_id(db, existing_app.id, app)
-        except:
+        except Exception:
             logging.error(
                 f"/job/{job_id}/create_app: Error updating app {app.id} in database",
                 exc_info=True,
@@ -470,7 +482,7 @@ async def prepare_application(app_id: UUID):
             logging.info(f"Preparing app {app.id}...")
             # This performs OpenAI calls and processing; run in a thread
             prepared_app = await asyncio.to_thread(prepare_job_app, job, app, user)
-        except:
+        except Exception:
             logging.error(
                 f"/app/{app_id}/prepare: Failed to prepare app", exc_info=True
             )
@@ -485,7 +497,7 @@ async def prepare_application(app_id: UUID):
         # database operation
         try:
             update_application_by_id(db, app_id, prepared_app)
-        except:
+        except Exception:
             logging.error(
                 f"/app/{app_id}/prepare: Failed to update app in database",
                 exc_info=True,
@@ -567,13 +579,24 @@ async def submit_application(app_id: UUID):
         try:
             logging.info(f"Submitting app {app.id}...")
             applied_app = await submit_app(app, job)
-        except ValueError:
+        except MissingAppUrlError:
             logging.error(f"/app/{app_id}/submit: Job {job.id} is missing URLs")
             return JSONResponse(
                 status_code=500,
                 content={
                     "status": "error",
                     "message": f"Job {job.id} is missing URLs",
+                },
+            )
+        except QuestionNotFoundError:
+            logging.error(
+                f"/app/{app_id}/submit: Required question not found for app {app.id}"
+            )
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "status": "error",
+                    "message": f"Required question not found for app {app.id}",
                 },
             )
         except NotImplementedError:
@@ -587,7 +610,7 @@ async def submit_application(app_id: UUID):
                     "message": f"{get_base_url(app.url)} app prep is not supported at this time",
                 },
             )
-        except:
+        except Exception:
             logging.error(
                 f"/app/{app_id}/submit: Error submitting application", exc_info=True
             )
@@ -602,7 +625,7 @@ async def submit_application(app_id: UUID):
         # database operation
         try:
             update_application_by_id(db, app.id, applied_app)
-        except:
+        except Exception:
             logging.error(
                 f"/app/{app_id}/submit: Error updating app in database",
                 exc_info=True,
