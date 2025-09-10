@@ -38,8 +38,11 @@ from db.utils import (
     update_job_by_id,
 )
 from fastapi import Body, Depends, FastAPI, Query, WebSocket, WebSocketDisconnect
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse as FastAPIJSONResponse
+from fastapi.responses import Response
 from pydantic import BaseModel, HttpUrl, model_validator
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
@@ -84,6 +87,19 @@ if os.environ.get("DEBUGPY", "0") == "1":
         logging.error("Failed to initialize debugpy", exc_info=True)
 
 app = FastAPI(title="Job Application API")
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc: RequestValidationError):
+    return FastAPIJSONResponse(
+        status_code=422,
+        content={
+            "status": "error",
+            "detail": exc.errors(),
+            "body": exc.body,
+        },
+    )
+
 
 # Allow requests from your frontend (e.g., http://localhost:3000)
 origins = [
@@ -828,7 +844,6 @@ class ManualJobPayload(BaseModel):
     title: str
     company: str
     location: str
-    description: str
     job_url: HttpUrl
     min_salary: float | None = None
     max_salary: float | None = None
@@ -840,7 +855,7 @@ class ManualJobPayload(BaseModel):
 class ManualAppCreate(BaseModel):
     job_id: UUID | None = None
     job: ManualJobPayload | None = None  # minimal job payload if creating new
-    url: HttpUrl  # required application URL
+    url: HttpUrl | None = None  # application URL; required when using job_id
     submitted: bool | None = False
 
     @model_validator(mode="after")
@@ -860,7 +875,7 @@ async def create_manual_application(
     - { job_id: UUID, url: string, submitted?: boolean }
     - { job: { title: string, company: string, location: string, description: string,
                job_url: string, min_salary?: number, max_salary?: number,
-               date_posted?: YYYY-MM-DD, job_type?: string }, url: string, submitted?: boolean }
+               date_posted?: YYYY-MM-DD, job_type?: string }, submitted?: boolean }
     """
     job_id = req.job_id
     if not job_id and not req.job:
@@ -872,7 +887,7 @@ async def create_manual_application(
             },
         )
 
-    if job_id is not None:
+    if job_id:
         job = get_job_by_id(db, job_id)
         if not job:
             return JSONResponse(
@@ -909,7 +924,6 @@ async def create_manual_application(
             linkedin_job_url = job_url
         else:
             direct_job_url = job_url
-
         new_job = Job(
             jobspy_id=f"manual-{random.randint(1000000000, 9999999999)}",  # pseudo-random unique ID
             title=req.job.title.strip(),
@@ -923,7 +937,7 @@ async def create_manual_application(
             job_type=(req.job.job_type.strip() if req.job.job_type else None),
             linkedin_job_url=linkedin_job_url,
             direct_job_url=direct_job_url,
-            description=req.job.description.strip(),
+            description=None,
             review=None,
             reviewed=False,
             approved=True,
@@ -950,7 +964,7 @@ async def create_manual_application(
     submitted = bool(req.submitted)
     new_app = App(
         job_id=job_id,
-        url=job_url,
+        url=clean_url(str(req.url)) if req.url else job_url,
         scraped=False,
         prepared=False,
         approved=True if submitted else False,
@@ -1261,4 +1275,5 @@ async def get_applications_summary(db: Session = Depends(get_db)):
 
 
 if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

@@ -16,14 +16,13 @@ export interface ManualCreateState {
   manualMinSalary: string; setManualMinSalary: (v: string) => void;
   manualMaxSalary: string; setManualMaxSalary: (v: string) => void;
   manualDatePosted: string; setManualDatePosted: (v: string) => void;
-  manualDescription: string; setManualDescription: (v: string) => void;
   creating: boolean; setCreating: (v: boolean) => void;
   reset: () => void;
 }
 
 export function useManualCreateForm(): ManualCreateState {
   const [showManualCreate, setShowManualCreate] = useState(false);
-  const [manualUseDetails, setManualUseDetails] = useState(false);
+  const [manualUseDetails, setManualUseDetails] = useState(true);
   const [manualJobId, setManualJobId] = useState("");
   const [manualUrl, setManualUrl] = useState("");
   const [manualSubmitted, setManualSubmitted] = useState(false);
@@ -35,11 +34,10 @@ export function useManualCreateForm(): ManualCreateState {
   const [manualMinSalary, setManualMinSalary] = useState("");
   const [manualMaxSalary, setManualMaxSalary] = useState("");
   const [manualDatePosted, setManualDatePosted] = useState("");
-  const [manualDescription, setManualDescription] = useState("");
   const [creating, setCreating] = useState(false);
 
   function reset() {
-    setManualUseDetails(false);
+    setManualUseDetails(true);
     setManualJobId("");
     setManualUrl("");
     setManualSubmitted(false);
@@ -47,11 +45,10 @@ export function useManualCreateForm(): ManualCreateState {
     setManualJobCompany("");
     setManualJobLocation("");
     setManualJobType("");
-  setManualJobUrl("");
+    setManualJobUrl("");
     setManualMinSalary("");
     setManualMaxSalary("");
     setManualDatePosted("");
-    setManualDescription("");
   }
 
   return {
@@ -68,7 +65,6 @@ export function useManualCreateForm(): ManualCreateState {
     manualMinSalary, setManualMinSalary,
     manualMaxSalary, setManualMaxSalary,
     manualDatePosted, setManualDatePosted,
-    manualDescription, setManualDescription,
     creating, setCreating,
     reset,
   };

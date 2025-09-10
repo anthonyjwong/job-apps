@@ -32,16 +32,14 @@ export function ManualCreateModal(props: ManualCreateModalProps) {
     setManualJobLocation,
     manualJobType,
     setManualJobType,
-  manualJobUrl,
-  setManualJobUrl,
+    manualJobUrl,
+    setManualJobUrl,
     manualMinSalary,
     setManualMinSalary,
     manualMaxSalary,
     setManualMaxSalary,
     manualDatePosted,
     setManualDatePosted,
-    manualDescription,
-    setManualDescription,
     creating,
   } = form;
 
@@ -99,10 +97,10 @@ export function ManualCreateModal(props: ManualCreateModalProps) {
             onClick={() => setManualUseDetails(!manualUseDetails)}
             style={{ all: 'unset', color: theme.link, cursor: 'pointer' }}
           >
-            {manualUseDetails ? 'Add by app' : 'Add by job'}
+            {manualUseDetails ? 'Add from existing job ID' : 'Add from new job'}
           </button>
         </div>
-  {!manualUseDetails ? (
+        {!manualUseDetails ? (
           <div style={{ display: 'grid', gap: 8 }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: muted }}>Required</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -182,32 +180,6 @@ export function ManualCreateModal(props: ManualCreateModalProps) {
                 value={manualJobUrl}
                 onChange={(e) => setManualJobUrl(e.target.value)}
                 style={{
-                  padding: '8px 10px',
-                  borderRadius: 8,
-                  border: `1px solid ${theme.border}`,
-                  background: darkMode ? '#1d1d20' : '#fff',
-                  color: theme.text,
-                }}
-              />
-              <input
-                placeholder="Application URL (required)"
-                value={manualUrl}
-                onChange={(e) => setManualUrl(e.target.value)}
-                style={{
-                  padding: '8px 10px',
-                  borderRadius: 8,
-                  border: `1px solid ${theme.border}`,
-                  background: darkMode ? '#1d1d20' : '#fff',
-                  color: theme.text,
-                }}
-              />
-              <textarea
-                placeholder="Job description (required)"
-                value={manualDescription}
-                onChange={(e) => setManualDescription(e.target.value)}
-                rows={3}
-                style={{
-                  gridColumn: '1 / span 2',
                   padding: '8px 10px',
                   borderRadius: 8,
                   border: `1px solid ${theme.border}`,

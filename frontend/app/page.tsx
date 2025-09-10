@@ -147,7 +147,7 @@ export default function Home() {
           apps={apps}
           unapprovedAppsCount={unapprovedAppsCount}
           approvedNoAppCount={approvedNoAppCount}
-            approvedNoAppSources={approvedNoAppSources}
+          approvedNoAppSources={approvedNoAppSources}
           darkMode={darkMode}
           theme={theme}
           muted={muted}
@@ -213,8 +213,6 @@ export default function Home() {
     </main>
   );
 
-  // StatusPill moved to components/StatusPill.tsx
-
   async function submitManualCreate() {
     const isValidHttpUrl = (v: string) => {
       try {
@@ -224,9 +222,24 @@ export default function Home() {
         return false;
       }
     };
+    const isUuid = (v: string) => {
+      const s = v.trim();
+      return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(s);
+    };
+    const toNumberOrUndefined = (v: string) => {
+      const s = v?.trim();
+      if (!s) return undefined;
+      const n = Number(s);
+      return Number.isNaN(n) ? undefined : n;
+    };
+    const isIsoDate = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v.trim());
     if (!manual.manualUseDetails) {
       if (!manual.manualJobId) {
         setError("Job ID is required");
+        return;
+      }
+      if (!isUuid(manual.manualJobId)) {
+        setError("Job ID must be a valid UUID");
         return;
       }
       if (!manual.manualUrl) {
@@ -238,8 +251,8 @@ export default function Home() {
         return;
       }
     } else {
-      if (!manual.manualJobTitle || !manual.manualJobCompany || !manual.manualJobLocation || !manual.manualDescription) {
-        setError("Title, company, location, and description are required");
+      if (!manual.manualJobTitle || !manual.manualJobCompany || !manual.manualJobLocation) {
+        setError("Title, company, and location are required");
         return;
       }
       if (!manual.manualJobUrl) {
@@ -250,12 +263,16 @@ export default function Home() {
         setError("Job URL must be a valid http(s) URL");
         return;
       }
-      if (!manual.manualUrl) {
-        setError("Application URL is required");
+      if (manual.manualMinSalary && toNumberOrUndefined(manual.manualMinSalary) === undefined) {
+        setError("Min salary must be a number");
         return;
       }
-      if (!isValidHttpUrl(manual.manualUrl)) {
-        setError("Application URL must be a valid http(s) URL");
+      if (manual.manualMaxSalary && toNumberOrUndefined(manual.manualMaxSalary) === undefined) {
+        setError("Max salary must be a number");
+        return;
+      }
+      if (manual.manualDatePosted && !isIsoDate(manual.manualDatePosted)) {
+        setError("Date posted must be in YYYY-MM-DD format");
         return;
       }
     }
@@ -264,27 +281,29 @@ export default function Home() {
       const payload = !manual.manualUseDetails
         ? { job_id: manual.manualJobId.trim(), url: manual.manualUrl.trim(), submitted: manual.manualSubmitted }
         : {
-            job: {
-              title: manual.manualJobTitle.trim(),
-              company: manual.manualJobCompany.trim(),
-              location: manual.manualJobLocation.trim(),
-              min_salary: manual.manualMinSalary ? manual.manualMinSalary.trim() : undefined,
-              max_salary: manual.manualMaxSalary ? manual.manualMaxSalary.trim() : undefined,
-              date_posted: manual.manualDatePosted ? manual.manualDatePosted.trim() : undefined,
-              job_type: manual.manualJobType ? manual.manualJobType.trim() : undefined,
-              job_url: manual.manualJobUrl.trim(),
-              description: manual.manualDescription.trim(),
-            },
-            url: manual.manualUrl.trim(),
-            submitted: manual.manualSubmitted,
-          };
+          job: {
+            title: manual.manualJobTitle.trim(),
+            company: manual.manualJobCompany.trim(),
+            location: manual.manualJobLocation.trim(),
+            min_salary: toNumberOrUndefined(manual.manualMinSalary),
+            max_salary: toNumberOrUndefined(manual.manualMaxSalary),
+            date_posted: manual.manualDatePosted ? manual.manualDatePosted.trim() : undefined,
+            job_type: manual.manualJobType ? manual.manualJobType.trim() : undefined,
+            job_url: manual.manualJobUrl.trim(),
+          },
+          submitted: manual.manualSubmitted,
+        };
 
       const res = await fetch(`${API_BASE}/apps/manual`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error(`Failed to create app: ${res.status}`);
+      if (!res.ok) {
+        let body = '';
+        try { body = await res.text(); } catch { }
+        throw new Error(`Failed to create app: [${res.status}] ${body}`);
+      }
       // Refresh applied list and summaries
       const [applied_apps, apps_summary, unapproved_apps] = await Promise.all([
         fetch(`${API_BASE}/apps/applied`).then((r) => r.json()),
@@ -295,12 +314,12 @@ export default function Home() {
       if (apps_summary?.data) setApps(apps_summary.data as AppsSummary);
       setUnapprovedAppsCount(Array.isArray(unapproved_apps?.apps) ? unapproved_apps.apps.length : 0);
       // reset form
-  manual.reset();
-  manual.setShowManualCreate(false);
+      manual.reset();
+      manual.setShowManualCreate(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create app');
     } finally {
-  manual.setCreating(false);
+      manual.setCreating(false);
     }
   }
 
