@@ -14,9 +14,9 @@ export default function AllJobsPage() {
 
   const fetchJobs = useCallback(async () => {
     try {
-      const res = await fetch("http://localhost:8000/jobs/unapproved", {
-        headers: { Accept: "application/json" },
-      });
+      const res = await fetch(`http://localhost:8000/jobs/unapproved?t=${Date.now()}`,
+        { headers: { Accept: "application/json" }, cache: 'no-store' as RequestCache }
+      );
       const json = await res.json();
       setJobs(json.jobs || []);
     } catch (e: unknown) {
@@ -82,6 +82,23 @@ export default function AllJobsPage() {
     }
   };
 
+  const onClassificationChange = async (
+    jobId: string,
+    newClassification: 'safety' | 'target' | 'reach' | 'dream'
+  ) => {
+    // Optimistic update
+    setJobs(prev => prev.map(j => (
+      j.id === jobId
+        ? {
+            ...j,
+            review: { ...(j.review || {}), classification: newClassification as any },
+          }
+        : j
+    )));
+    // Then refresh from server to keep in sync
+    await fetchJobs();
+  };
+
   return (
     <main style={{ padding: 16, maxWidth: 900, margin: "0 auto", background: theme.background, color: theme.text, minHeight: '100vh' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
@@ -119,6 +136,7 @@ export default function AllJobsPage() {
               previewLength={280}
               onApprove={approveJob}
               onDiscard={discardJob}
+              onClassificationChange={(id, cls) => onClassificationChange(id, cls)}
             />
           ))}
         </section>

@@ -130,7 +130,10 @@ def update_job_by_id(db_session, job_id, updated_job: Job):
                 continue
             elif key == "review" and value is not None:
                 # Convert Review object to dict for JSON storage
-                value = value.__dict__
+                try:
+                    value = value.to_json()  # type: ignore[attr-defined]
+                except Exception:
+                    value = getattr(value, "__dict__", value)
             setattr(job_orm, key, value)
         db_session.commit()
 

@@ -53,7 +53,7 @@ from src.apply import (
     scrape_job_app,
     submit_app,
 )
-from src.definitions import App, AppFragment, Job, User
+from src.definitions import App, AppFragment, Job, Review, User
 from src.errors import MissingAppUrlError, QuestionNotFoundError
 from src.jobs import save_jobs
 from src.utils import clean_url, get_base_url
@@ -809,6 +809,60 @@ def get_applied_apps(db: Session = Depends(get_db)):
         )
 
 
+class JobClassificationUpdate(BaseModel):
+    classification: str
+
+
+@app.put("/job/{job_id}/classification")
+async def update_job_classification(
+    job_id: UUID, payload: JobClassificationUpdate, db: Session = Depends(get_db)
+):
+    """Update the classification for a job's review (safety|target|reach|dream)."""
+    try:
+        job = get_job_by_id(db, job_id)
+        if not job:
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "status": "error",
+                    "message": f"Job with ID {job_id} not found",
+                },
+            )
+
+        classes = {"safety", "target", "reach", "dream"}
+        cls = payload.classification.strip().lower()
+        if cls not in classes:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "status": "error",
+                    "message": "Invalid classification. Must be one of safety|target|reach|dream",
+                },
+            )
+
+        # Ensure review exists, then set classification and reviewed flag
+        if job.review is None:
+            job.review = Review(action="", classification=cls)
+        else:
+            job.review.classification = cls
+        job.reviewed = True
+
+        update_job_by_id(db, job_id, job)
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "success",
+                "message": f"Job {job_id} classification updated to {cls}",
+                "data": job.to_json(),
+            },
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500, content={"status": "error", "message": str(e)}
+        )
+
+
 @app.put("/app/{app_id}/update")
 async def update_application_from_fragment(
     app_id: UUID, app_data: AppFragment = Body(...), db: Session = Depends(get_db)
@@ -1188,11 +1242,7 @@ async def get_jobs_summary(db: Session = Depends(get_db)):
         base_url_counts = {}
 
         for job in jobs:
-            classification = (
-                job.review.classification
-                if not job.manual and job.reviewed
-                else "unreviewed"
-            )
+            classification = job.review.classification if job.reviewed else "unreviewed"
             if classification:
                 classification_counts[classification] += 1
 

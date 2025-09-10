@@ -1,5 +1,6 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { Components } from 'react-markdown';
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize from 'rehype-sanitize';
@@ -50,6 +51,7 @@ type JobModeProps = BaseShared & {
   job: JobRecord;
   onApprove?: (job: JobRecord) => void | Promise<void>;
   onDiscard?: (job: JobRecord) => void | Promise<void>;
+  onClassificationChange?: (jobId: string, newClassification: 'safety' | 'target' | 'reach' | 'dream') => void | Promise<void>;
   // previewLength governs description snippet; full markdown shown in internal modal on expand
   previewLength?: number;
   expandLabel?: string;
@@ -92,9 +94,42 @@ export default function JobPreviewCard(props: JobPreviewCardProps) {
   const snippet = truncated ? plain.slice(0, previewLength) + '…' : plain;
 
   // Classification badge (job mode only)
+  const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const [anchor, setAnchor] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [localCls, setLocalCls] = useState<('safety' | 'target' | 'reach' | 'dream' | null)>(
+    isJobMode ? (props.job.review?.classification ?? null) : null
+  );
+  useEffect(() => {
+    if (isJobMode) {
+      setLocalCls(props.job.review?.classification ?? null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isJobMode ? props.job.id : undefined, isJobMode ? props.job.review?.classification : undefined]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDocClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && !target.closest('[data-classification-menu]')) {
+        setMenuOpen(null);
+      }
+    };
+    const onWin = () => {
+      if (triggerRef.current) {
+        const r = triggerRef.current.getBoundingClientRect();
+        setAnchor({ top: r.bottom + 6, left: r.left, width: r.width });
+      }
+    };
+    document.addEventListener('click', onDocClick);
+    window.addEventListener('resize', onWin);
+    window.addEventListener('scroll', onWin, true);
+    onWin();
+    return () => document.removeEventListener('click', onDocClick);
+  }, [menuOpen]);
+
   const classificationBadge = () => {
     if (!isJobMode) return null;
-    const c = props.job.review?.classification;
+  const c = localCls;
     if (!c) return null;
     const palette: Record<string, { bg: string; text: string; border: string }> = {
       safety: { bg: darkMode ? '#134e4a' : '#dcfce7', text: darkMode ? '#a7f3d0' : '#065f46', border: darkMode ? '#115e59' : '#86efac' },
@@ -105,16 +140,95 @@ export default function JobPreviewCard(props: JobPreviewCardProps) {
     const colors = palette[c];
     if (!colors) return null;
     const label = c.charAt(0).toUpperCase() + c.slice(1);
+    const changeClassification = async (newCls: 'safety' | 'target' | 'reach' | 'dream') => {
+      const prev = localCls;
+      setLocalCls(newCls); // optimistic update
+      try {
+        const res = await fetch(`http://localhost:8000/job/${props.job.id}/classification`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ classification: newCls })
+        });
+        if (!res.ok) {
+          const t = await res.text();
+          alert(`Failed to update classification: ${t}`);
+          setLocalCls(prev); // revert
+          return;
+        }
+        setMenuOpen(null);
+        await (props as JobModeProps).onClassificationChange?.(props.job.id, newCls);
+      } catch (e) {
+        alert(`Network error updating classification: ${e instanceof Error ? e.message : 'unknown'}`);
+        setLocalCls(prev); // revert
+      }
+    };
+
     return (
-      <span
-        aria-label={`Classification ${label}`}
-        title={`Classification: ${label}`}
-        style={{
-          display: 'inline-block', fontSize: 12, padding: '2px 8px', borderRadius: 999,
-          background: colors.bg, color: colors.text, border: `1px solid ${colors.border}`,
-          lineHeight: 1.6, whiteSpace: 'nowrap'
-        }}
-      >{label}</span>
+      <span style={{ position: 'relative', display: 'inline-block' }}>
+        <button
+          type="button"
+          aria-label={`Classification ${label} (click to change)`}
+          title={`Classification: ${label} (click to change)`}
+          ref={triggerRef}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (menuOpen === props.job.id) {
+              setMenuOpen(null);
+            } else {
+              if (triggerRef.current) {
+                const r = triggerRef.current.getBoundingClientRect();
+                setAnchor({ top: r.bottom + 6, left: r.left, width: r.width });
+              }
+              setMenuOpen(props.job.id);
+            }
+          }}
+          style={{
+            display: 'inline-block', fontSize: 12, padding: '2px 8px', borderRadius: 999,
+            background: colors.bg, color: colors.text, border: `1px solid ${colors.border}`,
+            lineHeight: 1.6, whiteSpace: 'nowrap', cursor: 'pointer'
+          }}
+        >{label} ▾</button>
+        {menuOpen === props.job.id && anchor && createPortal(
+          (
+            <div
+              data-classification-menu
+              role="menu"
+              style={{
+                position: 'fixed',
+                top: Math.min(anchor.top, window.innerHeight - 180),
+                left: Math.min(anchor.left, window.innerWidth - 220),
+                zIndex: 9999,
+                background: theme.appBg,
+                border: `1px solid ${theme.border}`,
+                borderRadius: 10,
+                boxShadow: '0 10px 30px rgba(0,0,0,0.25)',
+                minWidth: 180,
+                overflow: 'hidden'
+              }}
+            >
+              {(['safety','target','reach','dream'] as const).map((opt, idx, arr) => (
+                <button
+                  key={opt}
+                  role="menuitemradio"
+                  aria-checked={c === opt}
+                  onClick={(e) => { e.stopPropagation(); void changeClassification(opt); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    width: '100%', textAlign: 'left', padding: '10px 12px',
+                    background: c === opt ? (darkMode ? '#0b1220' : '#eef2ff') : theme.appBg,
+                    color: theme.text, border: 'none', cursor: 'pointer',
+                    borderBottom: idx < arr.length - 1 ? `1px solid ${theme.border}` : 'none'
+                  }}
+                >
+                  <span style={{ width: 8, height: 8, borderRadius: 999, background: c === opt ? (darkMode ? '#93c5fd' : '#1e40af') : 'transparent', display: 'inline-block' }} />
+                  {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                </button>
+              ))}
+            </div>
+          ),
+          document.body
+        )}
+      </span>
     );
   };
 
