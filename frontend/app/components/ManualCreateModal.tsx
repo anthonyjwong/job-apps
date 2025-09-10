@@ -32,10 +32,8 @@ export function ManualCreateModal(props: ManualCreateModalProps) {
     setManualJobLocation,
     manualJobType,
     setManualJobType,
-    manualLinkedinUrl,
-    setManualLinkedinUrl,
-    manualDirectUrl,
-    setManualDirectUrl,
+  manualJobUrl,
+  setManualJobUrl,
     manualMinSalary,
     setManualMinSalary,
     manualMaxSalary,
@@ -104,175 +102,172 @@ export function ManualCreateModal(props: ManualCreateModalProps) {
             {manualUseDetails ? 'Add by app' : 'Add by job'}
           </button>
         </div>
-        {!manualUseDetails ? (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8 }}>
-            <input
-              placeholder="Job ID (UUID)"
-              value={manualJobId}
-              onChange={(e) => setManualJobId(e.target.value)}
-              style={{
-                padding: '8px 10px',
-                borderRadius: 8,
-                border: `1px solid ${theme.border}`,
-                background: darkMode ? '#1d1d20' : '#fff',
-                color: theme.text,
-              }}
-            />
-            <input
-              placeholder="Application URL (optional)"
-              value={manualUrl}
-              onChange={(e) => setManualUrl(e.target.value)}
-              style={{
-                padding: '8px 10px',
-                borderRadius: 8,
-                border: `1px solid ${theme.border}`,
-                background: darkMode ? '#1d1d20' : '#fff',
-                color: theme.text,
-              }}
-            />
+  {!manualUseDetails ? (
+          <div style={{ display: 'grid', gap: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: muted }}>Required</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <input
+                placeholder="Job ID (UUID)"
+                value={manualJobId}
+                onChange={(e) => setManualJobId(e.target.value)}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  border: `1px solid ${theme.border}`,
+                  background: darkMode ? '#1d1d20' : '#fff',
+                  color: theme.text,
+                }}
+              />
+              <input
+                placeholder="Application URL (required)"
+                value={manualUrl}
+                onChange={(e) => setManualUrl(e.target.value)}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  border: `1px solid ${theme.border}`,
+                  background: darkMode ? '#1d1d20' : '#fff',
+                  color: theme.text,
+                }}
+              />
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: muted, marginTop: 6 }}>Optional</div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, color: theme.text }} title="Mark as already submitted">
               <input type="checkbox" checked={manualSubmitted} onChange={(e) => setManualSubmitted(e.target.checked)} />
               Submitted
             </label>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <input
-              placeholder="Job title"
-              value={manualJobTitle}
-              onChange={(e) => setManualJobTitle(e.target.value)}
-              style={{
-                padding: '8px 10px',
-                borderRadius: 8,
-                border: `1px solid ${theme.border}`,
-                background: darkMode ? '#1d1d20' : '#fff',
-                color: theme.text,
-              }}
-            />
-            <input
-              placeholder="Company"
-              value={manualJobCompany}
-              onChange={(e) => setManualJobCompany(e.target.value)}
-              style={{
-                padding: '8px 10px',
-                borderRadius: 8,
-                border: `1px solid ${theme.border}`,
-                background: darkMode ? '#1d1d20' : '#fff',
-                color: theme.text,
-              }}
-            />
-            <input
-              placeholder="Location (optional)"
-              value={manualJobLocation}
-              onChange={(e) => setManualJobLocation(e.target.value)}
-              style={{
-                padding: '8px 10px',
-                borderRadius: 8,
-                border: `1px solid ${theme.border}`,
-                background: darkMode ? '#1d1d20' : '#fff',
-                color: theme.text,
-              }}
-            />
-            <input
-              placeholder="Job type (e.g., fulltime)"
-              value={manualJobType}
-              onChange={(e) => setManualJobType(e.target.value)}
-              style={{
-                padding: '8px 10px',
-                borderRadius: 8,
-                border: `1px solid ${theme.border}`,
-                background: darkMode ? '#1d1d20' : '#fff',
-                color: theme.text,
-              }}
-            />
-            <input
-              placeholder="Min salary (optional)"
-              value={manualMinSalary}
-              onChange={(e) => setManualMinSalary(e.target.value)}
-              style={{
-                padding: '8px 10px',
-                borderRadius: 8,
-                border: `1px solid ${theme.border}`,
-                background: darkMode ? '#1d1d20' : '#fff',
-                color: theme.text,
-              }}
-            />
-            <input
-              placeholder="Max salary (optional)"
-              value={manualMaxSalary}
-              onChange={(e) => setManualMaxSalary(e.target.value)}
-              style={{
-                padding: '8px 10px',
-                borderRadius: 8,
-                border: `1px solid ${theme.border}`,
-                background: darkMode ? '#1d1d20' : '#fff',
-                color: theme.text,
-              }}
-            />
-            <input
-              type="date"
-              placeholder="Date posted (YYYY-MM-DD)"
-              value={manualDatePosted}
-              onChange={(e) => setManualDatePosted(e.target.value)}
-              style={{
-                padding: '8px 10px',
-                borderRadius: 8,
-                border: `1px solid ${theme.border}`,
-                background: darkMode ? '#1d1d20' : '#fff',
-                color: theme.text,
-              }}
-            />
-            <input
-              placeholder="LinkedIn job URL (optional)"
-              value={manualLinkedinUrl}
-              onChange={(e) => setManualLinkedinUrl(e.target.value)}
-              style={{
-                padding: '8px 10px',
-                borderRadius: 8,
-                border: `1px solid ${theme.border}`,
-                background: darkMode ? '#1d1d20' : '#fff',
-                color: theme.text,
-              }}
-            />
-            <input
-              placeholder="Direct job URL (optional)"
-              value={manualDirectUrl}
-              onChange={(e) => setManualDirectUrl(e.target.value)}
-              style={{
-                padding: '8px 10px',
-                borderRadius: 8,
-                border: `1px solid ${theme.border}`,
-                background: darkMode ? '#1d1d20' : '#fff',
-                color: theme.text,
-              }}
-            />
-            <input
-              placeholder="Application URL (optional)"
-              value={manualUrl}
-              onChange={(e) => setManualUrl(e.target.value)}
-              style={{
-                gridColumn: '1 / span 1',
-                padding: '8px 10px',
-                borderRadius: 8,
-                border: `1px solid ${theme.border}`,
-                background: darkMode ? '#1d1d20' : '#fff',
-                color: theme.text,
-              }}
-            />
-            <textarea
-              placeholder="Job description (optional)"
-              value={manualDescription}
-              onChange={(e) => setManualDescription(e.target.value)}
-              rows={3}
-              style={{
-                gridColumn: '1 / span 2',
-                padding: '8px 10px',
-                borderRadius: 8,
-                border: `1px solid ${theme.border}`,
-                background: darkMode ? '#1d1d20' : '#fff',
-                color: theme.text,
-              }}
-            />
+          <div style={{ display: 'grid', gap: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: muted }}>Required</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <input
+                placeholder="Job title (required)"
+                value={manualJobTitle}
+                onChange={(e) => setManualJobTitle(e.target.value)}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  border: `1px solid ${theme.border}`,
+                  background: darkMode ? '#1d1d20' : '#fff',
+                  color: theme.text,
+                }}
+              />
+              <input
+                placeholder="Company (required)"
+                value={manualJobCompany}
+                onChange={(e) => setManualJobCompany(e.target.value)}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  border: `1px solid ${theme.border}`,
+                  background: darkMode ? '#1d1d20' : '#fff',
+                  color: theme.text,
+                }}
+              />
+              <input
+                placeholder="Location (required)"
+                value={manualJobLocation}
+                onChange={(e) => setManualJobLocation(e.target.value)}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  border: `1px solid ${theme.border}`,
+                  background: darkMode ? '#1d1d20' : '#fff',
+                  color: theme.text,
+                }}
+              />
+              <input
+                placeholder="Job URL (required)"
+                value={manualJobUrl}
+                onChange={(e) => setManualJobUrl(e.target.value)}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  border: `1px solid ${theme.border}`,
+                  background: darkMode ? '#1d1d20' : '#fff',
+                  color: theme.text,
+                }}
+              />
+              <input
+                placeholder="Application URL (required)"
+                value={manualUrl}
+                onChange={(e) => setManualUrl(e.target.value)}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  border: `1px solid ${theme.border}`,
+                  background: darkMode ? '#1d1d20' : '#fff',
+                  color: theme.text,
+                }}
+              />
+              <textarea
+                placeholder="Job description (required)"
+                value={manualDescription}
+                onChange={(e) => setManualDescription(e.target.value)}
+                rows={3}
+                style={{
+                  gridColumn: '1 / span 2',
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  border: `1px solid ${theme.border}`,
+                  background: darkMode ? '#1d1d20' : '#fff',
+                  color: theme.text,
+                }}
+              />
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: muted, marginTop: 6 }}>Optional</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <input
+                placeholder="Job type (e.g., fulltime)"
+                value={manualJobType}
+                onChange={(e) => setManualJobType(e.target.value)}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  border: `1px solid ${theme.border}`,
+                  background: darkMode ? '#1d1d20' : '#fff',
+                  color: theme.text,
+                }}
+              />
+              <input
+                placeholder="Min salary (optional)"
+                value={manualMinSalary}
+                onChange={(e) => setManualMinSalary(e.target.value)}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  border: `1px solid ${theme.border}`,
+                  background: darkMode ? '#1d1d20' : '#fff',
+                  color: theme.text,
+                }}
+              />
+              <input
+                placeholder="Max salary (optional)"
+                value={manualMaxSalary}
+                onChange={(e) => setManualMaxSalary(e.target.value)}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  border: `1px solid ${theme.border}`,
+                  background: darkMode ? '#1d1d20' : '#fff',
+                  color: theme.text,
+                }}
+              />
+              <input
+                type="date"
+                placeholder="Date posted (YYYY-MM-DD)"
+                value={manualDatePosted}
+                onChange={(e) => setManualDatePosted(e.target.value)}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  border: `1px solid ${theme.border}`,
+                  background: darkMode ? '#1d1d20' : '#fff',
+                  color: theme.text,
+                }}
+              />
+            </div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, color: theme.text }} title="Mark as already submitted">
               <input type="checkbox" checked={manualSubmitted} onChange={(e) => setManualSubmitted(e.target.checked)} />
               Submitted

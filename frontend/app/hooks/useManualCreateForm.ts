@@ -12,8 +12,7 @@ export interface ManualCreateState {
   manualJobCompany: string; setManualJobCompany: (v: string) => void;
   manualJobLocation: string; setManualJobLocation: (v: string) => void;
   manualJobType: string; setManualJobType: (v: string) => void;
-  manualLinkedinUrl: string; setManualLinkedinUrl: (v: string) => void;
-  manualDirectUrl: string; setManualDirectUrl: (v: string) => void;
+  manualJobUrl: string; setManualJobUrl: (v: string) => void;
   manualMinSalary: string; setManualMinSalary: (v: string) => void;
   manualMaxSalary: string; setManualMaxSalary: (v: string) => void;
   manualDatePosted: string; setManualDatePosted: (v: string) => void;
@@ -32,8 +31,7 @@ export function useManualCreateForm(): ManualCreateState {
   const [manualJobCompany, setManualJobCompany] = useState("");
   const [manualJobLocation, setManualJobLocation] = useState("");
   const [manualJobType, setManualJobType] = useState("");
-  const [manualLinkedinUrl, setManualLinkedinUrl] = useState("");
-  const [manualDirectUrl, setManualDirectUrl] = useState("");
+  const [manualJobUrl, setManualJobUrl] = useState("");
   const [manualMinSalary, setManualMinSalary] = useState("");
   const [manualMaxSalary, setManualMaxSalary] = useState("");
   const [manualDatePosted, setManualDatePosted] = useState("");
@@ -49,8 +47,7 @@ export function useManualCreateForm(): ManualCreateState {
     setManualJobCompany("");
     setManualJobLocation("");
     setManualJobType("");
-    setManualLinkedinUrl("");
-    setManualDirectUrl("");
+  setManualJobUrl("");
     setManualMinSalary("");
     setManualMaxSalary("");
     setManualDatePosted("");
@@ -67,8 +64,7 @@ export function useManualCreateForm(): ManualCreateState {
     manualJobCompany, setManualJobCompany,
     manualJobLocation, setManualJobLocation,
     manualJobType, setManualJobType,
-    manualLinkedinUrl, setManualLinkedinUrl,
-    manualDirectUrl, setManualDirectUrl,
+  manualJobUrl, setManualJobUrl,
     manualMinSalary, setManualMinSalary,
     manualMaxSalary, setManualMaxSalary,
     manualDatePosted, setManualDatePosted,

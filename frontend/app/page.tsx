@@ -216,35 +216,66 @@ export default function Home() {
   // StatusPill moved to components/StatusPill.tsx
 
   async function submitManualCreate() {
+    const isValidHttpUrl = (v: string) => {
+      try {
+        const u = new URL(v.trim());
+        return u.protocol === 'http:' || u.protocol === 'https:';
+      } catch {
+        return false;
+      }
+    };
     if (!manual.manualUseDetails) {
       if (!manual.manualJobId) {
         setError("Job ID is required");
         return;
       }
+      if (!manual.manualUrl) {
+        setError("Application URL is required");
+        return;
+      }
+      if (!isValidHttpUrl(manual.manualUrl)) {
+        setError("Application URL must be a valid http(s) URL");
+        return;
+      }
     } else {
-      if (!manual.manualJobTitle || !manual.manualJobCompany) {
-        setError("Job title and company are required");
+      if (!manual.manualJobTitle || !manual.manualJobCompany || !manual.manualJobLocation || !manual.manualDescription) {
+        setError("Title, company, location, and description are required");
+        return;
+      }
+      if (!manual.manualJobUrl) {
+        setError("Job URL is required");
+        return;
+      }
+      if (!isValidHttpUrl(manual.manualJobUrl)) {
+        setError("Job URL must be a valid http(s) URL");
+        return;
+      }
+      if (!manual.manualUrl) {
+        setError("Application URL is required");
+        return;
+      }
+      if (!isValidHttpUrl(manual.manualUrl)) {
+        setError("Application URL must be a valid http(s) URL");
         return;
       }
     }
     manual.setCreating(true);
     try {
       const payload = !manual.manualUseDetails
-        ? { job_id: manual.manualJobId, url: manual.manualUrl || null, submitted: manual.manualSubmitted }
+        ? { job_id: manual.manualJobId.trim(), url: manual.manualUrl.trim(), submitted: manual.manualSubmitted }
         : {
             job: {
-              title: manual.manualJobTitle,
-              company: manual.manualJobCompany,
-              location: manual.manualJobLocation || undefined,
-              min_salary: manual.manualMinSalary || undefined,
-              max_salary: manual.manualMaxSalary || undefined,
-              date_posted: manual.manualDatePosted || undefined,
-              job_type: manual.manualJobType || undefined,
-              linkedin_job_url: manual.manualLinkedinUrl || undefined,
-              direct_job_url: manual.manualDirectUrl || undefined,
-              description: manual.manualDescription || undefined,
+              title: manual.manualJobTitle.trim(),
+              company: manual.manualJobCompany.trim(),
+              location: manual.manualJobLocation.trim(),
+              min_salary: manual.manualMinSalary ? manual.manualMinSalary.trim() : undefined,
+              max_salary: manual.manualMaxSalary ? manual.manualMaxSalary.trim() : undefined,
+              date_posted: manual.manualDatePosted ? manual.manualDatePosted.trim() : undefined,
+              job_type: manual.manualJobType ? manual.manualJobType.trim() : undefined,
+              job_url: manual.manualJobUrl.trim(),
+              description: manual.manualDescription.trim(),
             },
-            url: manual.manualUrl || null,
+            url: manual.manualUrl.trim(),
             submitted: manual.manualSubmitted,
           };
 
