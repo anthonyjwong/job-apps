@@ -47,7 +47,7 @@ export const AppliedCompaniesList: React.FC<AppliedCompaniesListProps> = ({
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
                   <span style={{ fontWeight: 700, color: theme.text, whiteSpace: 'nowrap' }}>{company}</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1, overflow: 'hidden' }}>
-                    <span style={{ color: muted, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{a.title}</span>
+                    <span style={{ color: muted, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flex: '0 1 auto' }}>{a.title}</span>
                     {a.referred ? (
                       <span
                         title="Referred"
@@ -123,7 +123,7 @@ export const AppliedCompaniesList: React.FC<AppliedCompaniesListProps> = ({
                   <li key={a.app_id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, padding: '8px 12px', borderTop: `1px dashed ${theme.border}`, background: darkMode ? '#1d1d20' : '#fafafa' }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                        <span style={{ color: muted, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{a.title}</span>
+                        <span style={{ color: muted, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flex: '0 1 auto' }}>{a.title}</span>
                         {a.referred ? (
                           <span
                             title="Referred"

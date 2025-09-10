@@ -1,18 +1,17 @@
-# Makefile for job-apps project
+.DEFAULT_GOAL := dev
 
 .PHONY: dev prod backend stop clean
 
 # Start development environment
-
 dev:
 	docker compose -f docker-compose.dev.yml up --build
+
+backend:
+	docker compose -f docker-compose.dev.yml up -d db backend
 
 # Start production environment
 prod:
 	docker compose -f docker-compose.prod.yml up --build
-
-backend:
-	docker compose -f docker-compose.dev.yml up -d db backend
 
 # Stop all running containers
 stop:

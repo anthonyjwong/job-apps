@@ -792,6 +792,7 @@ def get_applied_apps(db: Session = Depends(get_db)):
                     "job_id": str(app.job_id),
                     "company": job.company,
                     "title": job.title,
+                    "referred": bool(app.referred),
                     "submitted": bool(app.submitted),
                     "acknowledged": bool(app.acknowledged),
                     "assessment": bool(app.assessment),
