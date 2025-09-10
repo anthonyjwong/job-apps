@@ -1,39 +1,12 @@
 "use client";
 import React from 'react';
+import { ManualCreateState } from '../hooks/useManualCreateForm';
 import { Theme } from '../types/dashboard';
 
 export type ManualCreateModalProps = {
   show: boolean;
   onClose: () => void;
-  manualUseDetails: boolean;
-  setManualUseDetails: (v: boolean) => void;
-  manualJobId: string;
-  setManualJobId: (v: string) => void;
-  manualUrl: string;
-  setManualUrl: (v: string) => void;
-  manualSubmitted: boolean;
-  setManualSubmitted: (v: boolean) => void;
-  manualJobTitle: string;
-  setManualJobTitle: (v: string) => void;
-  manualJobCompany: string;
-  setManualJobCompany: (v: string) => void;
-  manualJobLocation: string;
-  setManualJobLocation: (v: string) => void;
-  manualJobType: string;
-  setManualJobType: (v: string) => void;
-  manualLinkedinUrl: string;
-  setManualLinkedinUrl: (v: string) => void;
-  manualDirectUrl: string;
-  setManualDirectUrl: (v: string) => void;
-  manualMinSalary: string;
-  setManualMinSalary: (v: string) => void;
-  manualMaxSalary: string;
-  setManualMaxSalary: (v: string) => void;
-  manualDatePosted: string;
-  setManualDatePosted: (v: string) => void;
-  manualDescription: string;
-  setManualDescription: (v: string) => void;
-  creating: boolean;
+  form: ManualCreateState;
   onSubmit: () => void;
   darkMode: boolean;
   theme: Theme;
@@ -41,9 +14,8 @@ export type ManualCreateModalProps = {
 };
 
 export function ManualCreateModal(props: ManualCreateModalProps) {
+  const { show, onClose, form, onSubmit, darkMode, theme, muted } = props;
   const {
-    show,
-    onClose,
     manualUseDetails,
     setManualUseDetails,
     manualJobId,
@@ -73,11 +45,7 @@ export function ManualCreateModal(props: ManualCreateModalProps) {
     manualDescription,
     setManualDescription,
     creating,
-    onSubmit,
-    darkMode,
-    theme,
-    muted,
-  } = props;
+  } = form;
 
   React.useEffect(() => {
     if (!show) return;

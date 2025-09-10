@@ -1,7 +1,6 @@
 "use client"
-import dynamic from 'next/dynamic';
-import type { ComponentType } from 'react';
 import { ReactElement, useEffect, useMemo, useState } from 'react';
+import JobPreviewCard from '../components/JobPreviewCard';
 import { useTheme } from "../providers/ThemeProvider";
 
 /**
@@ -32,7 +31,7 @@ type Review = {
   classification?: "safety" | "target" | "reach" | "dream" | null;
 } | null;
 
-type Classification = "safety" | "target" | "reach" | "dream";
+type Classification = "safety" | "target" | "reach" | "dream"; // retained for existing job data
 
 type JobRecord = {
   id: string;
@@ -183,16 +182,7 @@ export default function UnapprovedApps(): ReactElement {
     return m;
   }, [jobs]);
 
-  // Markdown modal state and handlers (must be before any early returns)
-  const [mdModal, setMdModal] = useState<{ open: boolean; content: string | null }>({ open: false, content: null });
-  const openMarkdownModal = (markdown: string) => setMdModal({ open: true, content: markdown });
-  const closeMarkdownModal = () => setMdModal({ open: false, content: null });
-  useEffect(() => {
-    if (!mdModal.open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeMarkdownModal(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [mdModal.open]);
+  // External markdown modal removed; JobPreviewCard provides internal expand dialog.
 
   /**
    * Move to the next application in the list. Wrap around at the end.
@@ -412,99 +402,8 @@ export default function UnapprovedApps(): ReactElement {
     muted: darkMode ? '#9ca3af' : '#6b7280',
   };
 
-  // classification badge styling (mirrors jobs page)
-  const classificationColors: Record<Classification, { bg: string; text: string; border: string }> = {
-    safety: {
-      bg: darkMode ? '#134e4a' : '#dcfce7',
-      text: darkMode ? '#a7f3d0' : '#065f46',
-      border: darkMode ? '#115e59' : '#86efac',
-    },
-    target: {
-      bg: darkMode ? '#1e3a8a' : '#dbeafe',
-      text: darkMode ? '#93c5fd' : '#1e40af',
-      border: darkMode ? '#1d4ed8' : '#93c5fd',
-    },
-    reach: {
-      bg: darkMode ? '#7c2d12' : '#ffedd5',
-      text: darkMode ? '#fdba74' : '#9a3412',
-      border: darkMode ? '#9a3412' : '#fdba74',
-    },
-    dream: {
-      bg: darkMode ? '#4c1d95' : '#f3e8ff',
-      text: darkMode ? '#d8b4fe' : '#6b21a8',
-      border: darkMode ? '#6b21a8' : '#d8b4fe',
-    },
-  };
-
-  const renderClassification = (c?: Classification | null) => {
-    if (!c) return null;
-    const colors = classificationColors[c];
-    const label = c.charAt(0).toUpperCase() + c.slice(1);
-    return (
-      <span
-        aria-label={`Classification ${label}`}
-        title={`Classification: ${label}`}
-        style={{
-          display: 'inline-block',
-          fontSize: 12,
-          padding: '2px 8px',
-          borderRadius: 999,
-          background: colors.bg,
-          color: colors.text,
-          border: `1px solid ${colors.border}`,
-          lineHeight: 1.6,
-          textTransform: 'none',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {label}
-      </span>
-    );
-  };
-
-  // Markdown lazy component and description preview (mirrors jobs page)
-  const Markdown = dynamic(() => import('../components/MarkdownRenderer'), { ssr: false });
-
-  const preview = (md?: string | null, n = 240) => {
-    if (!md) return '';
-    const text = md
-      .replace(/```[\s\S]*?```/g, '')
-      .replace(/`[^`]*`/g, '')
-      .replace(/\!\[[^\]]*\]\([^\)]*\)/g, '')
-      .replace(/\[[^\]]*\]\([^\)]*\)/g, '$1')
-      .replace(/[*_>#\-]+/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-    return text.length > n ? text.slice(0, n) + '…' : text;
-  };
-
-  type SimpleTheme = { link: string; border: string; muted: string; text: string; appBg: string };
-  function DescriptionSection({ markdown, darkMode, theme, Markdown, onOpen }: { markdown: string; darkMode: boolean; theme: SimpleTheme; Markdown: ComponentType<{ markdown: string; theme: SimpleTheme; darkMode: boolean }>; onOpen: (markdown: string) => void }) {
-    const text = preview(markdown, 280);
-    return (
-      <div style={{ marginTop: 8 }}>
-        <p style={{ margin: '8px 0', color: theme.text, lineHeight: 1.5 }}>{text}</p>
-        {text.length < (markdown?.length || 0) && (
-          <button
-            type="button"
-            onClick={() => onOpen(markdown)}
-            style={{
-              padding: '4px 8px',
-              borderRadius: 6,
-              border: `1px solid ${theme.border}`,
-              background: theme.appBg,
-              color: theme.link,
-              cursor: 'pointer',
-            }}
-          >
-            Open details
-          </button>
-        )}
-      </div>
-    );
-  }
-
-
+  // Removed bespoke classification markup & dynamic import; JobPreviewCard handles badge + description modal.
+  
   return (
     <main style={{
       maxWidth: '800px',
@@ -531,43 +430,18 @@ export default function UnapprovedApps(): ReactElement {
         </h2>
         <p><strong>App ID:</strong> {app.id}</p>
         <p style={{ marginBottom: '1rem' }}><strong>Job ID:</strong> {app.job_id}</p>
-        {/* Job details (title, company, classification, description) */}
+        {/* Job details via unified JobPreviewCard (job mode, no action buttons) */}
         {(() => {
           const j = jobById.get(app.job_id);
           if (!j) return null;
-          const bestLink = app.url;
           return (
-            <div style={{
-              border: `1px solid ${theme.border}`,
-              borderRadius: 8,
-              padding: '0.75rem',
-              background: theme.background,
-              marginBottom: '0.75rem',
-            }}>
-              <header style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
-                <div>
-                  <h3 style={{ margin: '0 0 4px 0' }}>
-                    {bestLink ? (
-                      <a href={bestLink} target="_blank" rel="noreferrer" style={{ color: theme.link, textDecoration: 'underline' }}>
-                        {j.title}
-                      </a>
-                    ) : (
-                      <span>{j.title}</span>
-                    )}
-                  </h3>
-                  <div style={{ color: theme.muted, fontSize: 14, marginBottom: 6 }}>
-                    {j.company}
-                  </div>
-                  <div style={{ marginTop: 4, display: 'flex', gap: 6, alignItems: 'center' }}>
-                    {renderClassification(j.review?.classification ?? null)}
-                  </div>
-                </div>
-              </header>
-              {j.description ? (
-                <DescriptionSection markdown={j.description} darkMode={darkMode} theme={theme} Markdown={Markdown} onOpen={openMarkdownModal} />
-              ) : (
-                <p style={{ marginTop: 8, marginBottom: 0, color: theme.muted }}>(No description provided)</p>
-              )}
+            <div style={{ marginBottom: '0.75rem' }}>
+              <JobPreviewCard
+                job={j}
+                theme={theme}
+                darkMode={darkMode}
+                previewLength={280}
+              />
             </div>
           );
         })()}
@@ -709,64 +583,7 @@ export default function UnapprovedApps(): ReactElement {
         </div>
       )}
 
-      {/* Markdown Pop-out Modal */}
-      {mdModal.open && (
-        <div
-          onClick={closeMarkdownModal}
-          role="dialog"
-          aria-modal="true"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 3000,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: theme.appBg,
-              color: theme.text,
-              border: `1px solid ${theme.border}`,
-              borderRadius: 8,
-              boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-              width: 'min(900px, 92vw)',
-              maxHeight: '82vh',
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderBottom: `1px solid ${theme.border}` }}>
-              <strong>Job Description</strong>
-              <button
-                aria-label="Close"
-                onClick={closeMarkdownModal}
-                style={{
-                  background: 'transparent',
-                  color: theme.text,
-                  border: 'none',
-                  fontSize: 20,
-                  lineHeight: 1,
-                  cursor: 'pointer',
-                }}
-              >
-                ×
-              </button>
-            </div>
-            <div style={{ padding: 12, overflow: 'auto' }}>
-              {mdModal.content && (
-                <div style={{ lineHeight: 1.6 }}>
-                  <Markdown markdown={mdModal.content} theme={theme} darkMode={darkMode} />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+  {/* External markdown modal removed; internal expand handled inside JobPreviewCard */}
 
       {/* Fixed Bottom Bar for Navigation & Actions */}
       <div

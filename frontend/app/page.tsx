@@ -34,15 +34,14 @@ export default function Home() {
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
-    const base = "http://localhost:8000";
     const load = async () => {
       try {
         const [jobs_summary, apps_summary, unapproved_jobs, unapproved_apps, applied_apps] = await Promise.all([
-          fetch(`${base}/jobs/summary`).then((r) => r.json()),
-          fetch(`${base}/apps/summary`).then((r) => r.json()),
-          fetch(`${base}/jobs/unapproved`).then((r) => r.json()), // unapproved jobs list
-          fetch(`${base}/apps/unapproved`).then((r) => r.json()), // prepared but unapproved/undiscarded
-          fetch(`${base}/apps/applied`).then((r) => r.json()), // submitted apps with company/title/status
+          fetch(`${API_BASE}/jobs/summary`).then((r) => r.json()),
+          fetch(`${API_BASE}/apps/summary`).then((r) => r.json()),
+          fetch(`${API_BASE}/jobs/unapproved`).then((r) => r.json()), // unapproved jobs list
+          fetch(`${API_BASE}/apps/unapproved`).then((r) => r.json()), // prepared but unapproved/undiscarded
+          fetch(`${API_BASE}/apps/applied`).then((r) => r.json()), // submitted apps with company/title/status
         ]);
         setJobs(jobs_summary.data);
         setApps(apps_summary.data);
@@ -184,35 +183,7 @@ export default function Home() {
           <ManualCreateModal
             show={manual.showManualCreate}
             onClose={() => manual.setShowManualCreate(false)}
-            manualUseDetails={manual.manualUseDetails}
-            setManualUseDetails={manual.setManualUseDetails}
-            manualJobId={manual.manualJobId}
-            setManualJobId={manual.setManualJobId}
-            manualUrl={manual.manualUrl}
-            setManualUrl={manual.setManualUrl}
-            manualSubmitted={manual.manualSubmitted}
-            setManualSubmitted={manual.setManualSubmitted}
-            manualJobTitle={manual.manualJobTitle}
-            setManualJobTitle={manual.setManualJobTitle}
-            manualJobCompany={manual.manualJobCompany}
-            setManualJobCompany={manual.setManualJobCompany}
-            manualJobLocation={manual.manualJobLocation}
-            setManualJobLocation={manual.setManualJobLocation}
-            manualJobType={manual.manualJobType}
-            setManualJobType={manual.setManualJobType}
-            manualLinkedinUrl={manual.manualLinkedinUrl}
-            setManualLinkedinUrl={manual.setManualLinkedinUrl}
-            manualDirectUrl={manual.manualDirectUrl}
-            setManualDirectUrl={manual.setManualDirectUrl}
-            manualMinSalary={manual.manualMinSalary}
-            setManualMinSalary={manual.setManualMinSalary}
-            manualMaxSalary={manual.manualMaxSalary}
-            setManualMaxSalary={manual.setManualMaxSalary}
-            manualDatePosted={manual.manualDatePosted}
-            setManualDatePosted={manual.setManualDatePosted}
-            manualDescription={manual.manualDescription}
-            setManualDescription={manual.setManualDescription}
-            creating={manual.creating}
+            form={manual}
             onSubmit={submitManualCreate}
             darkMode={darkMode}
             theme={theme}

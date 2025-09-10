@@ -1,7 +1,6 @@
 "use client";
-import dynamic from 'next/dynamic';
-import type { ComponentType } from 'react';
 import { useCallback, useEffect, useState } from "react";
+import JobPreviewCard, { JobRecord as JobCardRecord } from '../components/JobPreviewCard';
 import { useTheme } from "../providers/ThemeProvider";
 
 type Review = {
@@ -11,24 +10,8 @@ type Review = {
 
 type Classification = "safety" | "target" | "reach" | "dream";
 
-type JobRecord = {
-  id: string;
-  jobspy_id: string;
-  title: string;
-  company: string;
-  location?: string | null;
-  min_salary?: number | null;
-  max_salary?: number | null;
-  date_posted?: string | null;
-  job_type?: string | null;
-  linkedin_job_url?: string | null;
-  direct_job_url?: string | null;
-  description?: string | null;
-  review?: Review;
-  reviewed?: boolean;
-  approved?: boolean;
-  discarded?: boolean;
-};
+// Reuse JobPreviewCard's JobRecord shape (extended with optional jobspy_id)
+type JobRecord = JobCardRecord & { jobspy_id?: string };
 
 export default function AllJobsPage() {
   const { dark: darkMode } = useTheme();
@@ -56,16 +39,7 @@ export default function AllJobsPage() {
     })();
   }, [fetchJobs]);
 
-  // Markdown modal state and handlers (must be declared before any early returns)
-  const [mdModal, setMdModal] = useState<{ open: boolean; content: string | null }>({ open: false, content: null });
-  const openMarkdownModal = (markdown: string) => setMdModal({ open: true, content: markdown });
-  const closeMarkdownModal = () => setMdModal({ open: false, content: null });
-  useEffect(() => {
-    if (!mdModal.open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeMarkdownModal(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [mdModal.open]);
+  // Per-card modal now handled internally by JobPreviewCard
 
   const theme = {
     background: darkMode ? '#18181b' : '#f9f9f9',
@@ -132,47 +106,7 @@ export default function AllJobsPage() {
   if (loading) return <main style={{ padding: 16, background: theme.background, color: theme.text, minHeight: '100vh' }}>Loading…</main>;
   if (error) return <main style={{ padding: 16, color: "red", background: theme.background, minHeight: '100vh' }}>Error: {error}</main>;
 
-  const preview = (md?: string | null, n = 240) => {
-    if (!md) return '';
-    // crude preview: strip markdown symbols for lightweight snippet
-    const text = md
-      .replace(/```[\s\S]*?```/g, '')
-      .replace(/`[^`]*`/g, '')
-      .replace(/\!\[[^\]]*\]\([^\)]*\)/g, '')
-      .replace(/\[[^\]]*\]\([^\)]*\)/g, '$1')
-      .replace(/[*_>#\-]+/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-    return text.length > n ? text.slice(0, n) + '…' : text;
-  };
-  const Markdown = dynamic(() => import('../components/MarkdownRenderer'), { ssr: false });
-
-  type SimpleTheme = { link: string; border: string; muted: string; text: string; appBg: string };
-  function DescriptionSection({ markdown, darkMode, theme, Markdown, onOpen }: { markdown: string; darkMode: boolean; theme: SimpleTheme; Markdown: ComponentType<{ markdown: string; theme: SimpleTheme; darkMode: boolean }>; onOpen: (md: string) => void }) {
-    const text = preview(markdown, 280);
-    return (
-      <div style={{ marginTop: 8 }}>
-        <p style={{ margin: '8px 0', color: theme.text, lineHeight: 1.5 }}>{text}</p>
-        {text.length < (markdown?.length || 0) && (
-          <button
-            type="button"
-            onClick={() => onOpen(markdown)}
-            style={{
-              padding: '4px 8px',
-              borderRadius: 6,
-              border: `1px solid ${theme.border}`,
-              background: theme.appBg,
-              color: theme.link,
-              cursor: 'pointer',
-            }}
-          >
-            Open details
-          </button>
-        )}
-      </div>
-    );
-  }
-  const bestLink = (j: JobRecord) => j.direct_job_url || j.linkedin_job_url || undefined;
+  // const bestLink = (j: JobRecord) => j.direct_job_url || j.linkedin_job_url || undefined; // currently unused; keep commented for potential future use
 
   const approveJob = async (j: JobRecord) => {
     try {
@@ -235,133 +169,17 @@ export default function AllJobsPage() {
       ) : (
         <section style={{ display: 'grid', gap: 12 }}>
           {jobs.map((j) => (
-            <article key={j.id} style={{
-              border: `1px solid ${theme.border}`,
-              borderRadius: 8,
-              background: theme.appBg,
-              padding: 12,
-              opacity: j.discarded ? 0.6 : 1,
-            }}>
-              <header style={{ marginBottom: 6, display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
-                <div>
-                  <h3 style={{ margin: 0 }}>
-                  {bestLink(j) ? (
-                    <a href={bestLink(j)} target="_blank" rel="noreferrer" style={{ color: theme.link, textDecoration: 'underline' }}>
-                      {j.title}
-                    </a>
-                  ) : (
-                    <span>{j.title}</span>
-                  )}
-                  </h3>
-                  <div style={{ color: theme.muted, fontSize: 14 }}>
-                    {j.company}{j.location ? ` • ${j.location}` : ''}{j.job_type ? ` • ${j.job_type}` : ''}
-                    {j.approved ? ' • approved' : ''}{j.discarded ? ' • discarded' : ''}
-                  </div>
-                  <div style={{ marginTop: 6, display: 'flex', gap: 6, alignItems: 'center' }}>
-                    {renderClassification(j.review?.classification ?? null)}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={() => approveJob(j)}
-                    title="Approve (create application)"
-                    aria-label={`Approve ${j.title}`}
-                    disabled={!!j.approved || j.discarded}
-                    style={{
-                      padding: '6px 10px',
-                      borderRadius: 8,
-                      border: 'none',
-                      background: theme.approveBg,
-                      color: theme.btnText,
-                      cursor: j.approved || j.discarded ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    ✓
-                  </button>
-                  <button
-                    onClick={() => discardJob(j)}
-                    title="Discard job"
-                    aria-label={`Discard ${j.title}`}
-                    disabled={!!j.discarded}
-                    style={{
-                      padding: '6px 10px',
-                      borderRadius: 8,
-                      border: 'none',
-                      background: theme.discardBg,
-                      color: theme.btnText,
-                      cursor: j.discarded ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    ✕
-                  </button>
-                </div>
-              </header>
-              {j.description ? (
-                <DescriptionSection markdown={j.description} darkMode={darkMode} theme={theme} Markdown={Markdown} onOpen={openMarkdownModal} />
-              ) : (
-                <p style={{ marginTop: 8, marginBottom: 0, color: theme.muted }}>(No description provided)</p>
-              )}
-            </article>
+            <JobPreviewCard
+              key={j.id}
+              job={j}
+              darkMode={darkMode}
+              theme={theme}
+              previewLength={280}
+              onApprove={approveJob}
+              onDiscard={discardJob}
+            />
           ))}
         </section>
-      )}
-      {/* Markdown Pop-out Modal */}
-      {mdModal.open && (
-        <div
-          onClick={closeMarkdownModal}
-          role="dialog"
-          aria-modal="true"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 3000,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: theme.appBg,
-              color: theme.text,
-              border: `1px solid ${theme.border}`,
-              borderRadius: 8,
-              boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-              width: 'min(900px, 92vw)',
-              maxHeight: '82vh',
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderBottom: `1px solid ${theme.border}` }}>
-              <strong>Job Description</strong>
-              <button
-                aria-label="Close"
-                onClick={closeMarkdownModal}
-                style={{
-                  background: 'transparent',
-                  color: theme.text,
-                  border: 'none',
-                  fontSize: 20,
-                  lineHeight: 1,
-                  cursor: 'pointer',
-                }}
-              >
-                ×
-              </button>
-            </div>
-            <div style={{ padding: 12, overflow: 'auto' }}>
-              {mdModal.content && (
-                <div style={{ lineHeight: 1.6 }}>
-                  <Markdown markdown={mdModal.content} theme={theme} darkMode={darkMode} />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
       )}
     </main>
   );
