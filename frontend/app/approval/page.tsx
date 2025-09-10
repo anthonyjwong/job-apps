@@ -31,8 +31,6 @@ type Review = {
   classification?: "safety" | "target" | "reach" | "dream" | null;
 } | null;
 
-type Classification = "safety" | "target" | "reach" | "dream"; // retained for existing job data
-
 type JobRecord = {
   id: string;
   jobspy_id: string;
@@ -152,7 +150,7 @@ export default function UnapprovedApps(): ReactElement {
               });
               if (!res.ok) throw new Error(`HTTP ${res.status}`);
               return (await res.json()) as JobRecord;
-            } catch (err) {
+            } catch {
               // non-fatal; skip this job
               return null as unknown as JobRecord;
             }

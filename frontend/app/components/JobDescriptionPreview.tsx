@@ -3,8 +3,7 @@ import React from 'react';
 
 export interface JobDescriptionPreviewProps {
   markdown: string;
-  darkMode: boolean;
-  theme: { link: string; border: string; text: string; appBg: string } & Record<string, any>;
+  theme: { link: string; border: string; text: string; appBg: string } & Record<string, string>;
   onOpen: (markdown: string) => void;
   previewLength?: number;
 }
@@ -21,7 +20,7 @@ function makePreview(md: string, n: number) {
   return text.length > n ? text.slice(0, n) + '…' : text;
 }
 
-const JobDescriptionPreview: React.FC<JobDescriptionPreviewProps> = ({ markdown, darkMode, theme, onOpen, previewLength = 280 }) => {
+const JobDescriptionPreview: React.FC<JobDescriptionPreviewProps> = ({ markdown, theme, onOpen, previewLength = 280 }) => {
   if (!markdown) return null;
   const snippet = makePreview(markdown, previewLength);
   const truncated = snippet.endsWith('…');

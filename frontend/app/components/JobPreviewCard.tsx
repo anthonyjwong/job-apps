@@ -27,7 +27,7 @@ export type JobRecord = {
 type ThemeShape = {
   link: string; border: string; muted: string; text: string; appBg: string;
   // Allow extra theme properties without forcing callers to widen type.
-  [k: string]: any;
+  [k: string]: string | number | boolean | undefined;
 };
 
 type BaseShared = {

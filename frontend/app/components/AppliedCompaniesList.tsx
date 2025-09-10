@@ -1,6 +1,6 @@
 "use client";
 import React from 'react';
-import { AppliedApp, Theme } from '../types/dashboard';
+import { AppliedApp, AppStateName, Theme } from '../types/dashboard';
 import StatusPill from './StatusPill';
 
 export interface AppliedCompaniesListProps {
@@ -13,7 +13,7 @@ export interface AppliedCompaniesListProps {
   editingStatusFor: string | null;
   savingAppId: string | null;
   setEditingStatusFor: (id: string | null) => void;
-  updateAppState: (appId: string, next: any) => void; // simplify for now
+  updateAppState: (appId: string, next: AppStateName) => void; // simplify for now
 }
 
 export const AppliedCompaniesList: React.FC<AppliedCompaniesListProps> = ({
