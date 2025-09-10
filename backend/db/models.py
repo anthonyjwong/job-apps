@@ -72,6 +72,7 @@ class ApplicationORM(Base):
     prepared = Column(Boolean, default=False)
     approved = Column(Boolean, default=False)
     discarded = Column(Boolean, default=False)
+    referred = Column(Boolean, default=False)
     submitted = Column(Boolean, default=False)
     acknowledged = Column(Boolean, default=False)
     assessment = Column(Boolean, default=False)
@@ -97,6 +98,7 @@ class ApplicationORM(Base):
             "prepared": self.prepared,
             "approved": self.approved,
             "discarded": self.discarded,
+            "referred": self.referred,
             "submitted": self.submitted,
             "acknowledged": self.acknowledged,
             "assessment": self.assessment,

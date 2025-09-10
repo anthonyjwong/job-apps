@@ -20,6 +20,7 @@ export type AppliedApp = {
   job_id: string;
   company: string;
   title: string;
+  referred?: boolean;
   submitted: boolean;
   acknowledged: boolean;
   assessment: boolean;

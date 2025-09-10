@@ -189,6 +189,7 @@ class App(BaseModel):
     prepared: bool = False
     approved: bool = False
     discarded: bool = False
+    referred: bool = False
     submitted: bool = False
     acknowledged: bool = False
     assessment: bool = False
@@ -228,6 +229,7 @@ class App(BaseModel):
             "prepared": self.prepared,
             "approved": self.approved,
             "discarded": self.discarded,
+            "referred": self.referred,
             "submitted": self.submitted,
             "acknowledged": self.acknowledged,
             "assessment": self.assessment,
