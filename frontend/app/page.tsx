@@ -1,7 +1,7 @@
 "use client";
 
-// ManualCreateModal moved outside Home for stable identity
 import React, { useEffect, useState } from "react";
+import ActionCard from "./components/ActionCard";
 import AppliedCompaniesList from './components/AppliedCompaniesList';
 import AppsSummaryCard from './components/AppsSummaryCard';
 import JobsSummaryCard from './components/JobsSummaryCard';
@@ -10,8 +10,6 @@ import { useManualCreateForm } from './hooks/useManualCreateForm';
 import { useTheme } from "./providers/ThemeProvider";
 import { card, cardRow, cardTitle, list } from './styles/dashboard';
 import { AppliedApp, AppsSummary, AppStateName, JobsSummary } from './types/dashboard';
-
-// Types now imported from ./types/dashboard
 
 export default function Home() {
   const { dark: darkMode } = useTheme();
@@ -131,8 +129,30 @@ export default function Home() {
     <main style={{ padding: 16, maxWidth: 1000, margin: "0 auto", background: theme.background, color: theme.text, minHeight: '100vh' }}>
       <h1 style={{ marginBottom: 12 }}>Job Apps Dashboard</h1>
       {error && <p style={{ color: "red" }}>{error}</p>}
-
       <section style={cardRow}>
+        <ActionCard
+          darkMode={darkMode}
+          href="/approval"
+          color="#F7CF46"
+          bigText="Approve"
+          smallText="your best matches →"
+          count={typeof unapprovedAppsCount === 'number' ? unapprovedAppsCount : undefined}
+          ariaLabel="Go to approvals: Jobs fit for you"
+          title="Go to approvals"
+        />
+        <ActionCard
+          darkMode={darkMode}
+          href="/jobs"
+          color="#5AA7C7"
+          bigText="Discover"
+          smallText="new opportunities →"
+          count={typeof unapprovedJobsCount === 'number' ? unapprovedJobsCount : undefined}
+          ariaLabel="Go to discovery: Explore jobs"
+          title="Explore jobs"
+        />
+      </section>
+
+      {/* <section style={cardRow}>
         <JobsSummaryCard
           jobs={jobs}
           unapprovedJobsCount={unapprovedJobsCount}
@@ -155,14 +175,12 @@ export default function Home() {
           cardTitleStyle={cardTitle}
           listStyle={list}
         />
-      </section>
-
-      {/* Top Sources moved into Applications card */}
+      </section> */}
 
       {appliedApps && appliedApps.length > 0 && (
         <section style={{ marginTop: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <h3 style={{ margin: 0 }}>Applied companies and status</h3>
+            <h3 style={{ margin: 0 }}>Applied</h3>
             <button
               onClick={() => manual.setShowManualCreate(v => !v)}
               style={{
@@ -324,7 +342,3 @@ export default function Home() {
   }
 
 }
-
-// Theme type imported from ./types/dashboard
-
-// Styles & color helpers moved to dedicated modules

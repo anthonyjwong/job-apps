@@ -37,7 +37,6 @@ export default function Header() {
             <Link href="/" style={pathname === '/' ? activeLink : baseLink}>Home</Link>
             <Link href="/jobs" style={pathname?.startsWith('/jobs') ? activeLink : baseLink}>Jobs</Link>
             <Link href="/approval" style={pathname?.startsWith('/approval') ? activeLink : baseLink}>Approvals</Link>
-            <Link href="/apps" style={pathname?.startsWith('/apps') ? activeLink : baseLink}>Apps</Link>
             <Link href="/dev" style={pathname?.startsWith('/dev') ? activeLink : baseLink}>Dev</Link>
           </div>
           <ThemeToggle />
