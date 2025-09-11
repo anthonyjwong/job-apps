@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import ActionCard from "./components/ActionCard";
 import AppliedCompaniesList from './components/AppliedCompaniesList';
 import AppsSummaryCard from './components/AppsSummaryCard';
+import CompactJobCard from './components/CompactJobCard';
 import JobsSummaryCard from './components/JobsSummaryCard';
 import ManualCreateModal from "./components/ManualCreateModal";
 import { useManualCreateForm } from './hooks/useManualCreateForm';
@@ -176,6 +177,50 @@ export default function Home() {
           listStyle={list}
         />
       </section> */}
+
+      <section style={{ marginTop: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <h3 style={{ margin: 0 }}>Interviews</h3>
+          {/* get all jobs that are in interview state */}
+        </div>
+          <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
+            {appliedApps.filter(a => a.interview).map(a => (
+              <div key={a.app_id} style={{ flex: '0 0 auto' }}>
+                <CompactJobCard
+                  title={a.title}
+                  company={a.company}
+                  href="/interview-prep"
+                  ariaLabel={`Open interview prep for ${a.company} — ${a.title}`}
+                  linkTitle={`Interview prep: ${a.company}`}
+                  darkMode={darkMode}
+                  theme={theme}
+                />
+              </div>
+            ))}
+          </div>
+      </section>
+
+      <section style={{ marginTop: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <h3 style={{ margin: 0 }}>Assessments</h3>
+          {/* get all jobs that are in assessment state */}
+        </div>
+          <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
+            {appliedApps.filter(a => a.assessment).map(a => (
+              <div key={a.app_id} style={{ flex: '0 0 auto' }}>
+                <CompactJobCard
+                  title={a.title}
+                  company={a.company}
+                  href="/coding"
+                  ariaLabel={`Open coding assessment hub for ${a.company} — ${a.title}`}
+                  linkTitle={`Coding assessment: ${a.company}`}
+                  darkMode={darkMode}
+                  theme={theme}
+                />
+              </div>
+            ))}
+          </div>
+      </section>
 
       {appliedApps && appliedApps.length > 0 && (
         <section style={{ marginTop: 24 }}>

@@ -91,7 +91,7 @@ export function ManualCreateModal(props: ManualCreateModalProps) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <div style={{ fontSize: 13, color: muted }}>
-            {manualUseDetails ? 'Enter minimal job details' : 'Use an existing Job ID'}
+            {manualUseDetails ? 'Enter job details' : 'Use an existing Job ID'}
           </div>
           <button
             onClick={() => setManualUseDetails(!manualUseDetails)}

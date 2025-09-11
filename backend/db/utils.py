@@ -19,6 +19,7 @@ def get_unapproved_jobs(db_session) -> list[Job]:
     jobs = (
         db_session.query(JobORM)
         .filter((JobORM.approved == False) & (JobORM.discarded == False))
+        .order_by(JobORM.created_at.desc())
         .all()
     )
     return [orm_to_job(job) for job in jobs]
