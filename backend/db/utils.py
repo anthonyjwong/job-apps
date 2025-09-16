@@ -280,7 +280,7 @@ def add_new_scraped_jobs(db_session, new_jobs: list[Job]) -> list[Job]:
             db_session.add(job_orm)
     db_session.commit()
 
-    logging.info(f"{num_new_jobs} new jobs added to the database!")
+    logging.critical(f"{num_new_jobs} new jobs added to the database!")
     return added_jobs
 
 

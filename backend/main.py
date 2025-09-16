@@ -12,6 +12,7 @@ from db.models import ApplicationORM, JobORM
 from db.utils import (
     add_new_application,
     add_new_job,
+    add_new_scraped_jobs,
     approve_application_by_id,
     approve_job_by_id,
     discard_application_by_id,
@@ -40,7 +41,7 @@ from pydantic import BaseModel, HttpUrl, model_validator
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from src.definitions import App, AppFragment, Job, Review, User
-from src.jobs import get_domain_handler
+from src.jobs import get_domain_handler, save_jobs
 from src.utils import clean_url, get_base_url
 from worker.tasks import (
     check_if_job_still_exists_task,
@@ -244,7 +245,7 @@ def create_job_application(job_id: UUID):
 
         job_site = get_domain_handler(job_url)
         if job_site is None:
-            logging.warning(
+            logging.debug(
                 f"/job/{job_id}/create_app: Job site not supported for app creation: {job_url}"
             )
             return JSONResponse(
@@ -427,7 +428,7 @@ def submit_application(app_id: UUID):
 
         job_site = get_domain_handler(app.url)
         if job_site is None:
-            logging.warning(
+            logging.debug(
                 f"/app/{app_id}/submit: Job site not supported for submission: {app.url}"
             )
             return JSONResponse(
@@ -482,7 +483,8 @@ def expire_jobs(db: Session = Depends(get_db)):
 
     # send-off
     for job in jobs:
-        expire_job(job.id)
+        if job.linkedin_job_url:
+            expire_job(job.id)
 
     # response
     return JSONResponse(

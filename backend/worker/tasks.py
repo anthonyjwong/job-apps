@@ -1,7 +1,9 @@
 import logging
 import os
+import random
 from json import JSONDecodeError
 
+import redis
 from celery import Celery
 from db.database import SessionLocal
 from db.utils import (
@@ -35,6 +37,18 @@ celery_app.conf.update(
 )
 
 
+def _get_redis_client():
+    url = os.getenv("CELERY_BACKEND_URL") or os.getenv("CELERY_BROKER_URL")
+    return (
+        redis.from_url(url) if url else redis.Redis(host="localhost", port=6379, db=0)
+    )
+
+
+def _acquire_jobspy_lock(ttl_seconds: int = 60):
+    client = _get_redis_client()
+    return client.lock("jobspy:lock", timeout=ttl_seconds, blocking_timeout=0)
+
+
 def get_task_status(task_id: str):
     task_result = celery_app.AsyncResult(task_id)
     status = task_result.status
@@ -57,12 +71,31 @@ def get_task_status(task_id: str):
         }
 
 
-@celery_app.task
+@celery_app.task(
+    rate_limit="1/m",
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_backoff_max=60,
+    retry_jitter=True,
+    retry_kwargs={"max_retries": 5},
+)
 def get_new_jobs_task(num_jobs: int):
     # logic
     try:
-        logging.info("Finding jobs...")
-        jobs = save_jobs(num_jobs)
+        lock = _acquire_jobspy_lock(ttl_seconds=45)
+        if not lock.acquire(blocking=False):
+            raise get_new_jobs_task.retry(
+                exc=RuntimeError("JobSpy is busy; retrying later"),
+                countdown=random.randint(5, 20),
+            )
+        try:
+            logging.info("Finding jobs...")
+            jobs = save_jobs(num_jobs)
+        finally:
+            try:
+                lock.release()
+            except Exception:
+                pass
     except Exception as e:
         raise Exception(f"Error saving jobs", e)
 

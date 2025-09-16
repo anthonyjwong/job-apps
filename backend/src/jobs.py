@@ -5,7 +5,6 @@ import pandas as pd
 from jobspy import scrape_jobs
 from scrapers.scraper import JobSite
 from scrapers.sites import Ashby, LinkedIn
-from sqlalchemy import DateTime
 from src.definitions import App, Job, User
 from src.errors import MissingAppUrlError
 from src.llm import answer_question, upload_resume

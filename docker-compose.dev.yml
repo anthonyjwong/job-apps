@@ -4,7 +4,7 @@ services:
     ports:
       - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -20,7 +20,7 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER}" ]
       interval: 60s
       timeout: 5s
       retries: 5
@@ -28,7 +28,8 @@ services:
   worker:
     build:
       context: ./backend
-    command: celery -A worker.tasks:celery_app worker
+    command: >
+      celery -A worker.tasks:celery_app worker
     environment:
       CELERY_BACKEND_URL: ${CELERY_BACKEND_URL}
       CELERY_BROKER_URL: ${CELERY_BROKER_URL}
@@ -56,7 +57,7 @@ services:
     command: >
       bash -c "alembic upgrade head && python -Xfrozen_modules=off -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/docs" ]
       interval: 60s
       timeout: 5s
       retries: 5
