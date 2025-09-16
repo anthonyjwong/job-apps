@@ -1,4 +1,7 @@
+import logging
 import re
+import time
+from typing import Callable, Optional, Tuple, Type
 from urllib.parse import urlparse
 
 import pandas as pd
@@ -29,9 +32,6 @@ def clean_val(x):
     return x
 
 
-from typing import Optional
-
-
 def clean_url(url: str) -> Optional[str]:
     """Clean the URL by removing query parameters."""
     return re.sub(r"[?&].*$", "", url) if url else None
@@ -57,6 +57,38 @@ def get_unique_sites(jobs: list[Job]) -> set[str]:
             continue
 
     return sites
+
+
+def with_retry(
+    func: Callable,
+    *args,
+    retries: int = 5,
+    base_delay: float = 1.0,
+    retry_exceptions: Tuple[Type[BaseException], ...] = (Exception,),
+    **kwargs,
+):
+    """Run func with retries and exponential backoff.
+
+    Retries on network/server issues (e.g., 5xx). Backoff with jitter.
+    """
+    attempt = 0
+    while True:
+        try:
+            return func(*args, **kwargs)
+        except retry_exceptions as e:
+            attempt += 1
+            if attempt > retries:
+                raise
+            sleep_for = base_delay * (2 ** (attempt - 1)) * (1 + 0.1 * attempt)
+            logging.warning(
+                {
+                    "method": "apply._with_retry",
+                    "attempt": attempt,
+                    "sleep": round(sleep_for, 2),
+                    "error": str(e),
+                }
+            )
+            time.sleep(sleep_for)
 
 
 if __name__ == "__main__":

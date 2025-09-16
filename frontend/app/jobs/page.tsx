@@ -51,7 +51,7 @@ export default function AllJobsPage() {
 
   const approveJob = async (j: JobRecord) => {
     try {
-      const res = await fetch(`http://localhost:8000/job/${j.id}/approve`, { method: 'POST' });
+      const res = await fetch(`http://localhost:8000/job/${j.id}/approve`, { method: 'PUT' });
       if (!res.ok) {
         const t = await res.text();
         alert(`Failed to approve job: ${t}`);
@@ -68,7 +68,7 @@ export default function AllJobsPage() {
 
   const discardJob = async (j: JobRecord) => {
     try {
-      const res = await fetch(`http://localhost:8000/job/${j.id}/discard`, { method: 'POST' });
+      const res = await fetch(`http://localhost:8000/job/${j.id}/discard`, { method: 'PUT' });
       if (!res.ok) {
         const t = await res.text();
         alert(`Failed to discard job: ${t}`);
@@ -89,10 +89,7 @@ export default function AllJobsPage() {
     // Optimistic update
     setJobs(prev => prev.map(j => (
       j.id === jobId
-        ? {
-            ...j,
-            review: { ...(j.review || {}), classification: newClassification as any },
-          }
+        ? { ...j, review: { ...(j.review || {}), classification: newClassification } }
         : j
     )));
     // Then refresh from server to keep in sync

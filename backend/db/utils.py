@@ -1,4 +1,5 @@
 import logging
+from datetime import timezone
 
 from db.crud import app_to_orm, job_to_orm, orm_to_app, orm_to_job
 from db.models import ApplicationORM, JobORM
@@ -18,7 +19,11 @@ def get_unapproved_jobs(db_session) -> list[Job]:
     """Fetch all unapproved jobs."""
     jobs = (
         db_session.query(JobORM)
-        .filter((JobORM.approved == False) & (JobORM.discarded == False))
+        .filter(
+            (JobORM.approved == False)
+            & (JobORM.discarded == False)
+            & (JobORM.expired == False)
+        )
         .order_by(JobORM.created_at.desc())
         .all()
     )
@@ -34,6 +39,19 @@ def get_unreviewed_jobs(db_session) -> list[Job]:
 def get_reviewed_jobs(db_session) -> list[Job]:
     """Fetch all reviewed jobs."""
     jobs = db_session.query(JobORM).filter(JobORM.reviewed == True).all()
+    return [orm_to_job(job) for job in jobs]
+
+
+def get_unexpired_jobs_older_than_one_week(db_session) -> list[Job]:
+    """Fetch all jobs older than one week that are unexpired."""
+    from datetime import datetime, timedelta
+
+    one_week_ago = datetime.now(timezone.utc) - timedelta(weeks=1)
+    jobs = (
+        db_session.query(JobORM)
+        .filter((JobORM.created_at < one_week_ago) & (JobORM.expired == False))
+        .all()
+    )
     return [orm_to_job(job) for job in jobs]
 
 

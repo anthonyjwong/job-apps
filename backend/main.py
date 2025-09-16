@@ -2,19 +2,16 @@ import asyncio
 import logging
 import os
 import random
-from datetime import date, datetime
-from json import JSONDecodeError
-from typing import List
-from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from datetime import date
 from uuid import UUID
 
+import debugpy
 import uvicorn
 from db.database import SessionLocal, get_db
 from db.models import ApplicationORM, JobORM
 from db.utils import (
     add_new_application,
     add_new_job,
-    add_new_scraped_jobs,
     approve_application_by_id,
     approve_job_by_id,
     discard_application_by_id,
@@ -29,34 +26,31 @@ from db.utils import (
     get_submitted_applications,
     get_unapproved_applications,
     get_unapproved_jobs,
+    get_unexpired_jobs_older_than_one_week,
     get_unprepared_applications,
     get_unreviewed_jobs,
-    get_unscraped_applications,
-    update_application_by_id,
     update_application_by_id_with_fragment,
     update_application_state_by_id,
     update_job_by_id,
 )
-from fastapi import Body, Depends, FastAPI, Query, WebSocket, WebSocketDisconnect
-from fastapi.exceptions import RequestValidationError
+from fastapi import Body, Depends, FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from fastapi.responses import JSONResponse as FastAPIJSONResponse
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, HttpUrl, model_validator
-from sqlalchemy import func, or_
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
-from src.apply import (
-    DOMAIN_HANDLERS,
-    evaluate_candidate_aptitude,
-    prepare_job_app,
-    scrape_job_app,
-    submit_app,
-)
 from src.definitions import App, AppFragment, Job, Review, User
-from src.errors import MissingAppUrlError, QuestionNotFoundError
-from src.jobs import save_jobs
+from src.jobs import get_domain_handler
 from src.utils import clean_url, get_base_url
+from worker.tasks import (
+    check_if_job_still_exists_task,
+    create_app_task,
+    evaluate_job_task,
+    get_new_jobs_task,
+    get_task_status,
+    prepare_application_task,
+    submit_application_task,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -75,8 +69,6 @@ for _h in logging.getLogger().handlers:
 # Enable in-process debugpy when requested (works with Uvicorn --reload)
 if os.environ.get("DEBUGPY", "0") == "1":
     try:
-        import debugpy  # type: ignore
-
         _port = int(os.environ.get("DEBUGPY_PORT", "5678"))
         debugpy.listen(("0.0.0.0", _port))
         logging.info(f"debugpy listening on 0.0.0.0:{_port}")
@@ -87,19 +79,6 @@ if os.environ.get("DEBUGPY", "0") == "1":
         logging.error("Failed to initialize debugpy", exc_info=True)
 
 app = FastAPI(title="Job Application API")
-
-
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request, exc: RequestValidationError):
-    return FastAPIJSONResponse(
-        status_code=422,
-        content={
-            "status": "error",
-            "detail": exc.errors(),
-            "body": exc.body,
-        },
-    )
-
 
 # Allow requests from your frontend (e.g., http://localhost:3000)
 origins = [
@@ -115,37 +94,6 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers
 )
-
-
-# ConnectionManager for handling WebSocket connections
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: List[WebSocket] = []
-
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
-
-    async def broadcast(self, message: dict):
-        for connection in self.active_connections:
-            try:
-                await connection.send_json(message)
-            except WebSocketDisconnect:
-                logging.warning(
-                    f"WebSocket disconnected during broadcast: {connection.client}"
-                )
-                self.disconnect(connection)
-            except Exception:
-                logging.error(
-                    f"Error broadcasting to {connection.client}",
-                    exc_info=True,
-                )
-
-
-manager = ConnectionManager()
 
 DEFAULT_JOBS_TO_FIND = 50
 
@@ -167,19 +115,25 @@ user = User(
 )
 
 
+@app.get("/task/{task_id}")
+def check_task(task_id: str):
+    return get_task_status(task_id)
+
+
 @app.get("/job/{job_id}")
-async def get_job(job_id: UUID, db: Session = Depends(get_db)):
+def get_job(job_id: UUID):
     """Get a specific job by ID."""
-    job = get_job_by_id(db, job_id)
-    if job is None:
-        logging.error(f"/job/{job_id}: Job not found", exc_info=True)
-        return JSONResponse(
-            status_code=404,
-            content={
-                "status": "error",
-                "message": f"Job {job_id} not found",
-            },
-        )
+    with SessionLocal() as db:
+        job = get_job_by_id(db, job_id)
+        if job is None:
+            logging.error(f"/job/{job_id}: Job not found", exc_info=True)
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "status": "error",
+                    "message": f"Job {job_id} not found",
+                },
+            )
 
     return JSONResponse(
         status_code=200,
@@ -188,266 +142,171 @@ async def get_job(job_id: UUID, db: Session = Depends(get_db)):
 
 
 @app.post("/jobs/find")
-async def find_jobs(
+def find_jobs(
     num_jobs: int = Query(
         DEFAULT_JOBS_TO_FIND, ge=1, le=500, description="Number of jobs to find (1-500)"
     ),
 ):
     """Find and save current job listings"""
-
-    # logic
-    async def save_jobs_with_db():
-        try:
-            logging.info("Finding jobs...")
-            # Offload potentially blocking scraping to a thread to avoid blocking the event loop
-            jobs = await asyncio.to_thread(save_jobs, num_jobs=num_jobs)
-        except Exception:
-            logging.error("/jobs/find: Error saving jobs", exc_info=True)
-            await manager.broadcast(
-                {"type": "error", "data": {"message": "Failed to save jobs"}}
-            )
-            return
-
-        # database operation
-        try:
-            with SessionLocal() as db:
-                jobs = add_new_scraped_jobs(db, jobs)
-        except Exception:
-            logging.error(
-                "/jobs/find: Error adding new jobs to database",
-                exc_info=True,
-            )
-            await manager.broadcast(
-                {
-                    "type": "error",
-                    "data": {"message": "Failed to add new jobs to database"},
-                }
-            )
-            return
-        finally:
-            db.close()
-
-        # websocket notification
-        await manager.broadcast(
-            {
-                "type": "complete",
-                "data": {"message": f"Found and saved {len(jobs)} jobs"},
-            }
-        )
-
-        # send-off
-        for job in jobs:
-            if not job.reviewed:
-                asyncio.create_task(review_job(job.id))
-
-    asyncio.create_task(save_jobs_with_db())
+    # task
+    task = get_new_jobs_task.delay(num_jobs)
 
     # response
     return JSONResponse(
         status_code=202,
         content={
+            "task_id": task.id,
             "status": "success",
             "message": "Job search started in background",
         },
     )
 
 
-@app.post("/job/{job_id}/review")
-async def review_job(job_id: UUID):
+@app.put("/job/{job_id}/review")
+def review_job(job_id: UUID):
     """Review a specific job by ID"""
-    async with task_semaphore:
-        with SessionLocal() as db:
-            # arg validation
-            job = get_job_by_id(db, job_id)
-            if job is None:
-                logging.error(f"/job/{job_id}/review: Job not found", exc_info=True)
-                return JSONResponse(
-                    status_code=404,
-                    content={
-                        "status": "error",
-                        "message": f"Job {job_id} not found",
-                    },
-                )
+    with SessionLocal() as db:
+        # arg validation
+        job = get_job_by_id(db, job_id)
+        if job is None:
+            logging.error(f"/job/{job_id}/review: Job not found", exc_info=True)
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "status": "error",
+                    "message": f"Job {job_id} not found",
+                },
+            )
 
-            if job.manual:
-                return JSONResponse(
-                    status_code=200,
-                    content={
-                        "status": "success",
-                        "message": f"Job {job_id} is marked manual, skipping review",
-                    },
-                )
+        if job.manual:
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "status": "success",
+                    "message": f"Job {job_id} is marked manual, skipping review",
+                },
+            )
 
-            # logic
-            try:
-                logging.info(f"Reviewing job {job_id}...")
-                # Offload OpenAI network calls and JSON processing to a worker thread
-                reviewed_job = await asyncio.to_thread(
-                    evaluate_candidate_aptitude, job, user
-                )
-            except JSONDecodeError:
-                logging.error(
-                    f"/job/{job_id}/review: evaluate_candidate_aptitude failed to return a valid JSON response"
-                )
-                return JSONResponse(
-                    status_code=500,
-                    content={"status": "error", "message": "Failed to review job"},
-                )
-            except Exception:
-                logging.error(
-                    f"/job/{job_id}/review: Error reviewing job", exc_info=True
-                )
-                return JSONResponse(
-                    status_code=500,
-                    content={"status": "error", "message": "Failed to review job"},
-                )
-
-            # database operation
-            try:
-                update_job_by_id(db, job_id, reviewed_job)
-            except Exception:
-                logging.error(
-                    f"/job/{job_id}/review: Error updating job in database",
-                    exc_info=True,
-                )
-                return JSONResponse(
-                    status_code=500,
-                    content={
-                        "status": "error",
-                        "message": "Failed to update job in database",
-                    },
-                )
-
-    # send-off
-    if (
-        reviewed_job.review.classification in ["safety", "target"]
-        and reviewed_job.job_type == "fulltime"
-    ):
-        asyncio.create_task(create_job_application(job_id))
-    else:
-        logging.info(
-            f'Job {job_id} classified "{reviewed_job.review.classification}" does not require application'
-        )
+    # task
+    task = evaluate_job_task.delay(job.to_json(), user.to_json())
 
     # response
     return JSONResponse(
-        status_code=200,
+        status_code=202,
         content={
+            "task_id": task.id,
             "status": "success",
-            "message": f"Job {job_id} reviewed successfully",
-            "data": reviewed_job.review.to_json(),
+            "message": f"Job {job_id} sent for review",
         },
     )
 
 
 @app.post("/job/{job_id}/create_app")
-async def create_job_application(job_id: UUID):
+def create_job_application(job_id: UUID):
     """Create an app for a job by its ID."""
-    async with task_semaphore:
-        with SessionLocal() as db:
-            # arg validation
-            job = get_job_by_id(db, job_id)
-            if job is None:
-                logging.error(f"/job/{job_id}/create_app: Job not found", exc_info=True)
-                return JSONResponse(
-                    status_code=404,
-                    content={
-                        "status": "error",
-                        "message": f"Job {job_id} not found",
-                    },
-                )
-
-            existing_app = get_application_by_job_id(db, job_id)
-            if existing_app and existing_app.scraped == True:
-                logging.error(
-                    f"/job/{job_id}/create_app: Application for job {job_id} already scraped",
-                    exc_info=True,
-                )
-                return JSONResponse(
-                    status_code=500,
-                    content={
-                        "status": "error",
-                        "message": f"Application for job {job_id} already scraped",
-                    },
-                )
-
-        # logic
-        try:
-            logging.info(f"Scraping job {job.id} questions...")
-            app = await scrape_job_app(job)
-        except ValueError:
-            logging.error(f"/job/{job_id}/create_app: Job {job.id} is missing URLs")
+    with SessionLocal() as db:
+        # arg validation
+        job = get_job_by_id(db, job_id)
+        if job is None:
+            logging.error(f"/job/{job_id}/create_app: Job not found", exc_info=True)
             return JSONResponse(
-                status_code=500,
+                status_code=404,
                 content={
                     "status": "error",
-                    "message": f"Job {job.id} is missing URLs",
-                },
-            )
-        except NotImplementedError:
-            logging.warning(
-                f"/job/{job_id}/create_app: {get_base_url(job.direct_job_url)} app prep is not supported at this time"
-            )
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "status": "warning",
-                    "message": f"{get_base_url(job.direct_job_url)} app prep is not supported at this time",
-                },
-            )
-        except Exception:
-            logging.error(
-                f"/job/{job_id}/create_app: Error scraping job", exc_info=True
-            )
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "status": "error",
-                    "message": f"Failed to scrape job {job_id}",
+                    "message": f"Job {job_id} not found",
                 },
             )
 
-        # database operation
-        try:
-            if existing_app is None:
-                add_new_application(db, app)
-            else:
-                app.id = existing_app.id  # must be first for correct error messaging
-                update_application_by_id(db, existing_app.id, app)
-        except Exception:
+        existing_app = get_application_by_job_id(db, job_id)
+        if existing_app and existing_app.scraped == True:
             logging.error(
-                f"/job/{job_id}/create_app: Error updating app {app.id} in database",
+                f"/job/{job_id}/create_app: Application for job {job_id} already scraped",
                 exc_info=True,
             )
             return JSONResponse(
                 status_code=500,
                 content={
                     "status": "error",
-                    "message": f"Failed to add/update app {app.id} in database",
+                    "message": f"Application for job {job_id} already scraped",
                 },
             )
 
-    # send-off
-    if app.scraped == True:
-        asyncio.create_task(prepare_application(app.id))
+        job_url = job.direct_job_url or job.linkedin_job_url
+        if not job_url:
+            logging.error(f"/job/{job_id}/create_app: Job {job_id} is missing URLs.")
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "status": "error",
+                    "message": f"Job {job_id} is missing URLs.",
+                },
+            )
+
+        job_site = get_domain_handler(job_url)
+        if job_site is None:
+            logging.warning(
+                f"/job/{job_id}/create_app: Job site not supported for app creation: {job_url}"
+            )
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "status": "error",
+                    "message": f"Job site not supported for app creation: {job_url}",
+                },
+            )
+
+    # task
+    task = create_app_task.delay(job.to_json())
 
     # response
     return JSONResponse(
-        status_code=200,
+        status_code=202,
         content={
+            "task_id": task.id,
             "status": "success",
-            "message": f"Application {app.id} created successfully",
+            "message": f"Application for job {job_id} queued for creation",
         },
     )
 
 
-@app.post("/app/{app_id}/prepare")
-async def prepare_application(app_id: UUID):
+@app.put("/job/{job_id}/expire")
+def expire_job(job_id: UUID):
+    """Submit an application"""
+    with SessionLocal() as db:
+        # arg validation
+        job = get_job_by_id(db, job_id)
+        if not job:
+            logging.error(
+                f"/job/{job_id}/expire: Job not found",
+            )
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "status": "error",
+                    "message": f"Job {job_id} not found",
+                },
+            )
+
+    # logic
+    task = check_if_job_still_exists_task.delay(job.to_json())
+
+    # response
+    return JSONResponse(
+        status_code=202,
+        content={
+            "task_id": task.id,
+            "status": "success",
+            "message": f"Checking job {job_id} expiration",
+        },
+    )
+
+
+@app.put("/app/{app_id}/prepare")
+def prepare_application(app_id: UUID):
     """Create an app for a job by its ID."""
-    # arg validation
-    async with task_semaphore:
-        with SessionLocal() as db:
-            app = get_application_by_id(db, app_id)
+    with SessionLocal() as db:
+        # arg validation
+        app = get_application_by_id(db, app_id)
         if app is None:
             logging.error(
                 f"/app/{app_id}/prepare: App not found",
@@ -497,51 +356,22 @@ async def prepare_application(app_id: UUID):
                 },
             )
 
-        # logic
-        try:
-            logging.info(f"Preparing app {app.id}...")
-            # This performs OpenAI calls and processing; run in a thread
-            prepared_app = await asyncio.to_thread(prepare_job_app, job, app, user)
-        except Exception:
-            logging.error(
-                f"/app/{app_id}/prepare: Failed to prepare app", exc_info=True
-            )
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "status": "error",
-                    "message": f"Failed to prepare app {app.id}",
-                },
-            )
-
-        # database operation
-        try:
-            update_application_by_id(db, app_id, prepared_app)
-        except Exception:
-            logging.error(
-                f"/app/{app_id}/prepare: Failed to update app in database",
-                exc_info=True,
-            )
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "status": "error",
-                    "message": f"Failed to update app {app.id} in database",
-                },
-            )
+    # task
+    task = prepare_application_task.delay(job.to_json(), app.to_json(), user.to_json())
 
     # response
     return JSONResponse(
-        status_code=200,
+        status_code=202,
         content={
+            "task_id": task.id,
             "status": "success",
-            "message": f"Application {app_id} prepared successfully",
+            "message": f"Application {app_id} queued for preparation",
         },
     )
 
 
-@app.post("/app/{app_id}/submit")
-async def submit_application(app_id: UUID):
+@app.put("/app/{app_id}/submit")
+def submit_application(app_id: UUID):
     """Submit an application"""
     with SessionLocal() as db:
         # arg validation
@@ -595,81 +425,36 @@ async def submit_application(app_id: UUID):
                 },
             )
 
-        # logic
-        try:
-            logging.info(f"Submitting app {app.id}...")
-            applied_app = await submit_app(app, job)
-        except MissingAppUrlError:
-            logging.error(f"/app/{app_id}/submit: Job {job.id} is missing URLs")
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "status": "error",
-                    "message": f"Job {job.id} is missing URLs",
-                },
-            )
-        except QuestionNotFoundError:
-            logging.error(
-                f"/app/{app_id}/submit: Required question not found for app {app.id}"
-            )
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "status": "error",
-                    "message": f"Required question not found for app {app.id}",
-                },
-            )
-        except NotImplementedError:
+        job_site = get_domain_handler(app.url)
+        if job_site is None:
             logging.warning(
-                f"/app/{app_id}/submit: {get_base_url(app.url)} app submission is not supported at this time"
-            )
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "status": "warning",
-                    "message": f"{get_base_url(app.url)} app prep is not supported at this time",
-                },
-            )
-        except Exception:
-            logging.error(
-                f"/app/{app_id}/submit: Error submitting application", exc_info=True
+                f"/app/{app_id}/submit: Job site not supported for submission: {app.url}"
             )
             return JSONResponse(
                 status_code=500,
                 content={
                     "status": "error",
-                    "message": f"Failed to submit application {app_id}",
+                    "message": f"Job site not supported for submission: {app.url}",
                 },
             )
 
-        # database operation
-        try:
-            update_application_by_id(db, app.id, applied_app)
-        except Exception:
-            logging.error(
-                f"/app/{app_id}/submit: Error updating app in database",
-                exc_info=True,
-            )
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "status": "error",
-                    "message": f"Failed to update app {app.id} in database",
-                },
-            )
+    # task
+    task = submit_application_task.delay(job.to_json(), app.to_json())
 
     # response
     return JSONResponse(
-        status_code=200,
+        status_code=202,
         content={
-            "message": f"Application {app_id} was submitted!",
+            "task_id": task.id,
+            "status": "success",
+            "message": f"Application {app_id} was queued for submission",
         },
     )
 
 
 # bulk endpoints
-@app.post("/jobs/review")
-async def review_jobs(db: Session = Depends(get_db)):
+@app.put("/jobs/review")
+def review_jobs(db: Session = Depends(get_db)):
     """Review unreviewed jobs for candidate aptitude"""
     # arg validation
     jobs = get_unreviewed_jobs(db)
@@ -678,7 +463,7 @@ async def review_jobs(db: Session = Depends(get_db)):
 
     # send-off
     for job in jobs:
-        asyncio.create_task(review_job(job.id))
+        review_job(job.id)
 
     # response
     return JSONResponse(
@@ -687,8 +472,27 @@ async def review_jobs(db: Session = Depends(get_db)):
     )
 
 
+@app.put("/jobs/expire")
+def expire_jobs(db: Session = Depends(get_db)):
+    """Expire jobs that are past their expiration date"""
+    # arg validation
+    jobs = get_unexpired_jobs_older_than_one_week(db)
+    if len(jobs) == 0:
+        return Response(status_code=204)
+
+    # send-off
+    for job in jobs:
+        expire_job(job.id)
+
+    # response
+    return JSONResponse(
+        status_code=202,
+        content={"status": "success", "message": "Job expiration checks started"},
+    )
+
+
 @app.post("/apps/create")
-async def create_job_applications(db: Session = Depends(get_db)):
+def create_job_applications(db: Session = Depends(get_db)):
     """Creates new application for unscraped apps."""
     # arg validation
     jobs = get_reviewed_jobs(db)
@@ -700,7 +504,7 @@ async def create_job_applications(db: Session = Depends(get_db)):
         if job.approved:
             app = get_application_by_job_id(db, job.id)
             if app is None or app.scraped == False:
-                asyncio.create_task(create_job_application(job.id))
+                create_job_application(job.id)
 
     # response
     return JSONResponse(
@@ -709,8 +513,8 @@ async def create_job_applications(db: Session = Depends(get_db)):
     )
 
 
-@app.post("/apps/prepare")
-async def prepare_applications(db: Session = Depends(get_db)):
+@app.put("/apps/prepare")
+def prepare_applications(db: Session = Depends(get_db)):
     """Prepares unprepared applications."""
     # arg validation
     apps = get_unprepared_applications(db)
@@ -719,7 +523,7 @@ async def prepare_applications(db: Session = Depends(get_db)):
 
     # send-off
     for app in apps:
-        asyncio.create_task(prepare_application(app.id))
+        prepare_application(app.id)
 
     # response
     return JSONResponse(
@@ -728,8 +532,8 @@ async def prepare_applications(db: Session = Depends(get_db)):
     )
 
 
-@app.post("/apps/submit")
-async def submit_applications(db: Session = Depends(get_db)):
+@app.put("/apps/submit")
+def submit_applications(db: Session = Depends(get_db)):
     """Submits approved applications."""
     # arg validation
     apps = get_approved_applications(db)
@@ -738,7 +542,7 @@ async def submit_applications(db: Session = Depends(get_db)):
 
     # send off
     for app in apps:
-        asyncio.create_task(submit_application(app.id))
+        submit_application(app.id)
 
     # response
     return JSONResponse(
@@ -748,7 +552,7 @@ async def submit_applications(db: Session = Depends(get_db)):
 
 
 @app.get("/jobs")
-async def list_all_jobs(db: Session = Depends(get_db)):
+def list_all_jobs(db: Session = Depends(get_db)):
     """List all saved job applications."""
     jobs = get_all_jobs(db)
     return JSONResponse(
@@ -759,7 +563,7 @@ async def list_all_jobs(db: Session = Depends(get_db)):
 
 # frontend endpoints
 @app.get("/jobs/unapproved")
-async def list_all_jobs(db: Session = Depends(get_db)):
+def list_all_jobs(db: Session = Depends(get_db)):
     """List all unapproved job applications (for frontend page)."""
     jobs = get_unapproved_jobs(db)
     return JSONResponse(
@@ -769,7 +573,7 @@ async def list_all_jobs(db: Session = Depends(get_db)):
 
 
 @app.get("/apps/unapproved")
-async def get_unapproved_apps(db: Session = Depends(get_db)):
+def get_unapproved_apps(db: Session = Depends(get_db)):
     """Gets all applications that still need to be approved by the user."""
     apps = get_unapproved_applications(db)
     return JSONResponse(
@@ -814,7 +618,7 @@ class JobClassificationUpdate(BaseModel):
 
 
 @app.put("/job/{job_id}/classification")
-async def update_job_classification(
+def update_job_classification(
     job_id: UUID, payload: JobClassificationUpdate, db: Session = Depends(get_db)
 ):
     """Update the classification for a job's review (safety|target|reach|dream)."""
@@ -864,7 +668,7 @@ async def update_job_classification(
 
 
 @app.put("/app/{app_id}/update")
-async def update_application_from_fragment(
+def update_application_from_fragment(
     app_id: UUID, app_data: AppFragment = Body(...), db: Session = Depends(get_db)
 ):
     """Updates an existing application."""
@@ -921,9 +725,7 @@ class ManualAppCreate(BaseModel):
 
 
 @app.post("/apps/manual")
-async def create_manual_application(
-    req: ManualAppCreate, db: Session = Depends(get_db)
-):
+def create_manual_application(req: ManualAppCreate, db: Session = Depends(get_db)):
     """Create a new application manually, or update existing one for a job.
 
     Body options:
@@ -1053,7 +855,7 @@ async def create_manual_application(
     )
 
 
-@app.post("/job/{job_id}/approve")
+@app.put("/job/{job_id}/approve")
 def approve_job(job_id: UUID, db: Session = Depends(get_db)):
     """Approve a job"""
     try:
@@ -1081,8 +883,8 @@ def approve_job(job_id: UUID, db: Session = Depends(get_db)):
         )
 
 
-@app.post("/job/{job_id}/discard")
-async def discard_job(job_id: UUID, db: Session = Depends(get_db)):
+@app.put("/job/{job_id}/discard")
+def discard_job(job_id: UUID, db: Session = Depends(get_db)):
     """Discard a job"""
     try:
         job = get_job_by_id(db, job_id)
@@ -1109,7 +911,7 @@ async def discard_job(job_id: UUID, db: Session = Depends(get_db)):
         )
 
 
-@app.post("/app/{app_id}/approve")
+@app.put("/app/{app_id}/approve")
 def approve_application(app_id: UUID, db: Session = Depends(get_db)):
     """Approve and submit an application"""
     try:
@@ -1145,8 +947,8 @@ def approve_application(app_id: UUID, db: Session = Depends(get_db)):
         )
 
 
-@app.post("/app/{app_id}/discard")
-async def discard_application(app_id: UUID, db: Session = Depends(get_db)):
+@app.put("/app/{app_id}/discard")
+def discard_application(app_id: UUID, db: Session = Depends(get_db)):
     """Discard an application"""
     try:
         app = get_application_by_id(db, app_id)
@@ -1174,7 +976,7 @@ async def discard_application(app_id: UUID, db: Session = Depends(get_db)):
 
 
 @app.put("/app/{app_id}/state")
-async def update_application_state(
+def update_application_state(
     app_id: UUID,
     new_state: str = Body(None),
     db: Session = Depends(get_db),
@@ -1227,7 +1029,7 @@ async def update_application_state(
 
 # data endpoints
 @app.get("/jobs/summary")
-async def get_jobs_summary(db: Session = Depends(get_db)):
+def get_jobs_summary(db: Session = Depends(get_db)):
     """Get the status of job reviews"""
     try:
         jobs = get_all_jobs(db)
@@ -1276,7 +1078,7 @@ async def get_jobs_summary(db: Session = Depends(get_db)):
 
 
 @app.get("/apps/summary")
-async def get_applications_summary(db: Session = Depends(get_db)):
+def get_applications_summary(db: Session = Depends(get_db)):
     """Get the status of applications, plus metrics for approved jobs without a scraped application."""
     try:
         apps = get_all_applications(db)
@@ -1326,5 +1128,4 @@ async def get_applications_summary(db: Session = Depends(get_db)):
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

@@ -1,11 +1,30 @@
+import logging
+import re
+
 import pandas as pd
 from jobspy import scrape_jobs
+from scrapers.scraper import JobSite
+from scrapers.sites import Ashby, LinkedIn
 from sqlalchemy import DateTime
-from src.definitions import Job
-from src.utils import clean_url, clean_val
+from src.definitions import App, Job, User
+from src.errors import MissingAppUrlError
+from src.llm import answer_question, upload_resume
+from src.utils import clean_url, clean_val, get_base_url
+
+DOMAIN_HANDLERS = {"jobs.ashbyhq.com": Ashby, "www.linkedin.com": LinkedIn}
 
 
-def preprocess_listing(listing: dict) -> dict:
+def _create_common_questions_regular_expression(common_questions: dict[str]):
+    pattern = r"("
+    for i, key in enumerate(common_questions.keys()):
+        if i + 1 < len(common_questions.keys()):
+            pattern += f"{key}|"
+        else:
+            pattern += f"{key})"
+    return pattern
+
+
+def _preprocess_jobspy_listing(listing: dict) -> dict:
     """Preprocess listing data to match Job parameters."""
     # Create mapping from DataFrame columns to Job attributes
     mapped_data = {
@@ -31,6 +50,14 @@ def preprocess_listing(listing: dict) -> dict:
     return mapped_data
 
 
+def get_domain_handler(url: str) -> JobSite:
+    base_url = get_base_url(url)
+    if base_url in DOMAIN_HANDLERS:
+        return DOMAIN_HANDLERS[base_url]
+    else:
+        return None
+
+
 def save_jobs(num_jobs=5) -> list[Job]:
     """Finds jobs and saves them to the database."""
     listings: pd.DataFrame = scrape_jobs(
@@ -47,9 +74,69 @@ def save_jobs(num_jobs=5) -> list[Job]:
     )
 
     # Convert listings to Job objects
-    jobs = [Job(**preprocess_listing(row.to_dict())) for _, row in listings.iterrows()]
+    jobs = [
+        Job(**_preprocess_jobspy_listing(row.to_dict()))
+        for _, row in listings.iterrows()
+    ]
 
     return jobs
+
+
+def scrape_job_app(job: Job) -> App:
+    """Scrape job details and create an application."""
+    job_url = job.direct_job_url or job.linkedin_job_url
+    if not job_url:
+        logging.error(f"Job {job.id} is missing URLs.")
+        raise ValueError("Job must have a direct job URL or LinkedIn job URL.")
+
+    job_site: JobSite = get_domain_handler(job_url)(job)
+    if job_site is None:
+        raise NotImplementedError(f"Site not supported: {job_url}")
+
+    app = job_site.scrape_questions()
+    app.scraped = True
+    return app
+
+
+def prepare_job_app(job: Job, app: App, user: User) -> App:
+    """Initially fill out application questions."""
+    common_questions = user.get_common_questions()
+    pattern = _create_common_questions_regular_expression(common_questions)
+
+    # Upload resume once for this request and reuse the file id
+    resume_file_id = upload_resume(user.resume_pdf_path)
+
+    for field in app.fields:
+        matches = re.findall(pattern, field.question, re.IGNORECASE)
+        if matches:
+            field.answer = common_questions[matches[0].lower()]
+        else:
+            response = answer_question(
+                field, job, app, user, resume_file_id=resume_file_id
+            )
+            field.answer = response.output_text.strip()
+
+    app.prepared = True
+    return app
+
+
+def submit_app(app: App, job: Job) -> App:
+    """Submit an application."""
+    if not app.url:
+        raise MissingAppUrlError("App must have a URL.")
+
+    job_site: JobSite = get_domain_handler(app.url)(job)
+    if job_site is None:
+        raise NotImplementedError(f"Site not supported: {app.url}")
+
+    if job_site.apply(app):
+        app.submitted = True
+
+    return app
+
+
+def check_job_expiration(job) -> bool:
+    return LinkedIn(job).check_for_expiration()
 
 
 if __name__ == "__main__":

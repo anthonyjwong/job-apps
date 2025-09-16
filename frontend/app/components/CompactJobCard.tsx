@@ -2,7 +2,9 @@
 import Link from 'next/link';
 import React from 'react';
 
-type ThemeShape = { border: string; text: string; appBg: string; link: string } & Record<string, any>;
+type ThemeShape = { border: string; text: string; appBg: string; link: string } & {
+    [k: string]: string | number | boolean | undefined;
+};
 
 type Props = {
     title: string;

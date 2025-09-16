@@ -31,6 +31,7 @@ def job_to_orm(job: Job) -> JobORM:
         approved=job.approved,
         discarded=job.discarded,
         manual=job.manual,
+        expired=job.expired,
     )
 
 
@@ -69,6 +70,7 @@ def orm_to_job(db_job: JobORM) -> Job:
         approved=db_job.approved,
         discarded=db_job.discarded,
         manual=db_job.manual,
+        expired=db_job.expired,
     )
 
 

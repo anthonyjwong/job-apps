@@ -7,7 +7,7 @@ dev:
 	docker compose -f docker-compose.dev.yml up --build
 
 backend:
-	docker compose -f docker-compose.dev.yml up -d db backend
+	docker compose -f docker-compose.dev.yml up -d db redis worker backend
 
 # Start production environment
 prod:

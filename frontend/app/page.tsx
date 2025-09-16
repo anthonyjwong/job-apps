@@ -3,25 +3,20 @@
 import React, { useEffect, useState } from "react";
 import ActionCard from "./components/ActionCard";
 import AppliedCompaniesList from './components/AppliedCompaniesList';
-import AppsSummaryCard from './components/AppsSummaryCard';
 import CompactJobCard from './components/CompactJobCard';
-import JobsSummaryCard from './components/JobsSummaryCard';
 import ManualCreateModal from "./components/ManualCreateModal";
 import { useManualCreateForm } from './hooks/useManualCreateForm';
 import { useTheme } from "./providers/ThemeProvider";
-import { card, cardRow, cardTitle, list } from './styles/dashboard';
-import { AppliedApp, AppsSummary, AppStateName, JobsSummary } from './types/dashboard';
+import { cardRow } from './styles/dashboard';
+import { AppliedApp, AppsSummary, AppStateName } from './types/dashboard';
 
 export default function Home() {
   const { dark: darkMode } = useTheme();
-  const [jobs, setJobs] = useState<JobsSummary | null>(null);
-  const [apps, setApps] = useState<AppsSummary | null>(null);
+  const [, setApps] = useState<AppsSummary | null>(null);
   const [unapprovedJobsCount, setUnapprovedJobsCount] = useState<number | null>(null);
   const [unapprovedAppsCount, setUnapprovedAppsCount] = useState<number | null>(null);
   const [appliedApps, setAppliedApps] = useState<AppliedApp[]>([]);
-  const [approvedNoAppCount, setApprovedNoAppCount] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
-  const [approvedNoAppSources, setApprovedNoAppSources] = useState<Record<string, number>>({});
   const [mounted, setMounted] = useState(false);
   const [expandedCompanies, setExpandedCompanies] = useState<Record<string, boolean>>({});
   const [editingStatusFor, setEditingStatusFor] = useState<string | null>(null);
@@ -35,21 +30,16 @@ export default function Home() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [jobs_summary, apps_summary, unapproved_jobs, unapproved_apps, applied_apps] = await Promise.all([
-          fetch(`${API_BASE}/jobs/summary`).then((r) => r.json()),
+        const [apps_summary, unapproved_jobs, unapproved_apps, applied_apps] = await Promise.all([
           fetch(`${API_BASE}/apps/summary`).then((r) => r.json()),
           fetch(`${API_BASE}/jobs/unapproved`).then((r) => r.json()), // unapproved jobs list
           fetch(`${API_BASE}/apps/unapproved`).then((r) => r.json()), // prepared but unapproved/undiscarded
           fetch(`${API_BASE}/apps/applied`).then((r) => r.json()), // submitted apps with company/title/status
         ]);
-        setJobs(jobs_summary.data);
         setApps(apps_summary.data);
         setUnapprovedJobsCount(Array.isArray(unapproved_jobs.jobs) ? unapproved_jobs.jobs.length : 0);
         setUnapprovedAppsCount(Array.isArray(unapproved_apps.apps) ? unapproved_apps.apps.length : 0);
         setAppliedApps(Array.isArray(applied_apps.apps) ? applied_apps.apps : []);
-        const approvedNoApp = apps_summary?.data?.approved_without_app;
-        setApprovedNoAppCount(typeof approvedNoApp?.count === 'number' ? approvedNoApp.count : 0);
-        setApprovedNoAppSources(approvedNoApp?.base_urls || {});
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load stats");
       }

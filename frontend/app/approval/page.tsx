@@ -267,7 +267,7 @@ export default function UnapprovedApps(): ReactElement {
 
     const currentApp = apps[currentIndex];
     fetch(`${baseUrl}/app/${currentApp.id}/approve`, {
-      method: "POST",
+      method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
@@ -293,8 +293,8 @@ export default function UnapprovedApps(): ReactElement {
 
     // Remove item and adjust index, and update initialSizes
     setApps((prevApps) => {
+      const nextIndex = currentIndex < prevApps.length - 1 ? currentIndex : Math.max(0, prevApps.length - 2);
       const newApps = prevApps.filter((_, index) => index !== currentIndex);
-      // Recompute initialSizes for newApps
       const newSizes = newApps.map(app =>
         app.fields.map(field => {
           const answer = field.answer || '';
@@ -307,9 +307,9 @@ export default function UnapprovedApps(): ReactElement {
         })
       );
       setInitialSizes(newSizes);
+      setCurrentIndex(nextIndex);
       return newApps;
     });
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : 0));
   };
 
   /**
@@ -320,7 +320,7 @@ export default function UnapprovedApps(): ReactElement {
     if (!apps.length) return;
     const currentApp = apps[currentIndex];
     fetch(`${baseUrl}/app/${currentApp.id}/discard`, {
-      method: 'POST',
+      method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -344,8 +344,8 @@ export default function UnapprovedApps(): ReactElement {
       });
 
     setApps((prevApps) => {
+      const nextIndex = currentIndex < prevApps.length - 1 ? currentIndex : Math.max(0, prevApps.length - 2);
       const newApps = prevApps.filter((_, index) => index !== currentIndex);
-      // Recompute initialSizes for newApps
       const newSizes = newApps.map(app =>
         app.fields.map(field => {
           const answer = field.answer || '';
@@ -358,9 +358,9 @@ export default function UnapprovedApps(): ReactElement {
         })
       );
       setInitialSizes(newSizes);
+      setCurrentIndex(nextIndex);
       return newApps;
     });
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : 0));
   };
 
   // Render loading state

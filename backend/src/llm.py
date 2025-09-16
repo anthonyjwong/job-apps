@@ -1,51 +1,19 @@
 import json
 import logging
-import re
-import time
-from typing import Callable, Tuple, Type
 
 from openai import OpenAI
 from openai.types.responses import Response
-from scrapers.scraper import JobSite
-from scrapers.sites import Ashby, LinkedIn
 from src.definitions import App, AppField, Job, Review, User
-from src.errors import MissingAppUrlError
-from src.utils import get_base_url
+from src.utils import with_retry
 
 client = OpenAI(timeout=60)
-DOMAIN_HANDLERS = {"jobs.ashbyhq.com": Ashby, "www.linkedin.com": LinkedIn}
 
 
-def _with_retry(
-    func: Callable,
-    *args,
-    retries: int = 5,
-    base_delay: float = 1.0,
-    retry_exceptions: Tuple[Type[BaseException], ...] = (Exception,),
-    **kwargs,
-):
-    """Run func with retries and exponential backoff.
-
-    Retries on network/server issues (e.g., 5xx). Backoff with jitter.
-    """
-    attempt = 0
-    while True:
-        try:
-            return func(*args, **kwargs)
-        except retry_exceptions as e:
-            attempt += 1
-            if attempt > retries:
-                raise
-            sleep_for = base_delay * (2 ** (attempt - 1)) * (1 + 0.1 * attempt)
-            logging.warning(
-                {
-                    "method": "apply._with_retry",
-                    "attempt": attempt,
-                    "sleep": round(sleep_for, 2),
-                    "error": str(e),
-                }
-            )
-            time.sleep(sleep_for)
+def upload_resume(resume_pdf_path: str):
+    # Upload resume once for this request and reuse the file id
+    with open(resume_pdf_path, "rb") as f:
+        resume_pdf = with_retry(client.files.create, file=f, purpose="user_data")
+        return resume_pdf.id
 
 
 def evaluate_candidate_aptitude(job: Job, user: User) -> Job:
@@ -55,13 +23,13 @@ def evaluate_candidate_aptitude(job: Job, user: User) -> Job:
 
     # upload resume (retry on transient 5xx)
     with open(user.resume_pdf_path, "rb") as f:
-        resume_pdf = _with_retry(
+        resume_pdf = with_retry(
             client.files.create,
             file=f,
             purpose="user_data",
         )
 
-    response = _with_retry(
+    response = with_retry(
         client.responses.create,
         model="gpt-5-nano",
         input=[
@@ -97,32 +65,6 @@ def evaluate_candidate_aptitude(job: Job, user: User) -> Job:
     return job
 
 
-async def scrape_job_app(job: Job) -> App:
-    """Scrape job details and create an application."""
-    job_url = job.direct_job_url or job.linkedin_job_url
-    if not job_url:
-        logging.error(f"Job {job.id} is missing URLs.")
-        raise ValueError("Job must have a direct job URL or LinkedIn job URL.")
-
-    base_url = get_base_url(job_url)
-    if base_url in DOMAIN_HANDLERS:
-        job_site = DOMAIN_HANDLERS[base_url](job)
-        app = await job_site.scrape_questions()
-        app.scraped = True
-        return app
-    raise NotImplementedError(f"Site not supported: {job_url}")
-
-
-def create_common_questions_regular_expression(common_questions: dict[str]):
-    pattern = r"("
-    for i, key in enumerate(common_questions.keys()):
-        if i + 1 < len(common_questions.keys()):
-            pattern += f"{key}|"
-        else:
-            pattern += f"{key})"
-    return pattern
-
-
 def answer_question(
     field: AppField, job: Job, app: App, user: User, *, resume_file_id: str | None
 ) -> Response:
@@ -132,7 +74,7 @@ def answer_question(
     # Ensure we have a resume file id (upload once per prepare request)
     if not resume_file_id:
         with open(user.resume_pdf_path, "rb") as f:
-            resume_pdf = _with_retry(
+            resume_pdf = with_retry(
                 client.files.create,
                 file=f,
                 purpose="user_data",
@@ -143,7 +85,7 @@ def answer_question(
         with open(".instructions/MC_FILLER.md", "r") as f:
             instructions = f.read()
 
-        response = _with_retry(
+        response = with_retry(
             client.responses.create,
             model="gpt-5-nano",
             input=[
@@ -173,7 +115,7 @@ def answer_question(
         with open(".instructions/TEXT_FILLER.md", "r") as f:
             instructions = f.read()
 
-        response = _with_retry(
+        response = with_retry(
             client.responses.create,
             model="gpt-5-nano",
             input=[
@@ -201,41 +143,3 @@ def answer_question(
         )
 
     return response
-
-
-def prepare_job_app(job: Job, app: App, user: User) -> App:
-    """Initially fill out application questions."""
-    common_questions = user.get_common_questions()
-    pattern = create_common_questions_regular_expression(common_questions)
-
-    # Upload resume once for this request and reuse the file id
-    with open(user.resume_pdf_path, "rb") as f:
-        resume_pdf = _with_retry(client.files.create, file=f, purpose="user_data")
-        resume_file_id = resume_pdf.id
-
-    for field in app.fields:
-        matches = re.findall(pattern, field.question, re.IGNORECASE)
-        if matches:
-            field.answer = common_questions[matches[0].lower()]
-        else:
-            response = answer_question(
-                field, job, app, user, resume_file_id=resume_file_id
-            )
-            field.answer = response.output_text.strip()
-
-    app.prepared = True
-    return app
-
-
-async def submit_app(app: App, job: Job) -> App:
-    """Submit an application."""
-    if not app.url:
-        raise MissingAppUrlError("App must have a URL.")
-
-    base_url = get_base_url(app.url)
-    if base_url in DOMAIN_HANDLERS:
-        job_site: JobSite = DOMAIN_HANDLERS[base_url](job)
-        if await job_site.apply(app):
-            app.submitted = True
-            return app
-    raise NotImplementedError(f"Site not supported: {base_url}")

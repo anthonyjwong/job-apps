@@ -37,6 +37,7 @@ class Job(BaseModel):
     approved: bool = False
     discarded: bool = False
     manual: bool = False
+    expired: bool = False
 
     def log(self):
         """Log job details."""
@@ -62,6 +63,7 @@ class Job(BaseModel):
             "approved": self.approved,
             "discarded": self.discarded,
             "manual": self.manual,
+            "expired": self.expired,
         }
 
     def to_prompt(self):
