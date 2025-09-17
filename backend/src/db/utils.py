@@ -3,7 +3,8 @@ from datetime import timezone
 
 from db.crud import app_to_orm, job_to_orm, orm_to_app, orm_to_job
 from db.models import ApplicationORM, JobORM
-from src.definitions import App, AppFragment, Job
+
+from schemas.definitions import App, AppFragment, Job
 
 
 # get methods

@@ -5,10 +5,11 @@ import pandas as pd
 from jobspy import scrape_jobs
 from scrapers.scraper import JobSite
 from scrapers.sites import Ashby, LinkedIn
-from src.definitions import App, Job, User
-from src.errors import MissingAppUrlError
-from src.llm import answer_question, upload_resume
-from src.utils import clean_url, clean_val, get_base_url
+from core.llm import answer_question, upload_resume
+from core.utils import clean_url, clean_val, get_base_url
+
+from schemas.definitions import App, Job, User
+from schemas.errors import MissingAppUrlError
 
 DOMAIN_HANDLERS = {"jobs.ashbyhq.com": Ashby, "www.linkedin.com": LinkedIn}
 

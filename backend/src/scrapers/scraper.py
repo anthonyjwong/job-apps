@@ -2,7 +2,7 @@ import random
 import time
 from abc import ABC, abstractmethod
 
-from src.definitions import App, Job
+from schemas.definitions import App, Job
 
 EMULATE_HUMAN = True
 

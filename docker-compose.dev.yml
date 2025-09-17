@@ -29,7 +29,7 @@ services:
     build:
       context: ./backend
     command: >
-      celery -A worker.tasks:celery_app worker
+      watchmedo auto-restart --directory=./ --pattern=*.py --recursive -- python3 -Xfrozen_modules=off -m celery -A worker.tasks worker
     environment:
       CELERY_BACKEND_URL: ${CELERY_BACKEND_URL}
       CELERY_BROKER_URL: ${CELERY_BROKER_URL}
@@ -45,7 +45,7 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - ./backend:/app
+      - ./backend/src:/app/src
   backend:
     build:
       context: ./backend
@@ -53,9 +53,9 @@ services:
       - "8000:8000"
       - "5678:5678" # debugpy
     volumes:
-      - ./backend:/app
+      - ./backend/src:/app/src
     command: >
-      bash -c "alembic upgrade head && python -Xfrozen_modules=off -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+      python3 -Xfrozen_modules=off -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/docs" ]
       interval: 60s
@@ -83,7 +83,6 @@ services:
   scheduler:
     build:
       context: ./backend/scheduler
-      dockerfile: Dockerfile
     depends_on:
       backend:
         condition: service_healthy
@@ -93,7 +92,6 @@ services:
   frontend:
     build:
       context: ./frontend
-      # Use the final stage image; we'll install dev deps at runtime
     ports:
       - "3000:3000"
     volumes:

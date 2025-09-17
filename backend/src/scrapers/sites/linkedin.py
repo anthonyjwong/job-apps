@@ -9,7 +9,8 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 from scrapers.scraper import JobSite, human_delay
-from src.definitions import App, AppField, Job, Review
+
+from schemas.definitions import App, AppField, Job, Review
 
 # Load .env from repo root (job-apps/.env) regardless of CWD
 _REPO_ROOT = Path(__file__).resolve().parents[3]

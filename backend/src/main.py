@@ -7,12 +7,13 @@ from uuid import UUID
 
 import debugpy
 import uvicorn
+from core.jobs import get_domain_handler
+from core.utils import clean_url, get_base_url
 from db.database import SessionLocal, get_db
 from db.models import ApplicationORM, JobORM
 from db.utils import (
     add_new_application,
     add_new_job,
-    add_new_scraped_jobs,
     approve_application_by_id,
     approve_job_by_id,
     discard_application_by_id,
@@ -38,11 +39,9 @@ from fastapi import Body, Depends, FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, HttpUrl, model_validator
+from schemas.definitions import App, AppFragment, Job, Review, User
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
-from src.definitions import App, AppFragment, Job, Review, User
-from src.jobs import get_domain_handler, save_jobs
-from src.utils import clean_url, get_base_url
 from worker.tasks import (
     check_if_job_still_exists_task,
     create_app_task,

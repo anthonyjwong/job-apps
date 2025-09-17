@@ -5,7 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel
 from pydantic import Field as PydanticField
-from src.errors import QuestionNotFoundError
+
+from schemas.errors import QuestionNotFoundError
 
 
 class Review(BaseModel):

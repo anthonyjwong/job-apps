@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from src.definitions import App, AppField, Job, Review
+from schemas.definitions import App, AppField, Job, Review
 
 from .models import ApplicationORM, JobORM
 

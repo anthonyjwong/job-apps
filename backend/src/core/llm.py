@@ -1,10 +1,10 @@
 import json
 import logging
 
+from core.utils import with_retry
 from openai import OpenAI
 from openai.types.responses import Response
-from src.definitions import App, AppField, Job, Review, User
-from src.utils import with_retry
+from schemas.definitions import App, AppField, Job, Review, User
 
 client = OpenAI(timeout=60)
 
@@ -55,7 +55,7 @@ def evaluate_candidate_aptitude(job: Job, user: User) -> Job:
     except json.JSONDecodeError as e:
         logging.error(
             {
-                "method": "src.apply.evaluate_candidate_aptitude",
+                "method": "llm.apply.evaluate_candidate_aptitude",
                 "type": "FailedToParseOutput",
                 "response": response.output_text,
             }
