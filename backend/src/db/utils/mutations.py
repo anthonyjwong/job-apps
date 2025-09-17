@@ -1,152 +1,22 @@
 import logging
-from datetime import timezone
+from uuid import UUID
 
 from db.crud import app_to_orm, job_to_orm, orm_to_app, orm_to_job
 from db.models import ApplicationORM, JobORM
-
 from schemas.definitions import App, AppFragment, Job
 
 
-# get methods
-def get_job_by_id(db_session, job_id) -> Job:
-    """Fetch a job by its ID."""
-    orm = db_session.query(JobORM).filter(JobORM.id == job_id).first()
-    if orm is None:
-        return None
-    return orm_to_job(orm)
-
-
-def get_unapproved_jobs(db_session) -> list[Job]:
-    """Fetch all unapproved jobs."""
-    jobs = (
-        db_session.query(JobORM)
-        .filter(
-            (JobORM.approved == False)
-            & (JobORM.discarded == False)
-            & (JobORM.expired == False)
-        )
-        .order_by(JobORM.created_at.desc())
-        .all()
-    )
-    return [orm_to_job(job) for job in jobs]
-
-
-def get_unreviewed_jobs(db_session) -> list[Job]:
-    """Fetch all unreviewed jobs."""
-    jobs = db_session.query(JobORM).filter(JobORM.reviewed == False).all()
-    return [orm_to_job(job) for job in jobs]
-
-
-def get_reviewed_jobs(db_session) -> list[Job]:
-    """Fetch all reviewed jobs."""
-    jobs = db_session.query(JobORM).filter(JobORM.reviewed == True).all()
-    return [orm_to_job(job) for job in jobs]
-
-
-def get_unexpired_jobs_older_than_one_week(db_session) -> list[Job]:
-    """Fetch all jobs older than one week that are unexpired."""
-    from datetime import datetime, timedelta
-
-    one_week_ago = datetime.now(timezone.utc) - timedelta(weeks=1)
-    jobs = (
-        db_session.query(JobORM)
-        .filter((JobORM.created_at < one_week_ago) & (JobORM.expired == False))
-        .all()
-    )
-    return [orm_to_job(job) for job in jobs]
-
-
-def get_all_jobs(db_session) -> list[Job]:
-    jobs = db_session.query(JobORM).all()
-    return [orm_to_job(job) for job in jobs]
-
-
-def get_application_by_id(db_session, application_id) -> App:
-    """Fetch an application by its ID."""
-    app = (
-        db_session.query(ApplicationORM)
-        .filter(ApplicationORM.id == application_id)
-        .first()
-    )
-    if app is None:
-        return None
-    return orm_to_app(app)
-
-
-def get_application_by_job_id(db_session, job_id) -> App:
-    """Fetch an application by its job ID."""
-    app = (
-        db_session.query(ApplicationORM).filter(ApplicationORM.job_id == job_id).first()
-    )
-    if app is None:
-        return None
-    return orm_to_app(app)
-
-
-def get_unscraped_applications(db_session) -> list[App]:
-    """Fetch all unscraped applications."""
-    apps = (
-        db_session.query(ApplicationORM).filter(ApplicationORM.scraped == False).all()
-    )
-    return [orm_to_app(app) for app in apps]
-
-
-def get_unprepared_applications(db_session) -> list[App]:
-    """Fetch all unprepared apps."""
-    apps = (
-        db_session.query(ApplicationORM)
-        .filter((ApplicationORM.scraped == True) & (ApplicationORM.prepared == False))
-        .all()
-    )
-    return [orm_to_app(app) for app in apps]
-
-
-def get_unapproved_applications(db_session) -> list[App]:
-    """Fetch all unapproved applications."""
-    apps = (
-        db_session.query(ApplicationORM)
-        .filter(
-            (ApplicationORM.prepared == True)
-            & (ApplicationORM.approved == False)
-            & (ApplicationORM.discarded == False)
-            & (ApplicationORM.submitted == False)
-        )
-        .all()
-    )
-    return [orm_to_app(app) for app in apps]
-
-
-def get_approved_applications(db_session) -> list[App]:
-    """Fetch all user-approved applications."""
-    apps = (
-        db_session.query(ApplicationORM)
-        .filter((ApplicationORM.approved == True) & (ApplicationORM.submitted == False))
-        .all()
-    )
-    return [orm_to_app(app) for app in apps]
-
-
-def get_submitted_applications(db_session) -> list[App]:
-    """Fetch all submitted applications."""
-    apps = (
-        db_session.query(ApplicationORM).filter(ApplicationORM.submitted == True).all()
-    )
-    return [orm_to_app(app) for app in apps]
-
-
-def get_all_applications(db_session) -> list[App]:
-    """Fetch all applications."""
-    apps = db_session.query(ApplicationORM).all()
-    return [orm_to_app(app) for app in apps]
-
-
-# update methods
 def update_job_by_id(db_session, job_id, updated_job: Job):
     """Update a job by its ID."""
     job_orm = db_session.query(JobORM).filter(JobORM.id == job_id).first()
     if job_orm:
         for key, value in updated_job.__dict__.items():
-            if key == "id":
+            if (
+                key == "id"
+                or key == "review_claim"
+                or key == "create_app_claim"
+                or key == "expiration_check_claim"
+            ):
                 continue
             elif key == "review" and value is not None:
                 # Convert Review object to dict for JSON storage
@@ -183,7 +53,7 @@ def update_application_by_id(db_session, app_id, updated_app: App):
     app = db_session.query(ApplicationORM).filter(ApplicationORM.id == app_id).first()
     if app:
         for key, value in updated_app.__dict__.items():
-            if key == "id":
+            if key == "id" or key == "prepare_claim" or key == "submission_claim":
                 continue
             elif key == "fields":
                 fields = [field.__dict__ for field in value]
@@ -257,7 +127,6 @@ def discard_application_by_id(db_session, app_id):
     logging.debug(f"App {app_id} discarded")
 
 
-# add methods
 def add_new_scraped_jobs(db_session, new_jobs: list[Job]) -> list[Job]:
     """Add newly scraped jobs to the database."""
     added_jobs = []

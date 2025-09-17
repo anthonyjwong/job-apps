@@ -5,7 +5,6 @@ from uuid import UUID
 
 from pydantic import BaseModel
 from pydantic import Field as PydanticField
-
 from schemas.errors import QuestionNotFoundError
 
 

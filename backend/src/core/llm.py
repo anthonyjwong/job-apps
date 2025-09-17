@@ -16,7 +16,7 @@ def upload_resume(resume_pdf_path: str):
         return resume_pdf.id
 
 
-def evaluate_candidate_aptitude(job: Job, user: User) -> Job:
+def evaluate_candidate_aptitude(job: Job, user: User) -> Review:
     """Review job and resume and determine fit for the role."""
     with open(".instructions/REVIEWER.md", "r") as f:
         instructions = f.read()
@@ -45,13 +45,7 @@ def evaluate_candidate_aptitude(job: Job, user: User) -> Job:
 
     try:
         review_data = json.loads(response.output_text)
-        job.review = Review(**review_data)
-        job.reviewed = True
-        if (
-            job.review.classification == "safety"
-            or job.review.classification == "target"
-        ):
-            job.approved = True
+        return Review(**review_data)
     except json.JSONDecodeError as e:
         logging.error(
             {
@@ -61,8 +55,6 @@ def evaluate_candidate_aptitude(job: Job, user: User) -> Job:
             }
         )
         raise e
-
-    return job
 
 
 def answer_question(

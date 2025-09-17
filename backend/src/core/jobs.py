@@ -2,14 +2,13 @@ import logging
 import re
 
 import pandas as pd
-from jobspy import scrape_jobs
-from scrapers.scraper import JobSite
-from scrapers.sites import Ashby, LinkedIn
 from core.llm import answer_question, upload_resume
 from core.utils import clean_url, clean_val, get_base_url
-
+from jobspy import scrape_jobs
 from schemas.definitions import App, Job, User
 from schemas.errors import MissingAppUrlError
+from scrapers.scraper import JobSite
+from scrapers.sites import Ashby, LinkedIn
 
 DOMAIN_HANDLERS = {"jobs.ashbyhq.com": Ashby, "www.linkedin.com": LinkedIn}
 
@@ -93,9 +92,7 @@ def scrape_job_app(job: Job) -> App:
     if job_site is None:
         raise NotImplementedError(f"Site not supported: {job_url}")
 
-    app = job_site.scrape_questions()
-    app.scraped = True
-    return app
+    return job_site.scrape_questions()
 
 
 def prepare_job_app(job: Job, app: App, user: User) -> App:
@@ -116,7 +113,6 @@ def prepare_job_app(job: Job, app: App, user: User) -> App:
             )
             field.answer = response.output_text.strip()
 
-    app.prepared = True
     return app
 
 

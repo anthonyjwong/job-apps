@@ -11,13 +11,25 @@ from core.jobs import get_domain_handler
 from core.utils import clean_url, get_base_url
 from db.database import SessionLocal, get_db
 from db.models import ApplicationORM, JobORM
-from db.utils import (
+from db.utils.claims import (
+    claim_app_for_prep,
+    claim_app_for_submission,
+    claim_job_for_app_creation,
+    claim_job_for_expiration_check,
+    claim_job_for_review,
+)
+from db.utils.mutations import (
     add_new_application,
     add_new_job,
     approve_application_by_id,
     approve_job_by_id,
     discard_application_by_id,
     discard_job_by_id,
+    update_application_by_id_with_fragment,
+    update_application_state_by_id,
+    update_job_by_id,
+)
+from db.utils.queries import (
     get_all_applications,
     get_all_jobs,
     get_application_by_id,
@@ -31,9 +43,6 @@ from db.utils import (
     get_unexpired_jobs_older_than_one_week,
     get_unprepared_applications,
     get_unreviewed_jobs,
-    update_application_by_id_with_fragment,
-    update_application_state_by_id,
-    update_job_by_id,
 )
 from fastapi import Body, Depends, FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -187,8 +196,14 @@ def review_job(job_id: UUID):
                 },
             )
 
+        if not claim_job_for_review(db, job_id):
+            return JSONResponse(
+                status_code=202,
+                content={"message": f"Job {job_id} already queued for review"},
+            )
+
     # task
-    task = evaluate_job_task.delay(job.to_json(), user.to_json())
+    task = evaluate_job_task.delay(job.id, user.to_json())
 
     # response
     return JSONResponse(
@@ -218,7 +233,7 @@ def create_job_application(job_id: UUID):
             )
 
         existing_app = get_application_by_job_id(db, job_id)
-        if existing_app and existing_app.scraped == True:
+        if existing_app:
             logging.error(
                 f"/job/{job_id}/create_app: Application for job {job_id} already scraped",
                 exc_info=True,
@@ -255,8 +270,14 @@ def create_job_application(job_id: UUID):
                 },
             )
 
+        if not claim_job_for_app_creation(db, job_id):
+            return JSONResponse(
+                status_code=202,
+                content={"message": f"Job {job_id} already queued for app creation"},
+            )
+
     # task
-    task = create_app_task.delay(job.to_json())
+    task = create_app_task.delay(job_id)
 
     # response
     return JSONResponse(
@@ -287,8 +308,28 @@ def expire_job(job_id: UUID):
                 },
             )
 
+        if not job.linkedin_job_url:
+            logging.error(
+                f"/job/{job_id}/expire: Job does not have a LinkedIn URL, cannot check expiration",
+            )
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "status": "error",
+                    "message": f"Job {job_id} does not have a LinkedIn URL, cannot check expiration",
+                },
+            )
+
+        if not claim_job_for_expiration_check(db, job_id):
+            return JSONResponse(
+                status_code=202,
+                content={
+                    "message": f"Job {job_id} already queued for expiration check"
+                },
+            )
+
     # logic
-    task = check_if_job_still_exists_task.delay(job.to_json())
+    task = check_if_job_still_exists_task.delay(job_id)
 
     # response
     return JSONResponse(
@@ -332,18 +373,6 @@ def prepare_application(app_id: UUID):
                 },
             )
 
-        if app.scraped == False:
-            logging.error(
-                f"/app/{app_id}/prepare: App questions not scraped",
-            )
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "status": "error",
-                    "message": f"App {app.id} is not scraped",
-                },
-            )
-
         if app.prepared == True:
             logging.error(
                 f"/app/{app_id}/prepare: App is already prepared",
@@ -356,8 +385,14 @@ def prepare_application(app_id: UUID):
                 },
             )
 
+        if not claim_app_for_prep(db, app_id):
+            return JSONResponse(
+                status_code=202,
+                content={"message": f"App {app_id} already queued for preparation"},
+            )
+
     # task
-    task = prepare_application_task.delay(job.to_json(), app.to_json(), user.to_json())
+    task = prepare_application_task.delay(job.id, app.id, user.to_json())
 
     # response
     return JSONResponse(
@@ -438,8 +473,14 @@ def submit_application(app_id: UUID):
                 },
             )
 
+        if not claim_app_for_submission(db, app_id):
+            return JSONResponse(
+                status_code=202,
+                content={"message": f"App {app_id} already queued for preparation"},
+            )
+
     # task
-    task = submit_application_task.delay(job.to_json(), app.to_json())
+    task = submit_application_task.delay(job.id, app_id)
 
     # response
     return JSONResponse(
@@ -463,7 +504,8 @@ def review_jobs(db: Session = Depends(get_db)):
 
     # send-off
     for job in jobs:
-        review_job(job.id)
+        if claim_job_for_review(db, job.id):
+            evaluate_job_task.delay(job.id, user.to_json())
 
     # response
     return JSONResponse(
@@ -482,8 +524,8 @@ def expire_jobs(db: Session = Depends(get_db)):
 
     # send-off
     for job in jobs:
-        if job.linkedin_job_url:
-            expire_job(job.id)
+        if job.linkedin_job_url and claim_job_for_expiration_check(db, job.id):
+            check_if_job_still_exists_task.delay(job.id)
 
     # response
     return JSONResponse(
@@ -503,9 +545,9 @@ def create_job_applications(db: Session = Depends(get_db)):
     # send-off
     for job in jobs:
         if job.approved:
-            app = get_application_by_job_id(db, job.id)
-            if app is None or app.scraped == False:
-                create_job_application(job.id)
+            job_url = job.direct_job_url or job.linkedin_job_url
+            if get_domain_handler(job_url) and claim_job_for_app_creation(db, job.id):
+                create_app_task.delay(job.id)
 
     # response
     return JSONResponse(
@@ -524,7 +566,8 @@ def prepare_applications(db: Session = Depends(get_db)):
 
     # send-off
     for app in apps:
-        prepare_application(app.id)
+        if claim_app_for_prep(db, app.id):
+            prepare_application_task.delay(app.job_id, app.id, user.to_json())
 
     # response
     return JSONResponse(
@@ -543,7 +586,8 @@ def submit_applications(db: Session = Depends(get_db)):
 
     # send off
     for app in apps:
-        submit_application(app.id)
+        if claim_app_for_submission(db, app.id):
+            submit_application_task.delay(app.job_id, app.id)
 
     # response
     return JSONResponse(
@@ -1097,7 +1141,7 @@ def get_applications_summary(db: Session = Depends(get_db)):
             db.query(JobORM.id)
             .outerjoin(ApplicationORM, ApplicationORM.job_id == JobORM.id)
             .filter(JobORM.reviewed, JobORM.approved, ~JobORM.discarded)
-            .filter(or_(ApplicationORM.id == None, ~ApplicationORM.scraped))
+            .filter(ApplicationORM.id == None)
             .distinct()
         )
         approved_wo_app_job_ids = [row[0] for row in approved_wo_app_query.all()]

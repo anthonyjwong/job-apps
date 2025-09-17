@@ -2,6 +2,7 @@ import logging
 import os
 import random
 from json import JSONDecodeError
+from uuid import UUID
 
 import redis
 from celery import Celery
@@ -15,13 +16,18 @@ from core.jobs import (
 from core.llm import evaluate_candidate_aptitude
 from core.utils import get_base_url
 from db.database import SessionLocal
-from db.utils import (
-    add_new_application,
-    add_new_scraped_jobs,
-    get_application_by_job_id,
-    update_application_by_id,
-    update_job_by_id,
+from db.utils.claims import (
+    clear_app_preparation_claim,
+    clear_app_submission_claim,
+    clear_job_app_creation_claim,
+    clear_job_expiration_claim,
+    clear_job_review_claim,
+    set_job_app_created,
+    set_job_expired,
+    set_job_reviewed,
 )
+from db.utils.mutations import add_new_scraped_jobs
+from db.utils.queries import get_application_by_id, get_job_by_id
 from requests import JSONDecodeError
 from schemas.definitions import App, Job, User
 from schemas.errors import MissingAppUrlError, QuestionNotFoundError
@@ -47,6 +53,26 @@ def _get_redis_client():
 def _acquire_jobspy_lock(ttl_seconds: int = 60):
     client = _get_redis_client()
     return client.lock("jobspy:lock", timeout=ttl_seconds, blocking_timeout=0)
+
+
+def validate_job_id(job_id: UUID) -> Job:
+    job = None
+    with SessionLocal() as db:
+        job = get_job_by_id(db, job_id)
+    if job is None:
+        raise ValueError(f"Job with id {job_id} not found.")
+
+    return job
+
+
+def validate_app_id(app_id: UUID) -> App:
+    app = None
+    with SessionLocal() as db:
+        app = get_application_by_id(db, app_id)
+    if app is None:
+        raise ValueError(f"App with id {app_id} not found.")
+
+    return app
 
 
 def get_task_status(task_id: str):
@@ -110,131 +136,175 @@ def get_new_jobs_task(num_jobs: int):
 
 
 @celery_app.task
-def evaluate_job_task(job: dict, user: dict):
-    job = Job(**job)
+def evaluate_job_task(job_id: UUID, user: dict) -> bool:
     user = User(**user)
+    job = validate_job_id(job_id)
+
+    if job.reviewed:
+        with SessionLocal() as db:
+            clear_job_review_claim(db, job.id)
+        return True
 
     # logic
     try:
         logging.info(f"Reviewing job {job.id}...")
-        reviewed_job = evaluate_candidate_aptitude(job, user)
-    except JSONDecodeError:
-        raise JSONDecodeError(
-            f"evaluate_candidate_aptitude failed to return a valid JSON response for job {job.id}"
-        )
-    except Exception as e:
-        raise Exception(f"Error reviewing job {job.id}", e)
+        review = evaluate_candidate_aptitude(job, user)
+    except (JSONDecodeError, Exception) as e:
+        error_message = None
+        if type(e) is JSONDecodeError:
+            error_message = f"evaluate_candidate_aptitude failed to return a valid JSON response for job {job.id}"
+        else:
+            error_message = f"Error reviewing job {job.id}"
+
+        with SessionLocal() as db:
+            clear_job_review_claim(db, job.id)
+
+        raise Exception(error_message, e)
 
     # database operation
     try:
         with SessionLocal() as db:
-            update_job_by_id(db, job.id, reviewed_job)
+            set_job_reviewed(db, job.id, review)
+        return True
     except Exception as e:
+        with SessionLocal() as db:
+            clear_job_review_claim(db, job.id)
         raise Exception(f"Error updating job {job.id} in database", e)
-
-    return reviewed_job.reviewed
 
 
 @celery_app.task
-def create_app_task(job: dict):
-    job = Job(**job)
+def create_app_task(job_id: UUID) -> UUID:
+    job = validate_job_id(job_id)
 
     # logic
     try:
         logging.info(f"Scraping job {job.id} questions...")
         app = scrape_job_app(job)
-    except ValueError as e:
-        raise ValueError(f"Job {job.id} is missing URLs")
-    except NotImplementedError as e:
-        raise NotImplementedError(
-            f"{get_base_url(job.direct_job_url or job.linkedin_job_url)} scraping is not supported at this time"
-        )
-    except Exception as e:
-        raise Exception(f"Error scraping job {job.id}", e)
+    except (ValueError, NotImplementedError, Exception) as e:
+        error_message = None
+        if type(e) is ValueError:
+            error_message = f"Job {job.id} is missing URLs"
+        elif type(e) is NotImplementedError:
+            error_message = f"{get_base_url(job.direct_job_url or job.linkedin_job_url)} scraping is not supported at this time"
+        else:
+            error_message = f"Error scraping job {job.id}"
+
+        with SessionLocal() as db:
+            clear_job_app_creation_claim(db, job.id)
+
+        raise Exception(error_message, e)
 
     # database operation
     try:
         with SessionLocal() as db:
-            existing_app = get_application_by_job_id(db, job.id)
-            if existing_app is None:
-                add_new_application(db, app)
-            else:
-                update_application_by_id(db, existing_app.id, app)
+            set_job_app_created(db, app)
     except Exception as e:
+        clear_job_app_creation_claim(db, job.id)
         raise Exception(f"Error updating app {app.id} in database", e)
 
     return app.scraped
 
 
 @celery_app.task
-def check_if_job_still_exists_task(job: dict):
-    job = Job(**job)
+def check_if_job_still_exists_task(job_id: UUID):
+    job = validate_job_id(job_id)
+
+    if job.expired:
+        with SessionLocal() as db:
+            clear_job_expiration_claim(db, job.id)
+        return True
 
     # logic
     try:
         expired = check_job_expiration(job)
     except Exception as e:
+        clear_job_expiration_claim(db, job.id)
         raise Exception(f"Error checking job expiration for {job.id}", e)
 
     # database operation
     try:
-        if expired:
-            job.expired = True
-            with SessionLocal() as db:
-                update_job_by_id(db, job.id, job)
+        with SessionLocal() as db:
+            if expired:
+                set_job_expired(db, job.id)
+            else:
+                clear_job_expiration_claim(db, job.id)
     except Exception as e:
+        clear_job_expiration_claim(db, job.id)
         raise Exception(f"Error updating job {job.id} in database", e)
 
     return expired
 
 
 @celery_app.task
-def prepare_application_task(job: dict, app: dict, user: dict):
-    job = Job(**job)
-    app = App(**app)
+def prepare_application_task(job_id: UUID, app_id: UUID, user: dict):
+    job = validate_job_id(job_id)
+    app = validate_app_id(app_id)
     user = User(**user)
+
+    if app.prepared:
+        with SessionLocal() as db:
+            clear_app_preparation_claim(db, job.id)
+        return True
+
     # logic
     try:
         logging.info(f"Preparing app {app.id}...")
         prepared_app = prepare_job_app(job, app, user)
     except Exception as e:
+        clear_app_preparation_claim(db, job.id)
         raise Exception(f"Failed to prepare app {app.id}", e)
 
     # database operation
     try:
         with SessionLocal() as db:
-            update_application_by_id(db, app.id, prepared_app)
+            # TODO: handle atomic update
+            pass
     except Exception as e:
+        clear_app_preparation_claim(db, job.id)
         raise Exception(f"Error updating app {app.id} in database", e)
 
     return prepared_app.prepared
 
 
 @celery_app.task
-def submit_application_task(job: dict, app: dict):
-    job = Job(**job)
-    app = App(**app)
+def submit_application_task(job_id: UUID, app_id: UUID):
+    job = validate_job_id(job_id)
+    app = validate_app_id(app_id)
 
     # logic
     try:
         logging.info(f"Submitting app {app.id}...")
         applied_app = submit_app(app, job)
-    except MissingAppUrlError:
-        raise MissingAppUrlError(f"Job {job.id} is missing URLs")
-    except QuestionNotFoundError:
-        raise QuestionNotFoundError(f"Required question not found for app {app.id}")
-    except NotImplementedError:
-        raise NotImplementedError(
-            f"{get_base_url(app.url)} app submission is not supported at this time"
-        )
-    except Exception as e:
-        raise Exception(f"Error submitting application for app {app.id}", e)
+    except (
+        MissingAppUrlError,
+        QuestionNotFoundError,
+        NotImplementedError,
+        Exception,
+    ) as e:
+        error_message = None
+        if type(e) is MissingAppUrlError:
+            error_message = f"Job {job.id} is missing URLs"
+        elif type(e) is QuestionNotFoundError:
+            error_message = f"Required question not found for app {app.id}"
+        elif type(e) is NotImplementedError:
+            error_message = (
+                f"{get_base_url(app.url)} app submission is not supported at this time"
+            )
+        else:
+            error_message = f"Error submitting application for app {app.id}"
+
+        with SessionLocal() as db:
+            clear_app_submission_claim(db, app.id)
+
+        raise Exception(error_message, e)
 
     # database operation
     try:
         with SessionLocal() as db:
-            update_application_by_id(db, app.id, applied_app)
+            # TODO: handle atomic update
+            pass
     except Exception as e:
+        clear_app_submission_claim(db, app.id)
         raise Exception(f"Error updating app {app.id} in database", e)
 
     return applied_app.submitted

@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import List
 
-from sqlalchemy import JSON, UUID, Boolean, Column, DateTime, Float, ForeignKey, String
+from sqlalchemy import JSON, UUID, Boolean, DateTime, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
@@ -11,26 +11,33 @@ from .database import Base
 class JobORM(Base):
     __tablename__ = "jobs"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    jobspy_id = Column(String, nullable=False)
-    title = Column(String, nullable=False)
-    company = Column(String, nullable=False)
-    location = Column(String, nullable=True)
-    min_salary = Column(Float, nullable=True)
-    max_salary = Column(Float, nullable=True)
-    date_posted = Column(DateTime, nullable=True)
-    job_type = Column(String, nullable=True)
-    linkedin_job_url = Column(String, nullable=True)
-    direct_job_url = Column(String, nullable=True)
-    description = Column(String, nullable=True)
-    review = Column(JSON, nullable=True)  # Store Review as JSON
-    reviewed = Column(Boolean, default=False)
-    approved = Column(Boolean, default=False)
-    discarded = Column(Boolean, default=False)
-    manual = Column(Boolean, default=False)
-    expired = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.now(timezone.utc))
-    updated_at = Column(
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    jobspy_id: Mapped[str] = mapped_column(String, nullable=False)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    company: Mapped[str] = mapped_column(String, nullable=False)
+    location: Mapped[str] = mapped_column(String, nullable=True)
+    min_salary: Mapped[float] = mapped_column(Float, nullable=True)
+    max_salary: Mapped[float] = mapped_column(Float, nullable=True)
+    date_posted: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    job_type: Mapped[str] = mapped_column(String, nullable=True)
+    linkedin_job_url: Mapped[str] = mapped_column(String, nullable=True)
+    direct_job_url: Mapped[str] = mapped_column(String, nullable=True)
+    description: Mapped[str] = mapped_column(String, nullable=True)
+    review: Mapped[dict] = mapped_column(JSON, nullable=True)  # Store Review as JSON
+    review_claim: Mapped[bool] = mapped_column(Boolean, default=False)
+    reviewed: Mapped[bool] = mapped_column(Boolean, default=False)
+    approved: Mapped[bool] = mapped_column(Boolean, default=False)
+    discarded: Mapped[bool] = mapped_column(Boolean, default=False)
+    create_app_claim: Mapped[bool] = mapped_column(Boolean, default=False)
+    manual: Mapped[bool] = mapped_column(Boolean, default=False)
+    expiration_check_claim: Mapped[bool] = mapped_column(Boolean, default=False)
+    expired: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.now(timezone.utc),
         onupdate=datetime.now(timezone.utc),
@@ -55,10 +62,13 @@ class JobORM(Base):
             "direct_job_url": self.direct_job_url,
             "description": self.description,
             "review": self.review,
+            "review_claim": self.review_claim,
             "reviewed": self.reviewed,
             "approved": self.approved,
             "discarded": self.discarded,
+            "create_app_claim": self.create_app_claim,
             "manual": self.manual,
+            "expiration_check_claim": self.expiration_check_claim,
             "expired": self.expired,
         }
 
@@ -66,22 +76,29 @@ class JobORM(Base):
 class ApplicationORM(Base):
     __tablename__ = "applications"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    job_id = Column(UUID(as_uuid=True), ForeignKey("jobs.id"), nullable=False)
-    url = Column(String, nullable=False)
-    fields = Column(JSON, nullable=True)  # Store AppFields as JSON
-    scraped = Column(Boolean, default=False)
-    prepared = Column(Boolean, default=False)
-    approved = Column(Boolean, default=False)
-    discarded = Column(Boolean, default=False)
-    referred = Column(Boolean, default=False)
-    submitted = Column(Boolean, default=False)
-    acknowledged = Column(Boolean, default=False)
-    assessment = Column(Boolean, default=False)
-    interview = Column(Boolean, default=False)
-    rejected = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.now(timezone.utc))
-    updated_at = Column(
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    job_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("jobs.id"), nullable=False
+    )
+    url: Mapped[str] = mapped_column(String, nullable=False)
+    fields: Mapped[dict] = mapped_column(JSON, nullable=True)  # Store AppFields as JSON
+    prepare_claim: Mapped[bool] = mapped_column(Boolean, default=False)
+    prepared: Mapped[bool] = mapped_column(Boolean, default=False)
+    approved: Mapped[bool] = mapped_column(Boolean, default=False)
+    discarded: Mapped[bool] = mapped_column(Boolean, default=False)
+    referred: Mapped[bool] = mapped_column(Boolean, default=False)
+    submission_claim: Mapped[bool] = mapped_column(Boolean, default=False)
+    submitted: Mapped[bool] = mapped_column(Boolean, default=False)
+    acknowledged: Mapped[bool] = mapped_column(Boolean, default=False)
+    assessment: Mapped[bool] = mapped_column(Boolean, default=False)
+    interview: Mapped[bool] = mapped_column(Boolean, default=False)
+    rejected: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.now(timezone.utc),
         onupdate=datetime.now(timezone.utc),
@@ -96,11 +113,12 @@ class ApplicationORM(Base):
             "job_id": self.job_id,
             "url": self.url,
             "fields": self.fields,
-            "scraped": self.scraped,
+            "prepare_claim": self.prepare_claim,
             "prepared": self.prepared,
             "approved": self.approved,
             "discarded": self.discarded,
             "referred": self.referred,
+            "submission_claim": self.submission_claim,
             "submitted": self.submitted,
             "acknowledged": self.acknowledged,
             "assessment": self.assessment,
@@ -112,8 +130,14 @@ class ApplicationORM(Base):
 class ErrorORM(Base):
     __tablename__ = "errors"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    error = Column(String, nullable=False)
-    operation = Column(String, nullable=False)
-    error_time = Column(DateTime, default=datetime.now(timezone.utc))
-    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    error: Mapped[str] = mapped_column(String, nullable=False)
+    operation: Mapped[str] = mapped_column(String, nullable=False)
+    error_time: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.now(timezone.utc)
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.now(timezone.utc)
+    )
