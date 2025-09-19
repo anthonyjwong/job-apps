@@ -1,41 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TechJobs Platform
+
+A Next.js application for AI-powered job search and career development platform.
+
+## Features
+
+- **AI-Powered Job Classification**: Automatically categorizes jobs into Safety, Target, Reach, and Dream categories based on interview likelihood
+- **Smart Action Recommendations**: Provides specific, actionable advice for each job application
+- **Interview-Focused Dashboard**: Track applications, interviews, and career progression
+- **Responsive Design**: Works seamlessly on desktop and mobile devices
+- **Dark/Light Theme**: Customizable theme preferences
+
+## Tech Stack
+
+- **Framework**: Next.js 14 with App Router
+- **Styling**: Tailwind CSS v4 with custom design tokens
+- **UI Components**: shadcn/ui component library
+- **Icons**: Lucide React
+- **Charts**: Recharts
+- **TypeScript**: Full type safety
 
 ## Getting Started
 
-First, run the development server:
-
+1. Install dependencies:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Run the development server:
+```bash
+npm run dev
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Project Structure
 
-## Learn More
+```
+├── app/                    # Next.js App Router pages
+│   ├── layout.tsx         # Root layout with theme provider
+│   ├── page.tsx          # Homepage (Dashboard)
+│   ├── jobs/page.tsx     # Job Discovery page
+│   ├── analytics/page.tsx # Analytics page
+│   ├── applications/page.tsx # Applications page
+│   └── settings/page.tsx # Settings page
+├── components/            # Reusable React components
+│   ├── ui/               # shadcn/ui components
+│   ├── Dashboard.tsx     # Main dashboard component
+│   ├── JobDiscovery.tsx  # Job discovery with AI classification
+│   ├── Header.tsx        # Navigation header
+│   └── ...              # Other components
+└── styles/
+    └── globals.css       # Global styles and design tokens
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Features Overview
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### AI Job Classification
+- **Safety Jobs** (80%+ interview rate): High likelihood opportunities
+- **Target Jobs** (60-80% interview rate): Good fit positions
+- **Reach Jobs** (30-60% interview rate): Stretch opportunities
+- **Dream Jobs**: Career aspirations and growth targets
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### AI Action Recommendations
+Each job includes specific, actionable advice to improve your chances:
+- Portfolio improvements
+- Skill highlighting strategies
+- Experience positioning
+- Technical preparation tips
 
-## Deploy on Vercel
+## Development
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The platform is built with modern React patterns and Next.js best practices:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Client Components**: Interactive components use `'use client'` directive
+- **Server Components**: Default server-side rendering for performance
+- **Type Safety**: Full TypeScript implementation
+- **Responsive Design**: Mobile-first approach with Tailwind CSS
 
-## Dev tips
+## License
 
-- We run webpack dev server (no `--turbopack`) to avoid Turbopack panics inside Docker on bind-mounted volumes.
-- In docker-compose we bind-mount the source only; `node_modules` and `.next` live inside the container to avoid file-watcher and write issues.
+Private project for TechJobs platform development.
+
+## Docs
+
+For architecture patterns, server actions, types, and full API endpoint references, see `./.docs`:
+
+- `./.docs/README.md` (index)
+- `./.docs/patterns.md` (server-first + islands)
+- `./.docs/server-actions.md` (mutations + revalidation)
+- `./.docs/types-and-boundaries.md` (shared types + serialization)
+- `./.docs/endpoints/` (per-route request/response JSON)
