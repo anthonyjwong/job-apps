@@ -30,7 +30,6 @@ COPY --from=deps /app/node_modules /app/node_modules
 COPY --from=build /app/.next /app/.next
 COPY pnpm-lock.yaml ./
 COPY package.json ./
-COPY public ./public
 COPY next.config.ts tsconfig.json ./
 
 EXPOSE 3000

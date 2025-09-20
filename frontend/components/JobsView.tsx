@@ -13,13 +13,14 @@ import { Button } from "./ui/button";
 type JobsViewProps = {
   initialJobs: Job[];
   initialSaved: string[];
+  initialCategory?: string;
 };
 
-export function JobsView({ initialJobs, initialSaved }: JobsViewProps) {
+export function JobsView({ initialJobs, initialSaved, initialCategory = 'all' }: JobsViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState(initialCategory);
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
   const [savedJobs, setSavedJobs] = useState<string[]>(initialSaved);
   const [loading, setLoading] = useState(false);

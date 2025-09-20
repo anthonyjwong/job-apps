@@ -2,8 +2,9 @@
 
 import { createApplicationAction } from "@/app/actions";
 import type { Application, Assessment, Interview, NewApplication } from "@/lib/types";
-import { ArrowRight, Bell, Brain, Calendar, Clock, Plus, Shield, Star, Target, TrendingUp, Zap } from "lucide-react";
+import { ArrowRight, Bell, Brain, Calendar, Clock, Plus, Shield, Sparkles, Star, Target, TrendingUp, Zap } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AddApplicationModal } from "./AddApplicationModal";
 import { ApplicationItem } from "./ApplicationItem";
@@ -31,6 +32,7 @@ type HomeInteractiveProps = {
 export function HomeInteractive({ interviews, assessments, applications, stats }: HomeInteractiveProps) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [apps, setApps] = useState(applications);
+  const router = useRouter();
 
   const recentActivity = [
     ...interviews.slice(0, 2).map(interview => ({
@@ -62,20 +64,16 @@ export function HomeInteractive({ interviews, assessments, applications, stats }
       {/* Header with Welcome Message */}
       <div className="space-y-3">
         <div className="flex items-center gap-3">
-          <h1>Good morning, Alex!</h1>
-          <Badge className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground border-0">
-            <Brain className="w-3 h-3 mr-1" />
-            AI-Powered
-          </Badge>
+          <h1>Good morning, AJ!</h1>
         </div>
         <p className="text-muted-foreground">
-          Land more interviews with AI-powered job classification. Track dream roles to plan your career growth journey.
+          <span className="font-medium">1,198</span> new opportunities available.
         </p>
       </div>
 
-      {/* AI-Powered Category Breakdown */}
+      {/* New Job Category Breakdown */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-safety/20 bg-gradient-to-br from-safety/5 to-safety/10">
+        <Card className="border-safety/20 bg-gradient-to-br from-safety/5 to-safety/10 cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/jobs?category=safety')}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
@@ -91,7 +89,7 @@ export function HomeInteractive({ interviews, assessments, applications, stats }
           </CardContent>
         </Card>
 
-        <Card className="border-target/20 bg-gradient-to-br from-target/5 to-target/10">
+        <Card className="border-target/20 bg-gradient-to-br from-target/5 to-target/10 cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/jobs?category=target')}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
@@ -107,7 +105,7 @@ export function HomeInteractive({ interviews, assessments, applications, stats }
           </CardContent>
         </Card>
 
-        <Card className="border-reach/20 bg-gradient-to-br from-reach/5 to-reach/10">
+        <Card className="border-reach/20 bg-gradient-to-br from-reach/5 to-reach/10 cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/jobs?category=reach')}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
@@ -123,16 +121,16 @@ export function HomeInteractive({ interviews, assessments, applications, stats }
           </CardContent>
         </Card>
 
-        <Card className="border-dream/20 bg-gradient-to-br from-dream/5 to-dream/10">
+        <Card className="border-dream/20 bg-gradient-to-br from-dream/5 to-dream/10 cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/jobs?category=dream')}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Star className="w-4 h-4 text-dream" />
+                  <Sparkles className="w-4 h-4 text-dream" />
                   <p className="text-sm text-muted-foreground">Dream Jobs</p>
                 </div>
                 <p className="text-2xl font-medium">{stats.categoryStats.dream}</p>
-                <p className="text-xs text-dream font-medium">Career Goals</p>
+                <p className="text-xs text-dream font-medium">{stats.categorySuccessRates.dream}% interview rate</p>
               </div>
               <JobCategoryBadge category="dream" size="sm" />
             </div>
