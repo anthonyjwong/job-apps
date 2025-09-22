@@ -5,9 +5,9 @@ from enum import Enum
 from typing import Literal, Optional
 from uuid import UUID
 
+from app.schemas.errors import QuestionNotFoundError
 from pydantic import BaseModel
 from pydantic import Field as PydanticField
-from schemas.errors import QuestionNotFoundError
 
 
 # jobs

@@ -2,13 +2,13 @@ import logging
 import re
 
 import pandas as pd
-from core.llm import answer_question, upload_resume
-from core.utils import clean_url, clean_val, get_base_url
+from app.core.llm import answer_question, upload_resume
+from app.core.utils import clean_url, clean_val, get_base_url
+from app.schemas.definitions import App, Job, User
+from app.schemas.errors import MissingAppUrlError
+from app.scrapers.scraper import JobSite
+from app.scrapers.sites import Ashby, LinkedIn
 from jobspy import scrape_jobs
-from schemas.definitions import App, Job, User
-from schemas.errors import MissingAppUrlError
-from scrapers.scraper import JobSite
-from scrapers.sites import Ashby, LinkedIn
 
 DOMAIN_HANDLERS = {"jobs.ashbyhq.com": Ashby, "www.linkedin.com": LinkedIn}
 

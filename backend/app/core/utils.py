@@ -5,8 +5,7 @@ from typing import Callable, Optional, Tuple, Type
 from urllib.parse import urlparse
 
 import pandas as pd
-
-from schemas.definitions import Job
+from app.schemas.definitions import Job
 
 
 def convert_df_to_object_list(df: pd.DataFrame, obj_type: type) -> list[object]:

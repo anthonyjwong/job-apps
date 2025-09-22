@@ -1,10 +1,10 @@
 import json
 import logging
 
-from core.utils import with_retry
+from app.core.utils import with_retry
+from app.schemas.definitions import App, AppField, Job, JobReview, Review, User
 from openai import OpenAI
 from openai.types.responses import Response
-from schemas.definitions import App, AppField, Job, JobReview, Review, User
 
 client = OpenAI(timeout=60)
 

@@ -5,18 +5,17 @@ from json import JSONDecodeError
 from uuid import UUID
 
 import redis
-from celery import Celery
-from core.jobs import (
+from app.core.jobs import (
     check_job_expiration,
     prepare_job_app,
     save_jobs,
     scrape_job_app,
     submit_app,
 )
-from core.llm import evaluate_candidate_aptitude
-from core.utils import get_base_url
-from db.database import SessionLocal
-from db.utils.claims import (
+from app.core.llm import evaluate_candidate_aptitude
+from app.core.utils import get_base_url
+from app.db.database import SessionLocal
+from app.db.utils.claims import (
     clear_app_preparation_claim,
     clear_app_submission_claim,
     clear_job_app_creation_claim,
@@ -26,11 +25,12 @@ from db.utils.claims import (
     set_job_expired,
     set_job_reviewed,
 )
-from db.utils.mutations import add_new_scraped_jobs
-from db.utils.queries import get_application_by_id, get_job_by_id
+from app.db.utils.mutations import add_new_scraped_jobs
+from app.db.utils.queries import get_application_by_id, get_job_by_id
+from app.schemas.definitions import App, Job, User
+from app.schemas.errors import MissingAppUrlError, QuestionNotFoundError
+from celery import Celery
 from requests import JSONDecodeError
-from schemas.definitions import App, Job, User
-from schemas.errors import MissingAppUrlError, QuestionNotFoundError
 
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
 CELERY_BACKEND_URL = os.getenv("CELERY_BACKEND_URL", "redis://localhost:6379/1")

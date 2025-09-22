@@ -1,10 +1,10 @@
 import logging
 from uuid import UUID
 
-from db.crud import app_to_orm
-from db.models import ApplicationORM, JobORM
-from db.utils.queries import get_application_by_job_id
-from schemas.definitions import App, Job, JobReview
+from app.db.crud import app_to_orm
+from app.db.models import ApplicationORM, JobORM
+from app.db.utils.queries import get_application_by_job_id
+from app.schemas.definitions import App, Job, JobReview
 
 
 def claim_job_for_review(db_session, job_id: UUID) -> bool:

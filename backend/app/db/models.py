@@ -2,10 +2,9 @@ import uuid
 from datetime import datetime, timezone
 from typing import List
 
+from app.db.database import Base
 from sqlalchemy import JSON, UUID, Boolean, DateTime, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from .database import Base
 
 
 class JobORM(Base):

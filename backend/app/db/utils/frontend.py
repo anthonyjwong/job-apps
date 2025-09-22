@@ -1,6 +1,6 @@
-from db.crud import orm_to_app
-from db.models import ApplicationORM, ApplicationStatusEnum
-from schemas.definitions import Application
+from app.db.crud import orm_to_app
+from app.db.models import ApplicationORM, ApplicationStatusEnum
+from app.schemas.definitions import Application
 
 
 def fetch_submitted_applications(db_session) -> list[Application]:

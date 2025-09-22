@@ -1,8 +1,7 @@
 from datetime import datetime
 
-from schemas.definitions import App, AppField, Job, JobReview, Review
-
-from .models import ApplicationORM, JobORM
+from app.db.models import ApplicationORM, JobORM
+from app.schemas.definitions import App, AppField, Job, JobReview, Review
 
 
 def job_to_orm(job: Job) -> JobORM:

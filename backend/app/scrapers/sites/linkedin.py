@@ -5,11 +5,11 @@ import uuid
 from pathlib import Path
 
 import requests
+from app.schemas.definitions import App, AppField, Job, Review
+from app.scrapers.scraper import JobSite, human_delay
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
-from schemas.definitions import App, AppField, Job, Review
-from scrapers.scraper import JobSite, human_delay
 
 # Load .env from repo root (job-apps/.env) regardless of CWD
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -21,7 +21,7 @@ LINKEDIN_CLIENT_ID = os.getenv("LINKEDIN_CLIENT_ID")
 LINKEDIN_CLIENT_SECRET = os.getenv("LINKEDIN_CLIENT_SECRET")
 
 # Where to store Playwright auth state (cookies, localStorage)
-_STORAGE_DIR = Path(__file__).resolve().parents[1].parent / ".db" / "playwright_storage"
+_STORAGE_DIR = Path(__file__).resolve().parent / "playwright_storage"
 _STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 _STORAGE_PATH = _STORAGE_DIR / "linkedin.json"
 

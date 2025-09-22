@@ -7,18 +7,18 @@ from uuid import UUID
 
 import debugpy
 import uvicorn
-from core.jobs import get_domain_handler
-from core.utils import clean_url, get_base_url
-from db.database import SessionLocal, get_db
-from db.models import ApplicationORM, JobORM
-from db.utils.claims import (
+from app.core.jobs import get_domain_handler
+from app.core.utils import clean_url, get_base_url
+from app.db.database import SessionLocal, get_db
+from app.db.models import ApplicationORM, JobORM
+from app.db.utils.claims import (
     claim_app_for_prep,
     claim_app_for_submission,
     claim_job_for_app_creation,
     claim_job_for_expiration_check,
     claim_job_for_review,
 )
-from db.utils.mutations import (
+from app.db.utils.mutations import (
     add_new_application,
     add_new_job,
     approve_application_by_id,
@@ -29,7 +29,7 @@ from db.utils.mutations import (
     update_application_state_by_id,
     update_job_by_id,
 )
-from db.utils.queries import (
+from app.db.utils.queries import (
     get_all_applications,
     get_all_jobs,
     get_application_by_id,
@@ -44,14 +44,8 @@ from db.utils.queries import (
     get_unprepared_applications,
     get_unreviewed_jobs,
 )
-from fastapi import Body, Depends, FastAPI, Query
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel, HttpUrl, model_validator
-from schemas.definitions import App, AppFragment, Job, Review, User
-from sqlalchemy import or_
-from sqlalchemy.orm import Session
-from worker.tasks import (
+from app.schemas.definitions import App, AppFragment, Job, Review, User
+from app.worker.tasks import (
     check_if_job_still_exists_task,
     create_app_task,
     evaluate_job_task,
@@ -60,6 +54,12 @@ from worker.tasks import (
     prepare_application_task,
     submit_application_task,
 )
+from fastapi import Body, Depends, FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, Response
+from pydantic import BaseModel, HttpUrl, model_validator
+from sqlalchemy import or_
+from sqlalchemy.orm import Session
 
 # Configure logging
 logging.basicConfig(

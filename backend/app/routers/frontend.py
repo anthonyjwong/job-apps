@@ -1,12 +1,10 @@
-from db.database import get_db
-from db.utils.frontend import (
+from app.db.database import get_db
+from app.db.utils.frontend import (
     fetch_assessment_applications,
     fetch_interview_applications,
     fetch_submitted_applications,
 )
-from fastapi import Depends, FastAPI
-from fastapi.responses import JSONResponse
-from schemas.api import (
+from app.schemas.api import (
     ApplicationResponse,
     AssessmentResponse,
     GetAssessmentsResponse,
@@ -14,7 +12,9 @@ from schemas.api import (
     GetSubmittedApplicationsResponse,
     InterviewResponse,
 )
-from schemas.definitions import App, Job
+from app.schemas.definitions import App
+from fastapi import Depends, FastAPI
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 app = FastAPI(title="Job Apps Frontend API")

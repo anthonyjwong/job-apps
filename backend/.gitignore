@@ -5,4 +5,4 @@ _playground.ipynb
 .instructions
 debug.log
 
-.db
+playwright_storage
