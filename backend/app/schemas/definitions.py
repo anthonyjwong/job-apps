@@ -56,8 +56,8 @@ class JobReview(BaseModel):
 
 class JobState(Enum):
     PENDING = "pending"
-    APPROVED = "approved"
     REVIEWED = "reviewed"
+    APPROVED = "approved"
     DISCARDED = "discarded"
     EXPIRED = "expired"
 

@@ -7,8 +7,10 @@ from uuid import UUID
 import redis
 from app.core.jobs import (
     check_job_expiration,
+    fill_out_application_form,
     prepare_job_app,
     save_jobs,
+    scrape_application_form,
     scrape_job_app,
     submit_app,
 )
@@ -27,7 +29,7 @@ from app.database.utils.claims import (
 )
 from app.database.utils.mutations import add_new_scraped_jobs
 from app.database.utils.queries import get_application_by_id, get_job_by_id
-from app.schemas.definitions import App, Job, User
+from app.schemas.definitions import App, Job, JobState, User
 from app.schemas.errors import MissingAppUrlError, QuestionNotFoundError
 from celery import Celery
 from requests import JSONDecodeError
@@ -140,7 +142,7 @@ def evaluate_job_task(job_id: UUID, user: dict) -> bool:
     user = User(**user)
     job = validate_job_id(job_id)
 
-    if job.reviewed:
+    if job.state >= JobState.REVIEWED:
         with SessionLocal() as db:
             clear_job_review_claim(db, job.id)
         return True
@@ -179,7 +181,7 @@ def create_app_task(job_id: UUID) -> UUID:
     # logic
     try:
         logging.info(f"Scraping job {job.id} questions...")
-        app = scrape_job_app(job)
+        app = scrape_application_form(job)
     except (ValueError, NotImplementedError, Exception) as e:
         error_message = None
         if type(e) is ValueError:
