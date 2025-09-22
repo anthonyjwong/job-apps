@@ -4,7 +4,7 @@ from uuid import UUID
 from app.database.crud import app_to_orm
 from app.database.models import ApplicationORM, JobORM
 from app.database.utils.queries import get_application_by_job_id
-from app.schemas.definitions import App, Job, JobReview
+from app.schemas.definitions import App, Job, JobReview, JobState
 
 
 def claim_job_for_review(db_session, job_id: UUID) -> bool:
@@ -17,7 +17,7 @@ def claim_job_for_review(db_session, job_id: UUID) -> bool:
         db_session.query(JobORM)
         .filter(
             JobORM.id == job_id,
-            JobORM.reviewed == False,
+            JobState(JobORM.state) < JobState.REVIEWED,
             JobORM.review_claim == False,
         )
         .update({JobORM.review_claim: True}, synchronize_session=False)

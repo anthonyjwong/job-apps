@@ -1,15 +1,38 @@
+import enum
 import json
 import uuid
 from ast import pattern
 from dataclasses import field
 from datetime import datetime
-from enum import Enum
 from typing import Literal, Optional
 from uuid import UUID
 
 from app.schemas.errors import QuestionNotFoundError
 from pydantic import BaseModel
 from pydantic import Field as PydanticField
+
+
+class Enum(enum.Enum):
+    """Base class for enums with comparison operators based on definition order."""
+
+    def __lt__(self, other):
+        if self == other:
+            return False
+
+        # order of enum values is preserved
+        for elem in JobState:
+            if elem == self:
+                return True
+            elif elem == other:
+                return False
+
+    def __gt__(self, other):
+        return not (self < other)
+
+    def __ge__(self, other):
+        if self == other:
+            return True
+        return not (self < other)
 
 
 # jobs
@@ -34,8 +57,8 @@ class JobReview(BaseModel):
 class JobState(Enum):
     PENDING = "pending"
     APPROVED = "approved"
-    DISCARDED = "discarded"
     REVIEWED = "reviewed"
+    DISCARDED = "discarded"
     EXPIRED = "expired"
 
 

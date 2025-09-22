@@ -45,7 +45,7 @@ from app.database.utils.queries import (
     get_unreviewed_jobs,
 )
 from app.routers import frontend
-from app.schemas.definitions import App, AppFragment, Job, Review, User
+from app.schemas.definitions import User
 from app.worker.tasks import (
     check_if_job_still_exists_task,
     create_app_task,
@@ -188,7 +188,7 @@ def review_job(job_id: UUID):
                 },
             )
 
-        if job.manual:
+        if job.manually_created:
             return JSONResponse(
                 status_code=200,
                 content={

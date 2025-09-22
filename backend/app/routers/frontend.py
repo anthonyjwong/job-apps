@@ -12,7 +12,6 @@ from app.schemas.api import (
     GetSubmittedApplicationsResponse,
     InterviewResponse,
 )
-from app.schemas.definitions import Application
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -37,7 +36,7 @@ def get_submitted_applications(
                 status=app.status,
                 applicationDate=app.submitted_at,  # TODO: convert to MM/DD/YYYY
                 location=app.job.location,
-                jobType=app.job.job_type,
+                jobType=app.job.type,
                 category=app.job.review.classification,
                 action=app.job.review.action,
                 notes="NOT IMPLEMENTED",
@@ -64,7 +63,7 @@ def get_assessments(db: Session = Depends(get_db)) -> GetAssessmentsResponse:
                 id=str(app.id),
                 company=app.job.company,
                 position=app.job.title,
-                type=app.job.job_type,
+                type=app.job.type,
                 description=app.job.description,
                 dueDate="NOT IMPLEMENTED",
                 timeLimit="NOT IMPLEMENTED",
@@ -100,7 +99,7 @@ def get_interviews(db: Session = Depends(get_db)) -> GetInterviewsResponse:
                 id=str(app.id),
                 company=app.job.company,
                 position=app.job.title,
-                type=app.job.job_type,
+                type=app.job.type,
                 date="NOT IMPLEMENTED",
                 time="NOT IMPLEMENTED",
                 duration=60,
