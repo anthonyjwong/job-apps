@@ -24,11 +24,11 @@ This document outlines the backend API structure that has been implemented to re
 ### Jobs (`/api/jobs`)
 
 **GET** - Search and filter jobs
-- Query params: `search`, `category`, `location`, `type`
+- Query params: `search`, `classification`, `location`, `type`
 - Returns: `{ jobs: Job[], total: number, totalAvailable: number }`
 
 Each job includes:
-- AI-powered category classification (safety, target, reach, dream)
+- AI-powered job classification (safety, target, reach, dream)
 - AI score (interview likelihood percentage)
 - AI action (specific recommendation for the candidate)
 

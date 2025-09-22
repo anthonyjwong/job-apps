@@ -4,7 +4,7 @@ import logging
 from core.utils import with_retry
 from openai import OpenAI
 from openai.types.responses import Response
-from schemas.definitions import App, AppField, Job, Review, User
+from schemas.definitions import App, AppField, Job, JobReview, Review, User
 
 client = OpenAI(timeout=60)
 
@@ -45,7 +45,7 @@ def evaluate_candidate_aptitude(job: Job, user: User) -> Review:
 
     try:
         review_data = json.loads(response.output_text)
-        return Review(**review_data)
+        return JobReview(**review_data)
     except json.JSONDecodeError as e:
         logging.error(
             {

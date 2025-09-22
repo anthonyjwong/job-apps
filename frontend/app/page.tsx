@@ -30,22 +30,22 @@ export default async function HomePage() {
   const { interviews, assessments, applications } = await fetchHomeData();
 
   const totalApplications = applications.length;
-  const interviewedApps = applications.filter((app) => app.status === "interviewed").length;
+  const interviewedApps = applications.filter((app) => app.status === "interview").length;
   const responseRate = Math.round((interviewedApps / Math.max(totalApplications, 1)) * 100);
   const thisWeekApplications = 3;
   const weeklyGoal = 5;
   const goalProgress = Math.min((thisWeekApplications / weeklyGoal) * 100, 100);
-  const categoryStats = {
-    safety: applications.filter((app) => app.category === "safety").length,
-    target: applications.filter((app) => app.category === "target").length,
-    reach: applications.filter((app) => app.category === "reach").length,
-    dream: applications.filter((app) => app.category === "dream").length,
+  const classificationStats = {
+    safety: applications.filter((app) => app.classification === "safety").length,
+    target: applications.filter((app) => app.classification === "target").length,
+    reach: applications.filter((app) => app.classification === "reach").length,
+    dream: applications.filter((app) => app.classification === "dream").length,
   } as const;
-  const categorySuccessRates = {
-    safety: Math.round((applications.filter((app) => app.category === "safety" && (app.status === "interviewed" || app.status === "offered")).length / Math.max(categoryStats.safety, 1)) * 100),
-    target: Math.round((applications.filter((app) => app.category === "target" && (app.status === "interviewed" || app.status === "offered")).length / Math.max(categoryStats.target, 1)) * 100),
-    reach: Math.round((applications.filter((app) => app.category === "reach" && (app.status === "interviewed" || app.status === "offered")).length / Math.max(categoryStats.reach, 1)) * 100),
-    dream: Math.round((applications.filter((app) => app.category === "dream" && (app.status === "interviewed" || app.status === "offered")).length / Math.max(categoryStats.dream, 1)) * 100),
+  const classificationSuccessRates = {
+    safety: Math.round((applications.filter((app) => app.classification === "safety" && (app.status === "interview" || app.status === "offer")).length / Math.max(classificationStats.safety, 1)) * 100),
+    target: Math.round((applications.filter((app) => app.classification === "target" && (app.status === "interview" || app.status === "offer")).length / Math.max(classificationStats.target, 1)) * 100),
+    reach: Math.round((applications.filter((app) => app.classification === "reach" && (app.status === "interview" || app.status === "offer")).length / Math.max(classificationStats.reach, 1)) * 100),
+    dream: Math.round((applications.filter((app) => app.classification === "dream" && (app.status === "interview" || app.status === "offer")).length / Math.max(classificationStats.dream, 1)) * 100),
   } as const;
 
   return (
@@ -62,8 +62,8 @@ export default async function HomePage() {
               thisWeekApplications,
               weeklyGoal,
               goalProgress,
-              categoryStats,
-              categorySuccessRates,
+              classificationStats,
+              classificationSuccessRates,
             }}
           />
         </div>

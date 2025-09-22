@@ -13,7 +13,7 @@ Base: `/api/saved-jobs`
       "userId": "user-1",
       "savedDate": "2024-01-20",
       "notes": "Interesting remote opportunity, good tech stack",
-      "jobDetails": { "title": "Senior Full Stack Engineer", "company": "InnovateCorp", "location": "Remote", "salary": "$120k - $150k", "category": "target" }
+      "jobDetails": { "title": "Senior Full Stack Engineer", "company": "InnovateCorp", "location": "Remote", "salary": "$120k - $150k", "classification": "target" }
     }
   ],
   "total": 3

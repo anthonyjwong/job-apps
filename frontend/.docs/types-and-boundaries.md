@@ -7,7 +7,7 @@
 ## Core Types
 
 - Applications: `Application`, `NewApplication`, `ApplicationStatus`.
-- Jobs: `Job`, `JobCategory`, `SavedJob`.
+- Jobs: `Job`, `JobClassification`, `SavedJob`.
 - Scheduling: `Interview`, `Assessment`.
 - Analytics: `AnalyticsData` and subtypes.
 - Settings: `UserSettings` with `UserProfileSettings`, `UserNotificationSettings`, `UserPreferenceSettings`, `UserPrivacySettings`.

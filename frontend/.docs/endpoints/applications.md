@@ -16,7 +16,7 @@ Base: `/api/applications`
       "location": "San Francisco",
       "salary": "$120k - $150k",
       "jobType": "full-time",
-      "category": "safety",
+      "classification": "safety",
       "aiAction": "Highlight your React performance optimization experience in the technical discussion",
       "notes": "Really excited about this role - great culture fit"
     }
@@ -36,14 +36,14 @@ Base: `/api/applications`
   "location": "Remote",
   "salary": "$120k - $140k",
   "jobType": "full-time",
-  "category": "target",
+  "classification": "target",
   "notes": "Applied via careers page"
 }
 ```
 - Response 200
 ```json
 {
-  "application": { "id": 8, "company": "Acme", "position": "Frontend Engineer", "status": "submitted", "applicationDate": "2024-01-20", "location": "Remote", "salary": "$120k - $140k", "jobType": "full-time", "category": "target", "aiAction": "Follow up with a personalized message highlighting your relevant experience", "notes": "Applied via careers page" },
+  "application": { "id": 8, "company": "Acme", "position": "Frontend Engineer", "status": "submitted", "applicationDate": "2024-01-20", "location": "Remote", "salary": "$120k - $140k", "jobType": "full-time", "classification": "target", "aiAction": "Follow up with a personalized message highlighting your relevant experience", "notes": "Applied via careers page" },
   "message": "Application created successfully"
 }
 ```

@@ -2,10 +2,10 @@
 
 Base: `/api/jobs`
 
-## GET /api/jobs[?search=&category=&location=&type=]
+## GET /api/jobs[?search=&classification=&location=&type=]
 - Query params (optional):
   - `search`: string
-  - `category`: one of `safety|target|reach|dream|all`
+  - `classification`: one of `safety|target|reach|dream|all`
   - `location`: string (contains match)
   - `type`: one of `full-time|part-time|contract|remote|all`
 - Response 200
@@ -22,7 +22,7 @@ Base: `/api/jobs`
       "postedDate": "2024-01-20",
       "description": "...",
       "skills": ["React", "TypeScript"],
-      "category": "safety",
+      "classification": "safety",
       "aiScore": 85,
       "aiAction": "Highlight your React portfolio projects and emphasize your TypeScript experience"
     }

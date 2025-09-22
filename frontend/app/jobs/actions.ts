@@ -9,7 +9,7 @@ type ApplyPayload = {
   location?: string;
   salary?: string;
   type: "full-time" | "part-time" | "contract" | "remote";
-  category: "safety" | "target" | "reach" | "dream";
+  classification: "safety" | "target" | "reach" | "dream";
 };
 
 async function baseUrl() {
@@ -33,7 +33,7 @@ export async function applyToJob(payload: ApplyPayload): Promise<{ success: bool
         location: payload.location,
         salary: payload.salary,
         jobType: payload.type,
-        category: payload.category,
+        classification: payload.classification,
       }),
     });
     if (!res.ok) return { success: false, message: "Failed to submit application" };

@@ -1,8 +1,8 @@
 "use client";
 
 import { Brain, Building, Clock, DollarSign, Lightbulb, MapPin } from "lucide-react";
-import type { JobCategory } from "../lib/types";
-import { JobCategoryBadge } from "./JobCategoryBadge";
+import type { JobClassification } from "../lib/types";
+import { JobClassificationBadge } from "./JobClassificationBadge";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 
@@ -16,7 +16,7 @@ interface JobCardProps {
   postedDate: string;
   description: string;
   skills: string[];
-  category: JobCategory;
+  classification: JobClassification;
   aiScore: number;
   aiAction?: string;
   onApply: (jobId: string) => void;
@@ -34,7 +34,7 @@ export function JobCard({
   postedDate,
   description,
   skills,
-  category,
+  classification,
   aiScore,
   aiAction,
   onApply,
@@ -56,7 +56,7 @@ export function JobCard({
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
             <h3 className="font-medium">{title}</h3>
-            <JobCategoryBadge category={category} size="sm" />
+            <JobClassificationBadge classification={classification} size="sm" />
           </div>
           <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
             <div className="flex items-center gap-1">

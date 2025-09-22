@@ -13,7 +13,7 @@ const savedJobs = [
       company: "InnovateCorp",
       location: "Remote",
       salary: "$120k - $150k",
-      category: "target"
+      classification: "target"
     }
   },
   {
@@ -27,7 +27,7 @@ const savedJobs = [
       company: "BigTech Solutions",
       location: "Seattle",
       salary: "$200k - $250k",
-      category: "dream"
+      classification: "dream"
     }
   },
   {
@@ -41,7 +41,7 @@ const savedJobs = [
       company: "GrowthTech",
       location: "San Francisco",
       salary: "$95k - $125k",
-      category: "target"
+      classification: "target"
     }
   }
 ];

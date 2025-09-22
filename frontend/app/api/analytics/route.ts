@@ -11,7 +11,7 @@ export async function GET() {
         offerRate: 17, // 1 out of 6 got offers
         avgTimeToResponse: 5.2 // days
       },
-      categoryBreakdown: {
+      classificationBreakdown: {
         safety: {
           applications: 2,
           interviews: 2,
@@ -83,12 +83,12 @@ export async function GET() {
       ],
       recommendations: [
         {
-          type: "category_focus",
+          type: "classification_focus",
           title: "Optimize Your Application Strategy",
-          description: "Your safety applications have a 100% interview rate. Consider applying to more safety category jobs to maximize interviews.",
+          description: "Your safety applications have a 100% interview rate. Consider applying to more safety classification jobs to maximize interviews.",
           priority: "high",
           actionItems: [
-            "Apply to 2-3 more safety category positions this week",
+            "Apply to 2-3 more safety classification positions this week",
             "Use successful safety applications as templates",
             "Focus 60% of applications on safety roles"
           ]

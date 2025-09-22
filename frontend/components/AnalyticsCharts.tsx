@@ -43,7 +43,7 @@ export function InterviewFunnelChart({ data }: { data: InterviewFunnelStep[] }) 
       <BarChart data={data} layout="horizontal">
         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
         <XAxis type="number" tick={{ fill: "hsl(var(--foreground))" }} axisLine={{ stroke: "hsl(var(--border))" }} />
-        <YAxis type="category" dataKey="stage" tick={{ fill: "hsl(var(--foreground))" }} axisLine={{ stroke: "hsl(var(--border))" }} />
+        <YAxis type="classification" dataKey="stage" tick={{ fill: "hsl(var(--foreground))" }} axisLine={{ stroke: "hsl(var(--border))" }} />
         <Tooltip
           contentStyle={{
             backgroundColor: "hsl(var(--popover))",

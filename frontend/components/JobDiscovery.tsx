@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { apiService } from "../lib/api";
 import { Job } from "../lib/types";
 import { JobCard } from "./JobCard";
-import { JobCategoryBadge } from "./JobCategoryBadge";
+import { JobClassificationBadge } from "./JobClassificationBadge";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
@@ -16,7 +16,7 @@ export function JobDiscovery() {
   const [searchQuery, setSearchQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [classificationFilter, setCategoryFilter] = useState("all");
   const [jobs, setJobs] = useState<Job[]>([]);
   const [savedJobs, setSavedJobs] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +28,7 @@ export function JobDiscovery() {
       try {
         const response = await apiService.getJobs({
           search: searchQuery,
-          category: categoryFilter === "all" ? undefined : categoryFilter,
+          classification: classificationFilter === "all" ? undefined : classificationFilter,
           location: locationFilter === "all" ? undefined : locationFilter,
           type: typeFilter === "all" ? undefined : typeFilter,
         });
@@ -44,7 +44,7 @@ export function JobDiscovery() {
     };
 
     fetchJobs();
-  }, [searchQuery, categoryFilter, locationFilter, typeFilter]);
+  }, [searchQuery, classificationFilter, locationFilter, typeFilter]);
 
   // Fetch saved jobs on component mount
   useEffect(() => {
@@ -73,7 +73,7 @@ export function JobDiscovery() {
         location: job.location,
         salary: job.salary,
         jobType: job.type,
-        category: job.category,
+        classification: job.classification,
       };
       
       const response = await apiService.createApplication(applicationData);
@@ -134,11 +134,11 @@ export function JobDiscovery() {
   // Jobs are already filtered by the API, so we can use them directly
   const sortedJobs = jobs;
 
-  const categoryStats = {
-    safety: jobs.filter(job => job.category === "safety").length,
-    target: jobs.filter(job => job.category === "target").length,
-    reach: jobs.filter(job => job.category === "reach").length,
-    dream: jobs.filter(job => job.category === "dream").length,
+  const classificationStats = {
+    safety: jobs.filter(job => job.classification === "safety").length,
+    target: jobs.filter(job => job.classification === "target").length,
+    reach: jobs.filter(job => job.classification === "reach").length,
+    dream: jobs.filter(job => job.classification === "dream").length,
   };
 
   return (
@@ -192,20 +192,20 @@ export function JobDiscovery() {
         {/* Category Overview */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="flex items-center gap-2 p-3 rounded-lg bg-safety/10 border border-safety/20">
-            <JobCategoryBadge category="safety" size="sm" />
-            <span className="text-sm font-medium">{categoryStats.safety}</span>
+            <JobClassificationBadge classification="safety" size="sm" />
+            <span className="text-sm font-medium">{classificationStats.safety}</span>
           </div>
           <div className="flex items-center gap-2 p-3 rounded-lg bg-target/10 border border-target/20">
-            <JobCategoryBadge category="target" size="sm" />
-            <span className="text-sm font-medium">{categoryStats.target}</span>
+            <JobClassificationBadge classification="target" size="sm" />
+            <span className="text-sm font-medium">{classificationStats.target}</span>
           </div>
           <div className="flex items-center gap-2 p-3 rounded-lg bg-reach/10 border border-reach/20">
-            <JobCategoryBadge category="reach" size="sm" />
-            <span className="text-sm font-medium">{categoryStats.reach}</span>
+            <JobClassificationBadge classification="reach" size="sm" />
+            <span className="text-sm font-medium">{classificationStats.reach}</span>
           </div>
           <div className="flex items-center gap-2 p-3 rounded-lg bg-dream/10 border border-dream/20">
-            <JobCategoryBadge category="dream" size="sm" />
-            <span className="text-sm font-medium">{categoryStats.dream}</span>
+            <JobClassificationBadge classification="dream" size="sm" />
+            <span className="text-sm font-medium">{classificationStats.dream}</span>
           </div>
         </div>
       </div>
@@ -226,7 +226,7 @@ export function JobDiscovery() {
           </div>
           
           <div>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <Select value={classificationFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger>
                 <div className="flex items-center gap-2">
                   <Brain className="w-4 h-4" />

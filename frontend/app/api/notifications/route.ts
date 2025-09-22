@@ -52,14 +52,14 @@ const notifications = [
     id: "notif-4",
     type: "job_recommendation",
     title: "New Job Match",
-    message: "5 new safety category jobs match your profile - 85%+ interview likelihood",
+    message: "5 new safety classification jobs match your profile - 85%+ interview likelihood",
     timestamp: "2024-01-21T08:00:00Z",
     isRead: true,
     priority: "medium",
-    actionUrl: "/jobs?category=safety",
+    actionUrl: "/jobs?classification=safety",
     metadata: {
       jobCount: 5,
-      category: "safety",
+      classification: "safety",
       avgScore: 87
     }
   },
@@ -82,7 +82,7 @@ const notifications = [
     id: "notif-6",
     type: "skill_insight",
     title: "Skill Trend Alert",
-    message: "AWS skills are trending +40% in your target job category",
+    message: "AWS skills are trending +40% in your target job classification",
     timestamp: "2024-01-19T14:30:00Z",
     isRead: true,
     priority: "low",
@@ -90,7 +90,7 @@ const notifications = [
     metadata: {
       skill: "AWS",
       trendPercentage: 40,
-      category: "target"
+      classification: "target"
     }
   },
   {

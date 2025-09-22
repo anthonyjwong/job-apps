@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 type JobsFiltersProps = {
   search: string;
   onSearch: (v: string) => void;
-  category: string;
+  classification: string;
   onCategory: (v: string) => void;
   location: string;
   onLocation: (v: string) => void;
@@ -15,7 +15,7 @@ type JobsFiltersProps = {
   onType: (v: string) => void;
 };
 
-export function JobsFilters({ search, onSearch, category, onCategory, location, onLocation, type, onType }: JobsFiltersProps) {
+export function JobsFilters({ search, onSearch, classification, onCategory, location, onLocation, type, onType }: JobsFiltersProps) {
   return (
     <div className="bg-card border border-border rounded-lg p-6 mb-6">
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -27,7 +27,7 @@ export function JobsFilters({ search, onSearch, category, onCategory, location, 
         </div>
 
         <div>
-          <Select value={category} onValueChange={onCategory}>
+          <Select value={classification} onValueChange={onCategory}>
             <SelectTrigger>
               <div className="flex items-center gap-2">
                 <Brain className="w-4 h-4" />

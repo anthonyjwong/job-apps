@@ -8,9 +8,8 @@ import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
-from scrapers.scraper import JobSite, human_delay
-
 from schemas.definitions import App, AppField, Job, Review
+from scrapers.scraper import JobSite, human_delay
 
 # Load .env from repo root (job-apps/.env) regardless of CWD
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -337,7 +336,7 @@ if __name__ == "__main__":
         title="Software Engineer",
         company="Rokt",
         linkedin_job_url="https://www.linkedin.com/jobs/view/4288804260",
-        review=Review(
+        review=JobReview(
             action="Add explicit TypeScript experience and a concrete Next.js project (with a link or portfolio) to your resume to demonstrate full-stack TS/Next.js capability.",
             classification="target",
         ),

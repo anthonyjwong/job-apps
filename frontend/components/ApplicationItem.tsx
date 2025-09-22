@@ -1,18 +1,18 @@
 "use client";
 
+import { ApplicationStatus, JobClassification } from "../lib/types";
+import { JobClassificationBadge } from "./JobClassificationBadge";
 import { Badge } from "./ui/badge";
-import { JobCategoryBadge } from "./JobCategoryBadge";
-import { ApplicationStatus, JobCategory } from "../lib/types";
 
 interface ApplicationItemProps {
   company: string;
   position: string;
   status: ApplicationStatus;
-  category?: JobCategory;
+  classification?: JobClassification;
   onClick?: () => void;
 }
 
-export function ApplicationItem({ company, position, status, category, onClick }: ApplicationItemProps) {
+export function ApplicationItem({ company, position, status, classification, onClick }: ApplicationItemProps) {
   const statusConfig = {
     submitted: { label: "Submitted", variant: "secondary" as const },
     interviewed: { label: "Interviewed", variant: "default" as const },
@@ -38,7 +38,7 @@ export function ApplicationItem({ company, position, status, category, onClick }
       <div className="flex-1">
         <div className="flex items-center gap-2 mb-1">
           <div className="font-medium text-sm">{company}</div>
-          {category && <JobCategoryBadge category={category} size="sm" />}
+          {classification && <JobClassificationBadge classification={classification} size="sm" />}
         </div>
         <div className="text-sm text-muted-foreground">{position}</div>
       </div>

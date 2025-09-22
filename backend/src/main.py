@@ -691,7 +691,7 @@ def update_job_classification(
 
         # Ensure review exists, then set classification and reviewed flag
         if job.review is None:
-            job.review = Review(action="", classification=cls)
+            job.review = JobReview(action="", classification=cls)
         else:
             job.review.classification = cls
         job.reviewed = True

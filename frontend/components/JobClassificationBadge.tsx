@@ -1,13 +1,13 @@
 import { Shield, Star, Target, TrendingUp } from "lucide-react";
-import { JobCategory } from "../lib/types";
+import { JobClassification } from "../lib/types";
 import { Badge } from "./ui/badge";
 
-interface JobCategoryBadgeProps {
-  category: JobCategory;
+interface JobClassificationBadgeProps {
+  classification: JobClassification;
   size?: "sm" | "md" | "lg";
 }
 
-const categoryConfig = {
+const classificationConfig = {
   safety: {
     label: "Safety",
     icon: Shield,
@@ -34,8 +34,8 @@ const categoryConfig = {
   },
 };
 
-export function JobCategoryBadge({ category, size = "md" }: JobCategoryBadgeProps) {
-  const config = categoryConfig[category];
+export function JobClassificationBadge({ classification, size = "md" }: JobClassificationBadgeProps) {
+  const config = classificationConfig[classification];
   const Icon = config.icon;
   
   const sizeClass = {
@@ -58,15 +58,15 @@ export function JobCategoryBadge({ category, size = "md" }: JobCategoryBadgeProp
   );
 }
 
-export function getCategoryDescription(category: JobCategory): string {
-  return categoryConfig[category].description;
+export function getCategoryDescription(classification: JobClassification): string {
+  return classificationConfig[classification].description;
 }
 
-export function getCategoryColor(category: JobCategory): string {
+export function getCategoryColor(classification: JobClassification): string {
   return {
     safety: "safety",
     target: "target", 
     reach: "reach",
     dream: "dream",
-  }[category];
+  }[classification];
 }

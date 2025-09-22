@@ -13,7 +13,7 @@ Base: `/api/analytics`
     "offerRate": 17,
     "avgTimeToResponse": 5.2
   },
-  "categoryBreakdown": {
+  "classificationBreakdown": {
     "safety": { "applications": 2, "interviews": 2, "offers": 0, "interviewRate": 100, "avgTimeToResponse": 3.5 },
     "target": { "applications": 2, "interviews": 1, "offers": 0, "interviewRate": 50, "avgTimeToResponse": 4.0 },
     "reach": { "applications": 1, "interviews": 1, "offers": 1, "interviewRate": 100, "avgTimeToResponse": 7.0 },
@@ -25,7 +25,7 @@ Base: `/api/analytics`
   "skillsInDemand": [ { "skill": "React", "count": 8, "trend": "+15%" } ],
   "applicationSources": [ { "source": "Company Website", "count": 3, "percentage": 50 } ],
   "interviewTypes": [ { "type": "Phone Screen", "count": 4, "successRate": 75 } ],
-  "recommendations": [ { "type": "category_focus", "title": "Optimize Your Application Strategy", "description": "...", "priority": "high", "actionItems": ["..."] } ],
+  "recommendations": [ { "type": "classification_focus", "title": "Optimize Your Application Strategy", "description": "...", "priority": "high", "actionItems": ["..."] } ],
   "goalProgress": { "weeklyApplicationTarget": 5, "currentWeekApplications": 3, "weeklyInterviewTarget": 2, "currentWeekInterviews": 2, "monthlyOfferTarget": 1, "currentMonthOffers": 1 }
 }
 ```

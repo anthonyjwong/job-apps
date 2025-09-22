@@ -6,9 +6,9 @@ import { ArrowRight, Bell, Brain, Calendar, Clock, Plus, Shield, Sparkles, Star,
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { JobClassificationBadge } from "../components/JobClassificationBadge";
 import { AddApplicationModal } from "./AddApplicationModal";
 import { ApplicationItem } from "./ApplicationItem";
-import { JobCategoryBadge } from "./JobCategoryBadge";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
@@ -24,8 +24,8 @@ type HomeInteractiveProps = {
     thisWeekApplications: number;
     weeklyGoal: number;
     goalProgress: number;
-    categoryStats: Record<"safety"|"target"|"reach"|"dream", number>;
-    categorySuccessRates: Record<"safety"|"target"|"reach"|"dream", number>;
+    classificationStats: Record<"safety"|"target"|"reach"|"dream", number>;
+    classificationSuccessRates: Record<"safety"|"target"|"reach"|"dream", number>;
   };
 };
 
@@ -73,7 +73,7 @@ export function HomeInteractive({ interviews, assessments, applications, stats }
 
       {/* New Job Category Breakdown */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-safety/20 bg-gradient-to-br from-safety/5 to-safety/10 cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/jobs?category=safety')}>
+        <Card className="border-safety/20 bg-gradient-to-br from-safety/5 to-safety/10 cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/jobs?classification=safety')}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
@@ -81,15 +81,15 @@ export function HomeInteractive({ interviews, assessments, applications, stats }
                   <Shield className="w-4 h-4 text-safety" />
                   <p className="text-sm text-muted-foreground">Safety Jobs</p>
                 </div>
-                <p className="text-2xl font-medium">{stats.categoryStats.safety}</p>
-                <p className="text-xs text-safety font-medium">{stats.categorySuccessRates.safety}% interview rate</p>
+                <p className="text-2xl font-medium">{stats.classificationStats.safety}</p>
+                <p className="text-xs text-safety font-medium">{stats.classificationSuccessRates.safety}% interview rate</p>
               </div>
-              <JobCategoryBadge category="safety" size="sm" />
+              <JobClassificationBadge classification="safety" size="sm" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-target/20 bg-gradient-to-br from-target/5 to-target/10 cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/jobs?category=target')}>
+        <Card className="border-target/20 bg-gradient-to-br from-target/5 to-target/10 cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/jobs?classification=target')}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
@@ -97,15 +97,15 @@ export function HomeInteractive({ interviews, assessments, applications, stats }
                   <Target className="w-4 h-4 text-target" />
                   <p className="text-sm text-muted-foreground">Target Jobs</p>
                 </div>
-                <p className="text-2xl font-medium">{stats.categoryStats.target}</p>
-                <p className="text-xs text-target font-medium">{stats.categorySuccessRates.target}% interview rate</p>
+                <p className="text-2xl font-medium">{stats.classificationStats.target}</p>
+                <p className="text-xs text-target font-medium">{stats.classificationSuccessRates.target}% interview rate</p>
               </div>
-              <JobCategoryBadge category="target" size="sm" />
+              <JobClassificationBadge classification="target" size="sm" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-reach/20 bg-gradient-to-br from-reach/5 to-reach/10 cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/jobs?category=reach')}>
+        <Card className="border-reach/20 bg-gradient-to-br from-reach/5 to-reach/10 cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/jobs?classification=reach')}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
@@ -113,15 +113,15 @@ export function HomeInteractive({ interviews, assessments, applications, stats }
                   <TrendingUp className="w-4 h-4 text-reach" />
                   <p className="text-sm text-muted-foreground">Reach Jobs</p>
                 </div>
-                <p className="text-2xl font-medium">{stats.categoryStats.reach}</p>
-                <p className="text-xs text-reach font-medium">{stats.categorySuccessRates.reach}% interview rate</p>
+                <p className="text-2xl font-medium">{stats.classificationStats.reach}</p>
+                <p className="text-xs text-reach font-medium">{stats.classificationSuccessRates.reach}% interview rate</p>
               </div>
-              <JobCategoryBadge category="reach" size="sm" />
+              <JobClassificationBadge classification="reach" size="sm" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-dream/20 bg-gradient-to-br from-dream/5 to-dream/10 cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/jobs?category=dream')}>
+        <Card className="border-dream/20 bg-gradient-to-br from-dream/5 to-dream/10 cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/jobs?classification=dream')}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
@@ -129,10 +129,10 @@ export function HomeInteractive({ interviews, assessments, applications, stats }
                   <Sparkles className="w-4 h-4 text-dream" />
                   <p className="text-sm text-muted-foreground">Dream Jobs</p>
                 </div>
-                <p className="text-2xl font-medium">{stats.categoryStats.dream}</p>
-                <p className="text-xs text-dream font-medium">{stats.categorySuccessRates.dream}% interview rate</p>
+                <p className="text-2xl font-medium">{stats.classificationStats.dream}</p>
+                <p className="text-xs text-dream font-medium">{stats.classificationSuccessRates.dream}% interview rate</p>
               </div>
-              <JobCategoryBadge category="dream" size="sm" />
+              <JobClassificationBadge classification="dream" size="sm" />
             </div>
           </CardContent>
         </Card>
@@ -202,21 +202,21 @@ export function HomeInteractive({ interviews, assessments, applications, stats }
                 <Shield className="w-4 h-4 text-safety mt-0.5" />
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Strong interview potential</p>
-                  <p className="text-xs text-muted-foreground">{stats.categoryStats.safety} safety applications with {stats.categorySuccessRates.safety}% interview rate</p>
+                  <p className="text-xs text-muted-foreground">{stats.classificationStats.safety} safety applications with {stats.classificationSuccessRates.safety}% interview rate</p>
                 </div>
               </div>
               <div className="flex items-start gap-3 p-3 rounded-lg bg-reach/10 border border-reach/20">
                 <TrendingUp className="w-4 h-4 text-reach mt-0.5" />
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Stretch your capabilities</p>
-                  <p className="text-xs text-muted-foreground">Reach applications show {stats.categorySuccessRates.reach}% interview rate</p>
+                  <p className="text-xs text-muted-foreground">Reach applications show {stats.classificationSuccessRates.reach}% interview rate</p>
                 </div>
               </div>
               <div className="flex items-start gap-3 p-3 rounded-lg bg-dream/10 border border-dream/20">
                 <Star className="w-4 h-4 text-dream mt-0.5" />
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Building towards your future</p>
-                  <p className="text-xs text-muted-foreground">Track {stats.categoryStats.dream} dream roles to understand career progression and skill gaps</p>
+                  <p className="text-xs text-muted-foreground">Track {stats.classificationStats.dream} dream roles to understand career progression and skill gaps</p>
                 </div>
               </div>
             </div>
@@ -346,7 +346,7 @@ export function HomeInteractive({ interviews, assessments, applications, stats }
         <CardContent>
           <div className="space-y-3">
             {apps.slice(0, 5).map((application) => (
-              <ApplicationItem key={application.id} company={application.company} position={application.position} status={application.status} category={application.category} />
+              <ApplicationItem key={application.id} company={application.company} position={application.position} status={application.status} classification={application.classification} />
             ))}
             {apps.length > 5 && (
               <Button variant="ghost" size="sm" className="w-full mt-4" asChild>

@@ -11,7 +11,7 @@ const applications = [
     location: "San Francisco",
     salary: "$120k - $150k",
     jobType: "full-time",
-    category: "safety",
+    classification: "safety",
     aiAction: "Highlight your React performance optimization experience in the technical discussion",
     notes: "Really excited about this role - great culture fit"
   },
@@ -24,7 +24,7 @@ const applications = [
     location: "Remote",
     salary: "$100k - $130k",
     jobType: "full-time",
-    category: "target",
+    classification: "target",
     aiAction: "Prepare specific examples of your full-stack projects with measurable impact",
     notes: "Applied through their careers page"
   },
@@ -37,7 +37,7 @@ const applications = [
     location: "New York",
     salary: "$140k - $170k",
     jobType: "full-time",
-    category: "reach",
+    classification: "reach",
     aiAction: "Demonstrate leadership experience by discussing team mentoring examples",
     notes: "Final round went well!"
   },
@@ -50,7 +50,7 @@ const applications = [
     location: "Seattle",
     salary: "$180k - $220k",
     jobType: "full-time",
-    category: "dream",
+    classification: "dream",
     aiAction: "Focus on system design and architecture expertise for future similar roles",
     notes: "Good learning experience"
   },
@@ -63,7 +63,7 @@ const applications = [
     location: "Austin",
     salary: "$90k - $120k",
     jobType: "full-time",
-    category: "safety",
+    classification: "safety",
     aiAction: "Emphasize your component library and design system experience",
     notes: "Phone screen scheduled for this week"
   },
@@ -76,7 +76,7 @@ const applications = [
     location: "Remote",
     salary: "$110k - $140k",
     jobType: "full-time",
-    category: "target",
+    classification: "target",
     aiAction: "Prepare for data structure and algorithm questions focusing on real-world applications",
     notes: "Technical round coming up"
   },
@@ -89,7 +89,7 @@ const applications = [
     location: "Boston",
     salary: "$95k - $125k",
     jobType: "full-time",
-    category: "target",
+    classification: "target",
     aiAction: "Consider reapplying in 6 months with additional experience",
     notes: "Decided to withdraw after learning more about the role"
   }
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
       location: body.location || "",
       salary: body.salary || "",
       jobType: body.jobType || "full-time",
-      category: body.category || "target",
+      classification: body.classification || "target",
       aiAction: body.aiAction || "Follow up with a personalized message highlighting your relevant experience",
       notes: body.notes || ""
     };

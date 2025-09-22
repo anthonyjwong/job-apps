@@ -1,11 +1,11 @@
 import { ArrowRight, ArrowUp, Brain, Calendar, Shield, Star, Target, TrendingUp, Users, Zap } from "lucide-react";
 import { headers } from "next/headers";
 import { ApplicationTrendsChart, InterviewFunnelChart, InterviewRateTrendsChart, type ApplicationTrendPoint, type InterviewFunnelStep, type WeeklyInterviewRate } from "../../components/AnalyticsCharts";
-import { JobCategoryBadge } from "../../components/JobCategoryBadge";
+import { JobClassificationBadge } from "../../components/JobClassificationBadge";
 import { StatsCard } from "../../components/StatsCard";
 import { Badge } from "../../components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
-import type { AnalyticsData, JobCategory } from "../../lib/types";
+import type { AnalyticsData, JobClassification } from "../../lib/types";
 
 async function getAnalytics(): Promise<AnalyticsData> {
   const h = await headers();
@@ -30,36 +30,36 @@ export default async function AnalyticsPage() {
   // Use API data for trends and categories
   const applicationTrends: ApplicationTrendPoint[] = analyticsData?.monthlyTrends || [];
   
-  const categoryPerformance = analyticsData?.categoryBreakdown ? [
+  const classificationPerformance = analyticsData?.classificationBreakdown ? [
     { 
-      category: "Safety", 
-      applications: analyticsData.categoryBreakdown.safety.applications, 
-      interviews: analyticsData.categoryBreakdown.safety.interviews, 
-      interviewRate: analyticsData.categoryBreakdown.safety.interviewRate, 
+      classification: "Safety", 
+      applications: analyticsData.classificationBreakdown.safety.applications, 
+      interviews: analyticsData.classificationBreakdown.safety.interviews, 
+      interviewRate: analyticsData.classificationBreakdown.safety.interviewRate, 
       color: "hsl(var(--safety))",
       description: "High interview likelihood"
     },
     { 
-      category: "Target", 
-      applications: analyticsData.categoryBreakdown.target.applications, 
-      interviews: analyticsData.categoryBreakdown.target.interviews, 
-      interviewRate: analyticsData.categoryBreakdown.target.interviewRate, 
+      classification: "Target", 
+      applications: analyticsData.classificationBreakdown.target.applications, 
+      interviews: analyticsData.classificationBreakdown.target.interviews, 
+      interviewRate: analyticsData.classificationBreakdown.target.interviewRate, 
       color: "hsl(var(--target))",
       description: "Good interview likelihood"
     },
     { 
-      category: "Reach", 
-      applications: analyticsData.categoryBreakdown.reach.applications, 
-      interviews: analyticsData.categoryBreakdown.reach.interviews, 
-      interviewRate: analyticsData.categoryBreakdown.reach.interviewRate, 
+      classification: "Reach", 
+      applications: analyticsData.classificationBreakdown.reach.applications, 
+      interviews: analyticsData.classificationBreakdown.reach.interviews, 
+      interviewRate: analyticsData.classificationBreakdown.reach.interviewRate, 
       color: "hsl(var(--reach))",
       description: "Medium interview likelihood"
     },
     { 
-      category: "Dream", 
-      applications: analyticsData.categoryBreakdown.dream.applications, 
-      interviews: analyticsData.categoryBreakdown.dream.interviews, 
-      interviewRate: analyticsData.categoryBreakdown.dream.interviewRate, 
+      classification: "Dream", 
+      applications: analyticsData.classificationBreakdown.dream.applications, 
+      interviews: analyticsData.classificationBreakdown.dream.interviews, 
+      interviewRate: analyticsData.classificationBreakdown.dream.interviewRate, 
       color: "hsl(var(--dream))",
       description: "Career aspiration tracking"
     },
@@ -87,7 +87,7 @@ export default async function AnalyticsPage() {
     applications: company.applications,
     interviews: company.interviews,
     status: company.interviews > 0 ? "Interviewing" : company.applications > 0 ? "Applied" : "No Status",
-    category: "target" as JobCategory // Default category since API doesn't provide this
+    classification: "target" as JobClassification // Default classification since API doesn't provide this
   })) || [];
 
   // Career progression data (static for now, could be made dynamic)
@@ -169,15 +169,15 @@ export default async function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {categoryPerformance.map((category) => (
-                <Card key={category.category} className={`border-2`} style={{ borderColor: category.color + '20' }}>
+              {classificationPerformance.map((classification) => (
+                <Card key={classification.classification} className={`border-2`} style={{ borderColor: classification.color + '20' }}>
                   <CardContent className="p-4">
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <JobCategoryBadge category={category.category.toLowerCase() as JobCategory} size="sm" />
+                        <JobClassificationBadge classification={classification.classification.toLowerCase() as JobClassification} size="sm" />
                         <div className="text-right">
-                          <div className="text-2xl font-medium" style={{ color: category.color }}>
-                            {category.interviewRate}%
+                          <div className="text-2xl font-medium" style={{ color: classification.color }}>
+                            {classification.interviewRate}%
                           </div>
                           <div className="text-xs text-muted-foreground">Interview Rate</div>
                         </div>
@@ -185,23 +185,23 @@ export default async function AnalyticsPage() {
                       <div className="space-y-1">
                         <div className="flex justify-between text-sm">
                           <span>Applications:</span>
-                          <span className="font-medium">{category.applications}</span>
+                          <span className="font-medium">{classification.applications}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span>Interviews:</span>
-                          <span className="font-medium">{category.interviews}</span>
+                          <span className="font-medium">{classification.interviews}</span>
                         </div>
                       </div>
                       <div className="w-full bg-muted rounded-full h-2">
                         <div 
                           className="h-2 rounded-full" 
                           style={{ 
-                            width: `${category.interviewRate}%`, 
-                            backgroundColor: category.color 
+                            width: `${classification.interviewRate}%`, 
+                            backgroundColor: classification.color 
                           }}
                         />
                       </div>
-                      <p className="text-xs text-muted-foreground">{category.description}</p>
+                      <p className="text-xs text-muted-foreground">{classification.description}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -216,7 +216,7 @@ export default async function AnalyticsPage() {
             <CardHeader>
               <CardTitle>Interview Rate Trends</CardTitle>
               <CardDescription>
-                Weekly interview success rates by AI category
+                Weekly interview success rates by AI classification
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -301,7 +301,7 @@ export default async function AnalyticsPage() {
           <CardHeader>
             <CardTitle>Company Performance Analysis</CardTitle>
             <CardDescription>
-              Interview success rates by company and AI category
+              Interview success rates by company and AI classification
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -315,7 +315,7 @@ export default async function AnalyticsPage() {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <div className="font-medium">{company.company}</div>
-                        <JobCategoryBadge category={company.category} size="sm" />
+                        <JobClassificationBadge classification={company.classification} size="sm" />
                       </div>
                       <div className="text-sm text-muted-foreground">
                         {company.applications} applications • {company.interviews} interviews
@@ -378,7 +378,7 @@ export default async function AnalyticsPage() {
                   <div>
                     <div className="font-medium">Strong Target Category Results</div>
                     <p className="text-sm text-muted-foreground">
-                      69% interview rate on target jobs shows great profile alignment. Increase applications in this category.
+                      69% interview rate on target jobs shows great profile alignment. Increase applications in this classification.
                     </p>
                   </div>
                 </div>

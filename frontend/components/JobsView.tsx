@@ -20,7 +20,7 @@ export function JobsView({ initialJobs, initialSaved, initialCategory = 'all' }:
   const [searchQuery, setSearchQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState(initialCategory);
+  const [classificationFilter, setCategoryFilter] = useState(initialCategory);
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
   const [savedJobs, setSavedJobs] = useState<string[]>(initialSaved);
   const [loading, setLoading] = useState(false);
@@ -32,7 +32,7 @@ export function JobsView({ initialJobs, initialSaved, initialCategory = 'all' }:
       try {
         const response = await apiService.getJobs({
           search: searchQuery || undefined,
-          category: categoryFilter === "all" ? undefined : categoryFilter,
+          classification: classificationFilter === "all" ? undefined : classificationFilter,
           location: locationFilter === "all" ? undefined : locationFilter,
           type: typeFilter === "all" ? undefined : typeFilter,
         });
@@ -47,7 +47,7 @@ export function JobsView({ initialJobs, initialSaved, initialCategory = 'all' }:
     return () => {
       ignore = true;
     };
-  }, [searchQuery, categoryFilter, locationFilter, typeFilter]);
+  }, [searchQuery, classificationFilter, locationFilter, typeFilter]);
 
   const handleApply = async (jobId: string) => {
     const job = jobs.find((j) => j.id === jobId);
@@ -58,7 +58,7 @@ export function JobsView({ initialJobs, initialSaved, initialCategory = 'all' }:
       location: job.location,
       salary: job.salary,
       type: job.type,
-      category: job.category,
+      classification: job.classification,
     });
     if (response.success) {
       (window as any).showToast?.({
@@ -137,7 +137,7 @@ export function JobsView({ initialJobs, initialSaved, initialCategory = 'all' }:
       <JobsFilters
         search={searchQuery}
         onSearch={setSearchQuery}
-        category={categoryFilter}
+        classification={classificationFilter}
         onCategory={setCategoryFilter}
         location={locationFilter}
         onLocation={setLocationFilter}

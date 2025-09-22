@@ -1,8 +1,8 @@
 // Shared application types for consistency across the application
 
-export type ApplicationStatus = "submitted" | "interviewed" | "rejected" | "offered" | "withdrawn";
+export type ApplicationStatus = "started" | "submitted" | "assessment" | "interview" | "rejected" | "offer" | "accepted" | "withdrawn";
 
-export type JobCategory = "safety" | "target" | "reach" | "dream";
+export type JobClassification = "safety" | "target" | "reach" | "dream";
 
 export interface Application {
   id: number;
@@ -17,7 +17,7 @@ export interface Application {
   notes?: string;
   jobUrl?: string;
   contacts?: Array<{ name: string; role: string; email?: string }>;
-  category?: JobCategory;
+  classification?: JobClassification;
 }
 
 export interface NewApplication {
@@ -30,7 +30,7 @@ export interface NewApplication {
   location?: string;
   salary?: string;
   jobType?: string;
-  category?: JobCategory;
+  classification?: JobClassification;
   priority?: "high" | "medium" | "low";
 }
 
@@ -45,28 +45,12 @@ export interface Job {
   postedDate: string;
   description: string;
   skills: string[];
-  category: JobCategory;
+  classification: JobClassification;
   aiScore: number;
-  aiAction?: string;
+  action?: string;
 }
 
-// Interview and assessment types
-export interface Interview {
-  id: string;
-  company: string;
-  position: string;
-  type: string;
-  date: string;
-  time: string;
-  duration: number;
-  status: string;
-  interviewer?: string;
-  notes?: string;
-  applicationId: number;
-  location?: string;
-  preparationItems?: string[];
-}
-
+// Assessment and interview types
 export interface Assessment {
   id: string;
   company: string;
@@ -85,6 +69,22 @@ export interface Assessment {
   skills?: string[];
 }
 
+export interface Interview {
+  id: string;
+  company: string;
+  position: string;
+  type: string;
+  date: string;
+  time: string;
+  duration: number;
+  status: string;
+  interviewer?: string;
+  notes?: string;
+  applicationId: number;
+  location?: string;
+  preparationItems?: string[];
+}
+
 // Saved job type
 export interface SavedJob {
   id: string;
@@ -97,7 +97,7 @@ export interface SavedJob {
     company?: string;
     location?: string;
     salary?: string;
-    category?: JobCategory;
+    classification?: JobClassification;
   };
 }
 
@@ -141,7 +141,7 @@ export interface AnalyticsTopCompany {
 
 export interface AnalyticsData {
   overview: AnalyticsOverview;
-  categoryBreakdown: AnalyticsCategoryBreakdown;
+  classificationBreakdown: AnalyticsCategoryBreakdown;
   monthlyTrends: AnalyticsTrendPoint[];
   weeklyActivity: Array<{ week: string; applications: number; interviews: number }>;
   topCompanies: AnalyticsTopCompany[];

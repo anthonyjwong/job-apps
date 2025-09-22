@@ -1,8 +1,8 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { ArrowRight, Code, Star, TrendingUp, Trophy, Users } from "lucide-react";
+import { JobClassificationBadge } from "./JobClassificationBadge";
 import { Badge } from "./ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Progress } from "./ui/progress";
-import { JobCategoryBadge } from "./JobCategoryBadge";
-import { Star, TrendingUp, Users, Code, Trophy, ArrowRight } from "lucide-react";
 
 interface CareerProgressionProps {
   dreamJobs: Array<{

@@ -62,7 +62,7 @@ class ApiService {
   // Jobs API
   async getJobs(params?: {
     search?: string;
-    category?: string;
+    classification?: string;
     location?: string;
     type?: string;
   }) {

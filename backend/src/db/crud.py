@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from schemas.definitions import App, AppField, Job, Review
+from schemas.definitions import App, AppField, Job, JobReview, Review
 
 from .models import ApplicationORM, JobORM
 
@@ -40,13 +40,13 @@ def orm_to_job(db_job: JobORM) -> Job:
     review = None
     if db_job.reviewed:
         if isinstance(db_job.review, dict):
-            review = Review(**db_job.review)
+            review = JobReview(**db_job.review)
         elif isinstance(db_job.review, Review):
             review = db_job.review
         else:
             # fallback: try to convert to dict if possible
             try:
-                review = Review(**dict(db_job.review))
+                review = JobReview(**dict(db_job.review))
             except Exception:
                 raise ValueError("Review missing while reviewed = true")
 

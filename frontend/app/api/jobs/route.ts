@@ -12,7 +12,7 @@ const jobs = [
     postedDate: "2024-01-20",
     description: "We're looking for a talented Frontend Developer to join our growing team. You'll work on building user-facing features using React and TypeScript.",
     skills: ["React", "TypeScript", "CSS", "JavaScript"],
-    category: "safety",
+    classification: "safety",
     aiScore: 85,
     aiAction: "Highlight your React portfolio projects and emphasize your TypeScript experience"
   },
@@ -26,7 +26,7 @@ const jobs = [
     postedDate: "2024-01-19",
     description: "Join our engineering team to build scalable web applications. Experience with Node.js, React, and cloud technologies required.",
     skills: ["React", "Node.js", "AWS", "PostgreSQL", "TypeScript"],
-    category: "target",
+    classification: "target",
     aiScore: 72,
     aiAction: "Prepare examples of scalable applications you've built and your cloud deployment experience"
   },
@@ -40,7 +40,7 @@ const jobs = [
     postedDate: "2024-01-18",
     description: "Lead a team of developers building next-generation data analytics platform. Strong leadership and technical skills required.",
     skills: ["Leadership", "Python", "React", "Microservices", "Kubernetes"],
-    category: "reach",
+    classification: "reach",
     aiScore: 58,
     aiAction: "Showcase your leadership experience and prepare for system design discussions"
   },
@@ -54,7 +54,7 @@ const jobs = [
     postedDate: "2024-01-17",
     description: "Define technical strategy and architecture for our platform serving millions of users. 10+ years experience required.",
     skills: ["System Design", "Architecture", "Leadership", "Microservices", "Cloud"],
-    category: "dream",
+    classification: "dream",
     aiScore: 25,
     aiAction: "Build expertise in distributed systems and consider pursuing system design courses"
   },
@@ -68,7 +68,7 @@ const jobs = [
     postedDate: "2024-01-16",
     description: "Help us build our MVP using React and modern web technologies. Perfect for someone looking to grow in a startup environment.",
     skills: ["React", "JavaScript", "CSS", "Git"],
-    category: "safety",
+    classification: "safety",
     aiScore: 88,
     aiAction: "Emphasize your ability to work in fast-paced environments and startup experience"
   },
@@ -82,7 +82,7 @@ const jobs = [
     postedDate: "2024-01-15",
     description: "Manage cloud infrastructure and CI/CD pipelines. Experience with AWS, Docker, and Kubernetes preferred.",
     skills: ["AWS", "Docker", "Kubernetes", "CI/CD", "Terraform"],
-    category: "reach",
+    classification: "reach",
     aiScore: 45,
     aiAction: "Gain hands-on experience with containerization and cloud deployment tools"
   },
@@ -96,7 +96,7 @@ const jobs = [
     postedDate: "2024-01-14",
     description: "Work on both frontend and backend features for our SaaS platform. Experience with React and Python preferred.",
     skills: ["React", "Python", "Django", "PostgreSQL", "REST APIs"],
-    category: "target",
+    classification: "target",
     aiScore: 75,
     aiAction: "Demonstrate your full-stack capabilities with portfolio projects showing both frontend and backend work"
   },
@@ -110,7 +110,7 @@ const jobs = [
     postedDate: "2024-01-13",
     description: "3-month contract to help build responsive web applications. Strong CSS and React skills needed.",
     skills: ["React", "CSS", "Responsive Design", "SASS"],
-    category: "safety",
+    classification: "safety",
     aiScore: 82,
     aiAction: "Showcase your responsive design portfolio and CSS animation skills"
   },
@@ -124,7 +124,7 @@ const jobs = [
     postedDate: "2024-01-12",
     description: "Drive technical excellence across multiple teams. Lead architecture decisions and mentor senior engineers.",
     skills: ["Leadership", "System Design", "Mentoring", "Architecture", "Microservices"],
-    category: "dream",
+    classification: "dream",
     aiScore: 30,
     aiAction: "Focus on building mentorship experience and contributing to open source projects"
   },
@@ -138,7 +138,7 @@ const jobs = [
     postedDate: "2024-01-11",
     description: "Entry-level position perfect for new graduates. We provide mentorship and growth opportunities.",
     skills: ["HTML", "CSS", "JavaScript", "React"],
-    category: "safety",
+    classification: "safety",
     aiScore: 95,
     aiAction: "Highlight your learning ability and enthusiasm for frontend development"
   }
@@ -148,7 +148,7 @@ export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const search = url.searchParams.get('search')?.toLowerCase() || '';
-    const category = url.searchParams.get('category') || '';
+    const classification = url.searchParams.get('classification') || '';
     const location = url.searchParams.get('location') || '';
     const type = url.searchParams.get('type') || '';
 
@@ -164,9 +164,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Apply category filter
-    if (category && category !== 'all') {
-      filteredJobs = filteredJobs.filter(job => job.category === category);
+    // Apply classification filter
+    if (classification && classification !== 'all') {
+      filteredJobs = filteredJobs.filter(job => job.classification === classification);
     }
 
     // Apply location filter

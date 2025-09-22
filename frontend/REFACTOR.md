@@ -105,7 +105,7 @@ const analytics: AnalyticsData = await res.json();
 
 - Server-first page:
 	- `app/page.tsx` is a Server Component that fetches interviews, assessments, and applications via route handlers using `headers()` to build the base URL and `{ cache: "no-store" }`.
-	- Computes serializable `stats` (totals, category counts, success rates, weekly goal progress) on the server.
+	- Computes serializable `stats` (totals, classification counts, success rates, weekly goal progress) on the server.
 
 - Client island:
 	- `components/HomeInteractive.tsx` holds all interactivity: opening the Add Application modal, optimistic list updates, and UI that uses Lucide/shadcn.

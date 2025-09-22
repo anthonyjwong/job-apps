@@ -4,7 +4,7 @@ from uuid import UUID
 from db.crud import app_to_orm
 from db.models import ApplicationORM, JobORM
 from db.utils.queries import get_application_by_job_id
-from schemas.definitions import App, Job, Review
+from schemas.definitions import App, Job, JobReview
 
 
 def claim_job_for_review(db_session, job_id: UUID) -> bool:
@@ -110,7 +110,7 @@ def claim_app_for_submission(db_session, app_id: UUID) -> bool:
     return False
 
 
-def set_job_reviewed(db_session, job_id: UUID, review: Review):
+def set_job_reviewed(db_session, job_id: UUID, review: JobReview):
     """Mark a job reviewed and clear review_claim flag."""
     (
         db_session.query(JobORM)
