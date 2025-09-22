@@ -44,6 +44,7 @@ from app.db.utils.queries import (
     get_unprepared_applications,
     get_unreviewed_jobs,
 )
+from app.routers import frontend
 from app.schemas.definitions import App, AppFragment, Job, Review, User
 from app.worker.tasks import (
     check_if_job_still_exists_task,
@@ -58,24 +59,23 @@ from fastapi import Body, Depends, FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, HttpUrl, model_validator
-from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-# Configure logging
+# configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[logging.StreamHandler(), logging.FileHandler("debug.log")],
 )
 
-# Ensure handlers use a formatter that includes timestamps
+# ensure handlers use a formatter that includes timestamps
 _fmt = "%(asctime)s - %(levelname)s - %(message)s"
 _datefmt = "%Y-%m-%d %H:%M:%S"
 _formatter = logging.Formatter(fmt=_fmt, datefmt=_datefmt)
 for _h in logging.getLogger().handlers:
     _h.setFormatter(_formatter)
 
-# Enable in-process debugpy when requested (works with Uvicorn --reload)
+# enable in-process debugpy when requested (works with uvicorn --reload)
 if os.environ.get("DEBUGPY", "0") == "1":
     try:
         _port = int(os.environ.get("DEBUGPY_PORT", "5678"))
@@ -88,20 +88,21 @@ if os.environ.get("DEBUGPY", "0") == "1":
         logging.error("Failed to initialize debugpy", exc_info=True)
 
 app = FastAPI(title="Job Application API")
+app.include_router(frontend.router)
 
-# Allow requests from your frontend (e.g., http://localhost:3000)
+# allow requests from your frontend (e.g., http://localhost:3000)
 origins = [
     "http://localhost:3000",
     "http://frontend:3000",
-    # Add more origins if needed
+    # add more origins if needed
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # List of allowed origins
+    allow_origins=origins,  # list of allowed origins
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all HTTP methods
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],  # allow all HTTP methods
+    allow_headers=["*"],  # allow all headers
 )
 
 DEFAULT_JOBS_TO_FIND = 50

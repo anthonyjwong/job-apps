@@ -12,19 +12,15 @@ from app.schemas.api import (
     GetSubmittedApplicationsResponse,
     InterviewResponse,
 )
-from app.schemas.definitions import App
-from fastapi import Depends, FastAPI
+from app.schemas.definitions import Application
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-app = FastAPI(title="Job Apps Frontend API")
+router = APIRouter(prefix="/api", tags=["frontend"])
 
 
-def get_application_state(app: App):
-    pass
-
-
-@app.get("/api/applications")
+@router.get("/applications")
 def get_submitted_applications(
     db: Session = Depends(get_db),
 ) -> GetSubmittedApplicationsResponse:
@@ -56,7 +52,7 @@ def get_submitted_applications(
     )
 
 
-@app.get("/api/assessments")
+@router.get("/assessments")
 def get_assessments(db: Session = Depends(get_db)) -> GetAssessmentsResponse:
     """Get applications where status = assessment."""
     apps = fetch_assessment_applications(db)
@@ -92,7 +88,7 @@ def get_assessments(db: Session = Depends(get_db)) -> GetAssessmentsResponse:
     )
 
 
-@app.get("/api/interviews")
+@router.get("/interviews")
 def get_interviews(db: Session = Depends(get_db)) -> GetInterviewsResponse:
     """Get applications where status = interview."""
     apps = fetch_interview_applications(db)
