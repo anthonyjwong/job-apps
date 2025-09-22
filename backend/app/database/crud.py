@@ -1,7 +1,16 @@
 from datetime import datetime
 
-from app.database.models import ApplicationORM, JobORM
-from app.schemas.definitions import App, AppField, Job, JobReview, Review
+from app.database.models import ApplicationFormORM, ApplicationORM, JobORM
+from app.schemas.definitions import (
+    Application,
+    ApplicationForm,
+    ApplicationFormField,
+    ApplicationFormState,
+    ApplicationStatus,
+    Job,
+    JobReview,
+    JobState,
+)
 
 
 def job_to_orm(job: Job) -> JobORM:
@@ -14,103 +23,95 @@ def job_to_orm(job: Job) -> JobORM:
 
     return JobORM(
         id=job.id,
-        jobspy_id=job.jobspy_id,
         title=job.title,
         company=job.company,
         location=job.location,
         min_salary=job.min_salary,
         max_salary=job.max_salary,
+        type=job.type,
         date_posted=date_posted,
-        job_type=job.job_type,
+        description=job.description,
         linkedin_job_url=job.linkedin_job_url,
         direct_job_url=job.direct_job_url,
-        description=job.description,
-        review=job.review.to_json() if job.review else None,
-        reviewed=job.reviewed,
-        approved=job.approved,
-        discarded=job.discarded,
-        manual=job.manual,
-        expired=job.expired,
+        state=job.state.value,
+        classification=job.review.classification if job.review else None,
+        action=job.review.action if job.review else None,
+        jobspy_id=job.jobspy_id,
+        manually_created=job.manually_created,
     )
 
 
 def orm_to_job(db_job: JobORM) -> Job:
     """Convert ORM model to Job dataclass"""
-    review = None
-    if db_job.reviewed:
-        if isinstance(db_job.review, dict):
-            review = JobReview(**db_job.review)
-        elif isinstance(db_job.review, Review):
-            review = db_job.review
-        else:
-            # fallback: try to convert to dict if possible
-            try:
-                review = JobReview(**dict(db_job.review))
-            except Exception:
-                raise ValueError("Review missing while reviewed = true")
-
     return Job(
         id=db_job.id,
-        jobspy_id=db_job.jobspy_id,
         title=db_job.title,
         company=db_job.company,
         location=db_job.location,
         min_salary=db_job.min_salary,
         max_salary=db_job.max_salary,
+        type=db_job.type,
         date_posted=(
             db_job.date_posted.strftime("%Y-%m-%d") if db_job.date_posted else None
         ),
-        job_type=db_job.job_type,
+        description=db_job.description,
         linkedin_job_url=db_job.linkedin_job_url,
         direct_job_url=db_job.direct_job_url,
-        description=db_job.description,
-        review=review,
-        reviewed=db_job.reviewed,
-        approved=db_job.approved,
-        discarded=db_job.discarded,
-        manual=db_job.manual,
-        expired=db_job.expired,
+        state=JobState(db_job.state),
+        review=(
+            JobReview(classification=db_job.classification, action=db_job.action)
+            if db_job.classification or db_job.action
+            else None
+        ),
+        jobspy_id=db_job.jobspy_id,
+        manually_created=db_job.manually_created,
     )
 
 
-def app_to_orm(app: App) -> ApplicationORM:
+def app_to_orm(app: Application) -> ApplicationORM:
     """Convert App dataclass to ORM model"""
     return ApplicationORM(
         id=app.id,
-        job_id=app.job_id,
+        job_id=app.job.id,
+        form_id=app.form.id if app.form else None,
         url=app.url,
-        fields=[field.__dict__ for field in app.fields],
-        prepared=app.prepared,
-        approved=app.approved,
-        discarded=app.discarded,
         referred=app.referred,
-        submitted=app.submitted,
-        acknowledged=app.acknowledged,
-        assessment=app.assessment,
-        interview=app.interview,
-        rejected=app.rejected,
+        status=app.status.value,
     )
 
 
-def orm_to_app(db_app: ApplicationORM) -> App:
+def orm_to_app(db_app: ApplicationORM) -> Application:
     """Convert ORM model to App dataclass"""
-    parsed_fields = []
-    if db_app.fields:
-        for field in db_app.fields:
-            parsed_fields.append(AppField(**dict(field)))
-
-    return App(
+    return Application(
         id=db_app.id,
-        job_id=db_app.job_id,
+        job=orm_to_job(db_app.job) if db_app.job else None,
+        form=orm_to_form(db_app.form) if db_app.form else None,
         url=db_app.url,
-        fields=parsed_fields,
-        prepared=db_app.prepared,
-        approved=db_app.approved,
-        discarded=db_app.discarded,
         referred=db_app.referred,
-        submitted=db_app.submitted,
-        acknowledged=db_app.acknowledged,
-        assessment=db_app.assessment,
-        interview=db_app.interview,
-        rejected=db_app.rejected,
+        status=ApplicationStatus(db_app.status),
+        submitted_at=db_app.submitted_at,
+    )
+
+
+def form_to_orm(form: ApplicationForm) -> ApplicationFormORM:
+    """Convert AppField dataclass to ORM model"""
+    return ApplicationFormORM(
+        id=form.id,
+        application_id=form.application.id,
+        fields=[field.__dict__ for field in form.fields],
+        state=form.state.value,
+    )
+
+
+def orm_to_form(db_form: ApplicationFormORM) -> ApplicationForm:
+    """Convert ORM model to AppField dataclass"""
+    parsed_fields = []
+    if db_form.fields:
+        for field in db_form.fields:
+            parsed_fields.append(ApplicationFormField(**dict(field)))
+
+    return ApplicationForm(
+        id=db_form.id,
+        fields=parsed_fields,
+        state=ApplicationFormState(db_form.state),
     )

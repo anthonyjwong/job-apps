@@ -1,3 +1,4 @@
+import json
 import uuid
 from dataclasses import field
 from datetime import datetime
@@ -19,13 +20,13 @@ class JobClassification(Enum):
 
 
 class JobReview(BaseModel):
-    action: str
     classification: JobClassification
+    action: str
 
     def to_json(self):
         return {
-            "action": self.action,
             "classification": self.classification,
+            "action": self.action,
         }
 
 
@@ -44,7 +45,7 @@ class Job(BaseModel):
     location: str
     min_salary: Optional[float]
     max_salary: Optional[float]
-    job_type: Optional[str]
+    type: Optional[str]
     date_posted: Optional[str]
     description: Optional[str]
     linkedin_job_url: Optional[str]
@@ -52,10 +53,10 @@ class Job(BaseModel):
     state: JobState = JobState.PENDING
     review: Optional[JobReview]
     jobspy_id: Optional[str]
-    manually_added: bool = False
+    manually_created: bool = False
 
-    def to_json(self):
-        """Converts Job object to JSON serializable format."""
+    def to_dict(self):
+        """Converts Job object to dict format."""
         return {
             "id": str(self.id),
             "title": self.title,
@@ -65,16 +66,21 @@ class Job(BaseModel):
             "description": self.description,
             "min_salary": self.min_salary,
             "max_salary": self.max_salary,
-            "job_type": self.job_type,
+            "type": self.type,
             "linkedin_job_url": self.linkedin_job_url,
             "direct_job_url": self.direct_job_url,
             "state": self.state,
             "review": self.review,
             "jobspy_id": self.jobspy_id,
-            "manually_added": self.manually_added,
+            "manually_created": self.manually_created,
         }
 
+    def to_json(self):
+        """Converts Job object to JSON serializable format."""
+        return json.dumps(self.to_dict())
+
     def to_prompt(self):
+        """Converts a Job object to a prompt for an LLM."""
         return f"{self.company}, {self.title}\n{self.description}"
 
 
@@ -91,33 +97,14 @@ class ApplicationStatus(Enum):
     WITHDRAWN = "withdrawn"
 
 
-class Application(BaseModel):
-    id: UUID = PydanticField(default_factory=uuid.uuid4)
-    job: Job
-    url: str
-    referred: bool = False
-    status: ApplicationStatus = ApplicationStatus.STARTED
-    submitted_at: Optional[datetime]
-
-    def to_json(self):
-        """Converts App object to JSON serializable format."""
-        return {
-            "id": str(self.id),
-            "job_id": str(self.job.id),
-            "url": self.url,
-            "referred": self.referred,
-            "status": self.status,
-            "submitted_at": self.submitted_at,
-        }
-
-
 class ApplicationFormField(BaseModel):
     question: str
     multiple_choice: bool
     choices: Optional[list[str]]
     answer: Optional[str]
 
-    def to_json(self):
+    def to_dict(self):
+        """Converts ApplicationFormField object to dict format."""
         return {
             "question": self.question,
             "multiple_choice": self.multiple_choice,
@@ -125,7 +112,12 @@ class ApplicationFormField(BaseModel):
             "answer": self.answer,
         }
 
+    def to_json(self):
+        """Converts ApplicationFormField object to JSON serializable format."""
+        return json.dumps(self.to_dict())
+
     def to_prompt(self):
+        """Converts a ApplicationFormField object to a prompt for an LLM."""
         if self.multiple_choice:
             answer_string = ""
             for i, choice in enumerate(self.choices):
@@ -147,7 +139,6 @@ class ApplicationFormState(Enum):
 
 class ApplicationForm(BaseModel):
     id: UUID
-    application: Application
     fields: list[ApplicationFormField]
     state: ApplicationFormState = ApplicationFormState.CREATED
 
@@ -163,7 +154,7 @@ class ApplicationForm(BaseModel):
         return [f.question for f in self.fields]
 
     def log(self):
-        """Log job applicatio form."""
+        """Log application form."""
         for f in self.fields:
             if f.multiple_choice:
                 print(f.question)
@@ -172,6 +163,31 @@ class ApplicationForm(BaseModel):
                 print()
             else:
                 print(f"{f.question}\n{f.answer}\n")
+
+
+class Application(BaseModel):
+    id: UUID = PydanticField(default_factory=uuid.uuid4)
+    job: Job
+    form: Optional[ApplicationForm]
+    url: str
+    referred: bool = False
+    status: ApplicationStatus = ApplicationStatus.STARTED
+    submitted_at: Optional[datetime]
+
+    def to_dict(self):
+        """Converts Application object to dict format."""
+        return {
+            "id": str(self.id),
+            "job_id": str(self.job.id),
+            "url": self.url,
+            "referred": self.referred,
+            "status": self.status,
+            "submitted_at": self.submitted_at,
+        }
+
+    def to_json(self):
+        """Converts Application object to JSON serializable format."""
+        return json.dumps(self.to_dict())
 
 
 # TODO: add EEOC questions
@@ -209,8 +225,8 @@ class User(BaseModel):
         """Log user."""
         print(f"{self.first_name} {self.last_name} | {self.email}")
 
-    def to_json(self):
-        """Converts User object to JSON serializable format."""
+    def to_dict(self):
+        """Converts User object to dict format."""
         return {
             "id": str(self.id),
             "first_name": self.first_name,
@@ -225,8 +241,12 @@ class User(BaseModel):
             "work_mode_ranking": self.work_mode_ranking,
         }
 
+    def to_json(self):
+        """Converts User object to JSON serializable format."""
+        return json.dumps(self.to_dict())
+
     def to_prompt(self):
-        """Creates a clear prompt for an LLM with field descriptions."""
+        """Converts a User object to a prompt for an LLM."""
         prompt = """Personal Information:
 - Full Name: {first_name} {last_name}
 - Email: {email}
