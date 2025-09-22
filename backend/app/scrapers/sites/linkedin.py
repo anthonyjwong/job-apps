@@ -5,7 +5,7 @@ import uuid
 from pathlib import Path
 
 import requests
-from app.schemas.definitions import App, AppField, Job, Review
+from app.schemas.definitions import Application, Job
 from app.scrapers.scraper import JobSite, human_delay
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
@@ -33,10 +33,10 @@ class LinkedInCheckpointError(Exception):
 
 
 class LinkedIn(JobSite):
-    job: Job
+    job: JobSite
     headless: bool = True
 
-    def __init__(self, job, headless: bool = True):
+    def __init__(self, job: Job, headless: bool = True):
         self.job = job
         self.headless = headless
 
@@ -50,7 +50,7 @@ class LinkedIn(JobSite):
         element.click()
         human_delay(1, 2)
 
-    def _find_questions(self, app: App, page, submit: bool = False):
+    def _find_questions(self, app: Application, page, submit: bool = False):
         # resume
         # file_upload = question.locator("input[type='file']").first
         #     if file_upload.count():
@@ -59,7 +59,7 @@ class LinkedIn(JobSite):
         #         next_button.click()
         #         human_delay(1, 2)
         if app is None:
-            raise ValueError("App cannot be None")
+            raise ValueError("Application cannot be None")
 
         question_elements = page.locator(".DklSpvuYKpZWRlAbeBtitReCzWRCFaZjmnnIMw")
         total = question_elements.count()
@@ -169,9 +169,9 @@ class LinkedIn(JobSite):
         human_delay(3, 5)
         return page
 
-    def scrape(self, app: App = None, submit: bool = False) -> App:
+    def scrape(self, app: Application = None, submit: bool = False) -> Application:
         if app is None:
-            app = App(
+            app = Application(
                 job_id=self.job.id,
                 url=self.job.linkedin_job_url,
             )
@@ -307,15 +307,15 @@ class LinkedIn(JobSite):
             logging.error(f"Error occurred app scraping/submitting for {app.id}: {e}")
             raise
 
-    def scrape_questions(self) -> App:
-        return App(
+    def scrape_questions(self) -> Application:
+        return Application(
             job_id=self.job.id,
             url=self.job.linkedin_job_url,
             scraped=False,
             prepared=True,
         )  # don't actually scrape questions for now
 
-    def apply(self, app: App) -> bool:
+    def apply(self, app: Application) -> bool:
         return True
 
     def check_for_expiration(self) -> bool:

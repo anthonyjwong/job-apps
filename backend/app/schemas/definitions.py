@@ -1,5 +1,6 @@
 import json
 import uuid
+from ast import pattern
 from dataclasses import field
 from datetime import datetime
 from enum import Enum
@@ -138,7 +139,7 @@ class ApplicationFormState(Enum):
 
 
 class ApplicationForm(BaseModel):
-    id: UUID
+    id: UUID = PydanticField(default_factory=uuid.uuid4)
     fields: list[ApplicationFormField]
     state: ApplicationFormState = ApplicationFormState.CREATED
 
@@ -220,6 +221,15 @@ class User(BaseModel):
             "twitter": None,
             "portfolio": self.github_url,
         }
+
+    def get_common_questions_regex(self):
+        pattern = r"("
+        for i, key in enumerate(self.get_common_questions().keys()):
+            if i + 1 < len(self.get_common_questions().keys()):
+                pattern += f"{key}|"
+            else:
+                pattern += f"{key})"
+        return pattern
 
     def log(self):
         """Log user."""

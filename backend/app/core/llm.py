@@ -2,7 +2,13 @@ import json
 import logging
 
 from app.core.utils import with_retry
-from app.schemas.definitions import App, AppField, Job, JobReview, Review, User
+from app.schemas.definitions import (
+    Application,
+    ApplicationFormField,
+    Job,
+    JobReview,
+    User,
+)
 from openai import OpenAI
 from openai.types.responses import Response
 
@@ -16,7 +22,7 @@ def upload_resume(resume_pdf_path: str):
         return resume_pdf.id
 
 
-def evaluate_candidate_aptitude(job: Job, user: User) -> Review:
+def evaluate_candidate_aptitude(job: Job, user: User) -> JobReview:
     """Review job and resume and determine fit for the role."""
     with open(".instructions/REVIEWER.md", "r") as f:
         instructions = f.read()
@@ -58,7 +64,10 @@ def evaluate_candidate_aptitude(job: Job, user: User) -> Review:
 
 
 def answer_question(
-    field: AppField, job: Job, app: App, user: User, *, resume_file_id: str | None
+    field: ApplicationFormField,
+    app: Application,
+    user: User,
+    resume_file_id: str | None,
 ) -> Response:
     # I want the AI to have a large source of data about the applicant. It should have more than just the resume,
     # but also use answers the applicant has already provided if possible.
@@ -95,7 +104,7 @@ def answer_question(
                     "role": "assistant",
                     "content": "Please provide the company name, the role name, and role description of the job the jobseeker is applying for.",
                 },
-                {"role": "user", "content": job.to_prompt()},
+                {"role": "user", "content": app.job.to_prompt()},
                 {
                     "role": "assistant",
                     "content": "Please provide the application question and choices in a numbered list.",

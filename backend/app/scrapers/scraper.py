@@ -2,7 +2,7 @@ import random
 import time
 from abc import ABC, abstractmethod
 
-from app.schemas.definitions import App, Job
+from app.schemas.definitions import Application, ApplicationForm, Job
 
 EMULATE_HUMAN = True
 
@@ -15,15 +15,15 @@ def human_delay(min_sec=0.5, max_sec=1.5, override=False):
 class JobSite(ABC):
     job: Job
 
-    def __init__(self, job):
+    def __init__(self, job: Job):
         self.job = job
 
     @abstractmethod
-    def scrape_questions(self) -> App:
-        """Get the questions from a job application."""
+    def scrape_questions(self) -> ApplicationForm:
+        """Get the questions from an application form."""
         pass
 
     @abstractmethod
-    def apply(self, app: App) -> bool:
+    def apply(self) -> bool:
         """Submit an application."""
         pass

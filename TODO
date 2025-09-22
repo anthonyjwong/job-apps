@@ -1,5 +1,6 @@
 - Implement Users db
 - Interview prep page
 - Migrate to Ollama
+- https://azurewithaj.com/posts/github-copilot-prompt-instructions-chatmodes/
 
 When I click on the Job Category cards I want to be taken to the Jobs page with the filter set to the corresponding job classification

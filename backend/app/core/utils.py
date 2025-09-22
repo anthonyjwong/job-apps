@@ -5,7 +5,39 @@ from typing import Callable, Optional, Tuple, Type
 from urllib.parse import urlparse
 
 import pandas as pd
-from app.schemas.definitions import Job
+from app.schemas.definitions import Application, Job
+from app.scrapers.scraper import JobSite
+from app.scrapers.sites.ashby import Ashby
+from app.scrapers.sites.linkedin import LinkedIn
+
+DOMAIN_HANDLERS = {"jobs.ashbyhq.com": Ashby, "www.linkedin.com": LinkedIn}
+
+
+def get_domain_handler(app: Application) -> JobSite:
+    """Get the appropriate JobSite handler based on the URL's domain."""
+    base_url = get_base_url(app.url)
+    if base_url in DOMAIN_HANDLERS:
+        return DOMAIN_HANDLERS[base_url](app.job)
+    else:
+        return None
+
+
+def jobspy_to_job(listing: dict) -> Job:
+    """Converts jobspy listing data to Job object."""
+    return Job(
+        title=clean_val(listing.get("title")),
+        company=clean_val(listing.get("company")),
+        location=clean_val(listing.get("location")),
+        min_salary=clean_val(listing.get("min_amount")),
+        max_salary=clean_val(listing.get("max_amount")),
+        type=clean_val(listing.get("job_type")),
+        date_posted=clean_val(str(listing.get("date_posted"))),
+        description=clean_val(listing.get("description")),
+        linkedin_job_url=clean_url(clean_val(listing.get("job_url"))),
+        direct_job_url=clean_url(clean_val(listing.get("job_url_direct"))),
+        jobspy_id=clean_val(listing.get("id")),
+        manually_created=False,
+    )
 
 
 def convert_df_to_object_list(df: pd.DataFrame, obj_type: type) -> list[object]:
