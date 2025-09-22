@@ -24,6 +24,6 @@ class JobSite(ABC):
         pass
 
     @abstractmethod
-    def apply(self) -> bool:
+    def apply(self, app: Application) -> bool:
         """Submit an application."""
         pass

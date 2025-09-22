@@ -5,8 +5,16 @@ import uuid
 from pathlib import Path
 
 import requests
-from app.schemas.definitions import Application, Job
-from app.scrapers.scraper import JobSite, human_delay
+from app.core.scrapers.scraper import JobSite, human_delay
+from app.schemas.definitions import (
+    Application,
+    ApplicationForm,
+    ApplicationFormField,
+    ApplicationFormState,
+    ApplicationStatus,
+    Job,
+    JobReview,
+)
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
@@ -33,7 +41,7 @@ class LinkedInCheckpointError(Exception):
 
 
 class LinkedIn(JobSite):
-    job: JobSite
+    job: Job
     headless: bool = True
 
     def __init__(self, job: Job, headless: bool = True):
@@ -50,7 +58,7 @@ class LinkedIn(JobSite):
         element.click()
         human_delay(1, 2)
 
-    def _find_questions(self, app: Application, page, submit: bool = False):
+    def _find_questions(self, page, submit: bool = False) -> list[ApplicationFormField]:
         # resume
         # file_upload = question.locator("input[type='file']").first
         #     if file_upload.count():
@@ -58,8 +66,7 @@ class LinkedIn(JobSite):
         #         next_button.scroll_into_view_if_needed()
         #         next_button.click()
         #         human_delay(1, 2)
-        if app is None:
-            raise ValueError("Application cannot be None")
+        fields = []
 
         question_elements = page.locator(".DklSpvuYKpZWRlAbeBtitReCzWRCFaZjmnnIMw")
         total = question_elements.count()
@@ -70,8 +77,8 @@ class LinkedIn(JobSite):
                 question = (element.locator("label").first.text_content()).strip()
                 answer = (text_input.input_value()).strip()
                 if not submit:
-                    app.fields.append(
-                        AppField(
+                    fields.append(
+                        ApplicationFormField(
                             question=question,
                             multiple_choice=False,
                             choices=None,
@@ -86,8 +93,8 @@ class LinkedIn(JobSite):
                 question = question[0 : len(question) // 2]
                 options = dropdown.locator("option")
                 if not submit:
-                    app.fields.append(
-                        AppField(
+                    fields.append(
+                        ApplicationFormField(
                             question=question,
                             multiple_choice=True,
                             choices=[
@@ -108,8 +115,8 @@ class LinkedIn(JobSite):
                 option_labels = element.locator("label")
                 option_inputs = element.locator("input[type='radio']")
                 if not submit:
-                    app.fields.append(
-                        AppField(
+                    fields.append(
+                        ApplicationFormField(
                             question=question,
                             multiple_choice=True,
                             choices=[
@@ -123,6 +130,8 @@ class LinkedIn(JobSite):
                 print(
                     f"Options: {[(option_labels.nth(i).text_content()).strip() for i in range(option_labels.count())]}"
                 )
+
+        return fields
 
     def _check_for_captcha(self, page):
         if "/checkpoint/challenge" in page.url:
@@ -174,6 +183,7 @@ class LinkedIn(JobSite):
             app = Application(
                 job_id=self.job.id,
                 url=self.job.linkedin_job_url,
+                form=ApplicationForm(fields=[]),
             )
         try:
             with sync_playwright() as p:
@@ -265,20 +275,20 @@ class LinkedIn(JobSite):
                     step, button = detect_step()
 
                     if step == "next":
-                        self._find_questions(app, page, submit=submit)
-                        self.__next_page(button)
-                        continue
+                        self._find_questions(app.form, page, submit=submit)
+                        self._next_page(button)
                     elif step == "review":
-                        self._find_questions(app, page, submit=submit)
+                        self._find_questions(app.form, page, submit=submit)
+
                         if not submit:
                             # caller only wants questions; stop before submitting
                             browser.close()
-                            app.scraped = True
+                            app.form.state = ApplicationFormState.SCRAPED
                             return app
-                        self.__next_page(button)
-                        continue
+
+                        self._next_page(button)
                     elif step == "submit":
-                        # Optional checkbox shown on some flows
+                        # optional checkbox shown on some flows
                         follow_company_checkbox = page.locator(
                             "input[type='checkbox']#follow-company-checkbox"
                         )
@@ -288,8 +298,8 @@ class LinkedIn(JobSite):
                             human_delay(0.2, 0.5)
 
                         if submit:  # dbl check
-                            self.__next_page(button)
-                            app.submitted = True
+                            self._next_page(button)
+                            app.status = ApplicationStatus.SUBMITTED
 
                         return app
                     elif step is None:
@@ -307,15 +317,18 @@ class LinkedIn(JobSite):
             logging.error(f"Error occurred app scraping/submitting for {app.id}: {e}")
             raise
 
-    def scrape_questions(self) -> Application:
-        return Application(
-            job_id=self.job.id,
-            url=self.job.linkedin_job_url,
-            scraped=False,
-            prepared=True,
-        )  # don't actually scrape questions for now
+    def scrape_questions(self) -> ApplicationForm:
+        # return self.scrape(submit=False).form
+
+        # don't actually scrape questions for now
+        return ApplicationForm(
+            fields=[],
+        )
 
     def apply(self, app: Application) -> bool:
+        # return self.scrape(app, submit=True)
+
+        # automatically succeed for now
         return True
 
     def check_for_expiration(self) -> bool:

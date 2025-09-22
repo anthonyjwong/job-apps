@@ -2,6 +2,8 @@ import re
 
 import pandas as pd
 from app.core.llm import answer_question, upload_resume
+from app.core.scrapers.scraper import JobSite
+from app.core.scrapers.sites import LinkedIn
 from app.core.utils import get_domain_handler, jobspy_to_job
 from app.schemas.definitions import (
     Application,
@@ -11,8 +13,6 @@ from app.schemas.definitions import (
     User,
 )
 from app.schemas.errors import MissingAppUrlError
-from app.scrapers.scraper import JobSite
-from app.scrapers.sites import LinkedIn
 from jobspy import scrape_jobs
 
 

@@ -1,7 +1,13 @@
 import logging
 
-from app.schemas.definitions import Application, ApplicationFormField, Job
-from app.scrapers.scraper import EMULATE_HUMAN, JobSite, human_delay
+from app.core.scrapers.scraper import EMULATE_HUMAN, JobSite, human_delay
+from app.schemas.definitions import (
+    Application,
+    ApplicationForm,
+    ApplicationFormField,
+    ApplicationFormState,
+    Job,
+)
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 
@@ -100,7 +106,7 @@ class Ashby(JobSite):
 
         assert value.split(",")[0] in (cb.input_value())
 
-    def scrape_questions(self) -> App:
+    def scrape_questions(self) -> ApplicationForm:
         url = self.job.direct_job_url
         if not url.endswith("/application"):
             url += "/application"
@@ -119,18 +125,11 @@ class Ashby(JobSite):
             browser.close()  # we have all the info we need at this point
 
             # parse job app
-            app = App(
-                job_id=self.job.id,
-                url=(
-                    self.job.direct_job_url
-                    if self.job.direct_job_url
-                    else (
-                        self.job.linkedin_job_url if self.job.linkedin_job_url else None
-                    )
-                ),
+            form = ApplicationForm(fields=[])
+            container = soup.find(class_="ashby-application-form-container")
+            sections = container.find_all(
+                class_="ashby-application-form-section-container"
             )
-            form = soup.find(class_="ashby-application-form-container")
-            sections = form.find_all(class_="ashby-application-form-section-container")
             for section in sections:
                 for element in section:
                     question = element.find(
@@ -150,8 +149,8 @@ class Ashby(JobSite):
                             answer_area.name == "input"
                             or answer_area.name == "textarea"
                         ):  # label + input/textarea = text answer
-                            app.fields.append(
-                                AppField(
+                            form.fields.append(
+                                ApplicationFormField(
                                     question=question.text,
                                     multiple_choice=False,
                                     choices=None,
@@ -164,8 +163,8 @@ class Ashby(JobSite):
                             if "_yesno_hkyf8_143" in answer_area.get(
                                 "class"
                             ):  # yes/no question
-                                app.fields.append(
-                                    AppField(
+                                form.fields.append(
+                                    ApplicationFormField(
                                         question=question.text,
                                         multiple_choice=True,
                                         choices=["Yes", "No"],
@@ -173,8 +172,8 @@ class Ashby(JobSite):
                                     )
                                 )
                             else:  # text dropdown or file upload
-                                app.fields.append(
-                                    AppField(
+                                form.fields.append(
+                                    ApplicationFormField(
                                         question=question.text,
                                         multiple_choice=False,
                                         choices=None,
@@ -198,8 +197,8 @@ class Ashby(JobSite):
                             for choice in radio_answers:
                                 choices.append(choice.text)
 
-                        app.fields.append(
-                            AppField(
+                        form.fields.append(
+                            ApplicationFormField(
                                 question=question.text,
                                 multiple_choice=True,
                                 choices=choices,
@@ -207,9 +206,9 @@ class Ashby(JobSite):
                             )
                         )
 
-        return app
+        return form
 
-    def apply(self, app: App) -> bool:
+    def apply(self, app: Application) -> bool:
         url = app.url
         if not url.endswith("/application"):
             url += "/application"
@@ -227,7 +226,7 @@ class Ashby(JobSite):
 
                 total = question_elements.count()
                 for i in range(total):
-                    if i >= len(app.fields):
+                    if i >= len(app.form.fields):
                         break
 
                     element = question_elements.nth(i)
@@ -236,7 +235,7 @@ class Ashby(JobSite):
                     question = element.locator(
                         ".ashby-application-form-question-title"
                     ).first.text_content()
-                    answer = app.find_answer(question)
+                    answer = app.form.find_answer(question)
 
                     if tag == "div":
                         text_input = element.locator("._input_hkyf8_33").first
@@ -280,7 +279,7 @@ class Ashby(JobSite):
                                 option.locator("input").first.click()
                                 human_delay()
 
-                if app.approved:
+                if app.form.state == ApplicationFormState.APPROVED:
                     # submit
                     human_delay(1, 2, override=True)
                     submit_button = page.locator(
@@ -316,7 +315,6 @@ class Ashby(JobSite):
                         error_message = f"App {app.id} submission failed; No container detected. Assuming failure."
                         logging.error(error_message)
                         raise RuntimeError(error_message)
-
                 else:
                     logging.error("Application not approved by user.")
                     raise RuntimeError(
