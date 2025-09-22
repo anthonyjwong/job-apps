@@ -85,9 +85,9 @@ def get_assessments(db: Session = Depends(get_db)) -> GetAssessmentsResponse:
         content=GetAssessmentsResponse(
             assessments=assessment_responses,
             total=len(assessment_responses),
-            pending="",
-            completed="",
-            scheduled="",
+            pending=0,
+            completed=0,
+            scheduled=0,
         ),
     )
 
@@ -121,7 +121,7 @@ def get_interviews(db: Session = Depends(get_db)) -> GetInterviewsResponse:
         content=GetInterviewsResponse(
             interviews=interview_responses,
             total=len(interview_responses),
-            upcoming="",
-            completed="",
+            upcoming=0,
+            completed=0,
         ),
     )
