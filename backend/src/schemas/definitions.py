@@ -11,15 +11,11 @@ from schemas.errors import QuestionNotFoundError
 
 
 # jobs
-class JobClassification(
-    Literal[
-        "safety",
-        "target",
-        "reach",
-        "dream",
-    ]
-):
-    pass
+class JobClassification(Enum):
+    SAFETY = "safety"
+    TARGET = "target"
+    REACH = "reach"
+    DREAM = "dream"
 
 
 class JobReview(BaseModel):
@@ -33,8 +29,12 @@ class JobReview(BaseModel):
         }
 
 
-class JobState(Literal["pending", "approved", "discarded", "reviewed", "expired"]):
-    pass
+class JobState(Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    DISCARDED = "discarded"
+    REVIEWED = "reviewed"
+    EXPIRED = "expired"
 
 
 class Job(BaseModel):
@@ -49,7 +49,7 @@ class Job(BaseModel):
     description: Optional[str]
     linkedin_job_url: Optional[str]
     direct_job_url: Optional[str]
-    state: JobState = "pending"
+    state: JobState = JobState.PENDING
     review: Optional[JobReview]
     jobspy_id: Optional[str]
     manually_added: bool = False
@@ -137,17 +137,19 @@ class ApplicationFormField(BaseModel):
             return self.question
 
 
-class ApplicationFormState(
-    Literal["created", "scraped", "prepared", "approved", "discarded"]
-):
-    pass
+class ApplicationFormState(Enum):
+    CREATED = "created"
+    SCRAPED = "scraped"
+    PREPARED = "prepared"
+    APPROVED = "approved"
+    DISCARDED = "discarded"
 
 
 class ApplicationForm(BaseModel):
     id: UUID
     application: Application
     fields: list[ApplicationFormField]
-    state: ApplicationFormState = "created"
+    state: ApplicationFormState = ApplicationFormState.CREATED
 
     def find_answer(self, question: str):
         for field in self.fields:
