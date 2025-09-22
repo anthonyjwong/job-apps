@@ -1,9 +1,9 @@
 import logging
 from uuid import UUID
 
-from app.db.crud import app_to_orm
-from app.db.models import ApplicationORM, JobORM
-from app.db.utils.queries import get_application_by_job_id
+from app.database.crud import app_to_orm
+from app.database.models import ApplicationORM, JobORM
+from app.database.utils.queries import get_application_by_job_id
 from app.schemas.definitions import App, Job, JobReview
 
 

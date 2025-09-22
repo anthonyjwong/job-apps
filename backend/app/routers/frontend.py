@@ -1,5 +1,5 @@
-from app.db.database import get_db
-from app.db.utils.frontend import (
+from app.database.session import get_db
+from app.database.utils.frontend import (
     fetch_assessment_applications,
     fetch_interview_applications,
     fetch_submitted_applications,

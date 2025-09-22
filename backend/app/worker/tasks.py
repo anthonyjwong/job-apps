@@ -14,8 +14,8 @@ from app.core.jobs import (
 )
 from app.core.llm import evaluate_candidate_aptitude
 from app.core.utils import get_base_url
-from app.db.database import SessionLocal
-from app.db.utils.claims import (
+from app.database.session import SessionLocal
+from app.database.utils.claims import (
     clear_app_preparation_claim,
     clear_app_submission_claim,
     clear_job_app_creation_claim,
@@ -25,8 +25,8 @@ from app.db.utils.claims import (
     set_job_expired,
     set_job_reviewed,
 )
-from app.db.utils.mutations import add_new_scraped_jobs
-from app.db.utils.queries import get_application_by_id, get_job_by_id
+from app.database.utils.mutations import add_new_scraped_jobs
+from app.database.utils.queries import get_application_by_id, get_job_by_id
 from app.schemas.definitions import App, Job, User
 from app.schemas.errors import MissingAppUrlError, QuestionNotFoundError
 from celery import Celery

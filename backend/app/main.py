@@ -9,16 +9,16 @@ import debugpy
 import uvicorn
 from app.core.jobs import get_domain_handler
 from app.core.utils import clean_url, get_base_url
-from app.db.database import SessionLocal, get_db
-from app.db.models import ApplicationORM, JobORM
-from app.db.utils.claims import (
+from app.database.models import ApplicationORM, JobORM
+from app.database.session import SessionLocal, get_db
+from app.database.utils.claims import (
     claim_app_for_prep,
     claim_app_for_submission,
     claim_job_for_app_creation,
     claim_job_for_expiration_check,
     claim_job_for_review,
 )
-from app.db.utils.mutations import (
+from app.database.utils.mutations import (
     add_new_application,
     add_new_job,
     approve_application_by_id,
@@ -29,7 +29,7 @@ from app.db.utils.mutations import (
     update_application_state_by_id,
     update_job_by_id,
 )
-from app.db.utils.queries import (
+from app.database.utils.queries import (
     get_all_applications,
     get_all_jobs,
     get_application_by_id,

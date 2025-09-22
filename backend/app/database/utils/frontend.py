@@ -1,5 +1,5 @@
-from app.db.crud import orm_to_app
-from app.db.models import ApplicationORM, ApplicationStatusEnum
+from app.database.crud import orm_to_app
+from app.database.models import ApplicationORM, ApplicationStatusEnum
 from app.schemas.definitions import Application
 
 

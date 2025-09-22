@@ -1,8 +1,8 @@
 import logging
 from uuid import UUID
 
-from app.db.crud import app_to_orm, job_to_orm, orm_to_app, orm_to_job
-from app.db.models import ApplicationORM, JobORM
+from app.database.crud import app_to_orm, job_to_orm, orm_to_app, orm_to_job
+from app.database.models import ApplicationORM, JobORM
 from app.schemas.definitions import App, AppFragment, Job
 
 
