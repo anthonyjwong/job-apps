@@ -1,5 +1,4 @@
-import { ArrowRight, Code, Star, TrendingUp, Trophy, Users } from "lucide-react";
-import { JobClassificationBadge } from "./JobClassificationBadge";
+import { Star, TrendingUp, Trophy } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Progress } from "./ui/progress";

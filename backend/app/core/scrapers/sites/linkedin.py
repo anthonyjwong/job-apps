@@ -5,6 +5,10 @@ import uuid
 from pathlib import Path
 
 import requests
+from bs4 import BeautifulSoup
+from dotenv import load_dotenv
+from playwright.sync_api import sync_playwright
+
 from app.core.scrapers.scraper import JobSite, human_delay
 from app.schemas.definitions import (
     Application,
@@ -15,9 +19,6 @@ from app.schemas.definitions import (
     Job,
     JobReview,
 )
-from bs4 import BeautifulSoup
-from dotenv import load_dotenv
-from playwright.sync_api import sync_playwright
 
 # Load .env from repo root (job-apps/.env) regardless of CWD
 _REPO_ROOT = Path(__file__).resolve().parents[3]

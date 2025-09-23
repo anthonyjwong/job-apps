@@ -8,10 +8,8 @@ import redis
 from app.core.jobs import (
     check_job_expiration,
     fill_out_application_form,
-    prepare_job_app,
     save_jobs,
     scrape_application_form,
-    scrape_job_app,
     submit_app,
 )
 from app.core.llm import evaluate_candidate_aptitude
@@ -23,13 +21,22 @@ from app.database.utils.claims import (
     clear_job_app_creation_claim,
     clear_job_expiration_claim,
     clear_job_review_claim,
+    set_app_prepared,
+    set_app_submitted,
     set_job_app_created,
     set_job_expired,
     set_job_reviewed,
 )
 from app.database.utils.mutations import add_new_scraped_jobs
 from app.database.utils.queries import get_application_by_id, get_job_by_id
-from app.schemas.definitions import App, Job, JobState, User
+from app.schemas.definitions import (
+    App,
+    ApplicationFormState,
+    ApplicationStatus,
+    Job,
+    JobState,
+    User,
+)
 from app.schemas.errors import MissingAppUrlError, QuestionNotFoundError
 from celery import Celery
 from requests import JSONDecodeError
@@ -176,7 +183,12 @@ def evaluate_job_task(job_id: UUID, user: dict) -> bool:
 
 @celery_app.task
 def create_app_task(job_id: UUID) -> UUID:
-    job = validate_job_id(job_id)
+    job: Job = validate_job_id(job_id)
+
+    if job.applications[0].form.state < ApplicationFormState.SCRAPED:
+        with SessionLocal() as db:
+            clear_job_app_creation_claim(db, job.id)
+        return True
 
     # logic
     try:
@@ -211,7 +223,7 @@ def create_app_task(job_id: UUID) -> UUID:
 def check_if_job_still_exists_task(job_id: UUID):
     job = validate_job_id(job_id)
 
-    if job.expired:
+    if job.state == JobState.EXPIRED:
         with SessionLocal() as db:
             clear_job_expiration_claim(db, job.id)
         return True
@@ -243,29 +255,30 @@ def prepare_application_task(job_id: UUID, app_id: UUID, user: dict):
     app = validate_app_id(app_id)
     user = User(**user)
 
-    if app.prepared:
+    if app.form.state >= ApplicationFormState.PREPARED:
         with SessionLocal() as db:
-            clear_app_preparation_claim(db, job.id)
+            clear_app_preparation_claim(db, app.id)
         return True
 
     # logic
     try:
         logging.info(f"Preparing app {app.id}...")
-        prepared_app = prepare_job_app(job, app, user)
+        prepared_app = fill_out_application_form(app, user)
     except Exception as e:
-        clear_app_preparation_claim(db, job.id)
+        with SessionLocal() as db:
+            clear_app_preparation_claim(db, app.id)
         raise Exception(f"Failed to prepare app {app.id}", e)
 
     # database operation
     try:
         with SessionLocal() as db:
-            # TODO: handle atomic update
-            pass
+            set_app_prepared(db, app.id)
     except Exception as e:
-        clear_app_preparation_claim(db, job.id)
+        with SessionLocal() as db:
+            clear_app_preparation_claim(db, app.id)
         raise Exception(f"Error updating app {app.id} in database", e)
 
-    return prepared_app.prepared
+    return True
 
 
 @celery_app.task
@@ -273,10 +286,15 @@ def submit_application_task(job_id: UUID, app_id: UUID):
     job = validate_job_id(job_id)
     app = validate_app_id(app_id)
 
+    if app.status >= ApplicationStatus.SUBMITTED:
+        with SessionLocal() as db:
+            clear_app_submission_claim(db, app.id)
+        return True
+
     # logic
     try:
         logging.info(f"Submitting app {app.id}...")
-        applied_app = submit_app(app, job)
+        submitted = submit_app(app, job)
     except (
         MissingAppUrlError,
         QuestionNotFoundError,
@@ -303,10 +321,12 @@ def submit_application_task(job_id: UUID, app_id: UUID):
     # database operation
     try:
         with SessionLocal() as db:
-            # TODO: handle atomic update
-            pass
+            if submitted:
+                set_app_submitted(db, app.id)
+            else:
+                clear_app_submission_claim(db, app.id)
     except Exception as e:
         clear_app_submission_claim(db, app.id)
         raise Exception(f"Error updating app {app.id} in database", e)
 
-    return applied_app.submitted
+    return True

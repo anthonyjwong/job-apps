@@ -13,12 +13,15 @@ interface ApplicationItemProps {
 }
 
 export function ApplicationItem({ company, position, status, classification, onClick }: ApplicationItemProps) {
-  const statusConfig = {
-    submitted: { label: "Submitted", variant: "secondary" as const },
-    interviewed: { label: "Interviewed", variant: "default" as const },
-    rejected: { label: "Rejected", variant: "destructive" as const },
-    offered: { label: "Offered", variant: "default" as const },
-    withdrawn: { label: "Withdrawn", variant: "outline" as const },
+  const statusConfig: Record<ApplicationStatus, { label: string; variant: "secondary" | "default" | "destructive" | "outline" }> = {
+    started: { label: "Started", variant: "secondary" },
+    submitted: { label: "Submitted", variant: "secondary" },
+    assessment: { label: "Assessment", variant: "default" },
+    interview: { label: "Interview", variant: "default" },
+    rejected: { label: "Rejected", variant: "destructive" },
+    offer: { label: "Offer", variant: "default" },
+    accepted: { label: "Accepted", variant: "default" },
+    withdrawn: { label: "Withdrawn", variant: "outline" },
   };
 
   const config = statusConfig[status];

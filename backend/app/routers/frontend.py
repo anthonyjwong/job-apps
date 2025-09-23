@@ -1,3 +1,7 @@
+from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
+
 from app.database.session import get_db
 from app.database.utils.frontend import (
     fetch_assessment_applications,
@@ -12,9 +16,6 @@ from app.schemas.api import (
     GetSubmittedApplicationsResponse,
     InterviewResponse,
 )
-from fastapi import APIRouter, Depends
-from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api", tags=["frontend"])
 

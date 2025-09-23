@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Separator } from "./ui/separator";
 import { Bell, Check, X, Calendar, MessageSquare, Briefcase, TrendingUp } from "lucide-react";

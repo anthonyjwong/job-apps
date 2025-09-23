@@ -7,6 +7,12 @@ from uuid import UUID
 
 import debugpy
 import uvicorn
+from fastapi import Body, Depends, FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, Response
+from pydantic import BaseModel, HttpUrl, model_validator
+from sqlalchemy.orm import Session
+
 from app.core.jobs import get_domain_handler
 from app.core.utils import clean_url, get_base_url
 from app.database.models import ApplicationORM, JobORM
@@ -55,11 +61,6 @@ from app.worker.tasks import (
     prepare_application_task,
     submit_application_task,
 )
-from fastapi import Body, Depends, FastAPI, Query
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel, HttpUrl, model_validator
-from sqlalchemy.orm import Session
 
 # configure logging
 logging.basicConfig(

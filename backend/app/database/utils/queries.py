@@ -1,10 +1,8 @@
-import logging
 from datetime import timezone
-from uuid import UUID
 
-from app.database.crud import app_to_orm, job_to_orm, orm_to_app, orm_to_job
+from app.database.crud import orm_to_app, orm_to_job
 from app.database.models import ApplicationORM, JobORM
-from app.schemas.definitions import App, AppFragment, Job
+from app.schemas.definitions import Job
 
 
 def get_job_by_id(db_session, job_id) -> Job:

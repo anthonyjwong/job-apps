@@ -2,7 +2,7 @@
 
 import { createApplicationAction } from "@/app/actions";
 import type { Application, Assessment, Interview, NewApplication } from "@/lib/types";
-import { ArrowRight, Bell, Brain, Calendar, Clock, Plus, Shield, Sparkles, Star, Target, TrendingUp, Zap } from "lucide-react";
+import { ArrowRight, Bell, Brain, Calendar, Clock, Plus, Shield, Sparkles, Star, Target, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";

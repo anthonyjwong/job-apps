@@ -1,7 +1,8 @@
+from sqlalchemy.orm import Session
+
 from app.database.crud import orm_to_app
 from app.database.models import ApplicationORM, ApplicationStatus
 from app.schemas.definitions import Application
-from sqlalchemy.orm import Session
 
 
 def fetch_submitted_applications(db_session: Session) -> list[Application]:

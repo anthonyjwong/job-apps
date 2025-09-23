@@ -2,6 +2,9 @@ import uuid
 from datetime import datetime, timezone
 from typing import List
 
+from sqlalchemy import JSON, UUID, Boolean, DateTime, Float, ForeignKey, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.database.session import Base
 from app.schemas.definitions import (
     ApplicationFormState,
@@ -9,8 +12,6 @@ from app.schemas.definitions import (
     JobClassification,
     JobState,
 )
-from sqlalchemy import JSON, UUID, Boolean, DateTime, Float, ForeignKey, String
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
 class JobORM(Base):
@@ -100,6 +101,9 @@ class ApplicationORM(Base):
     )
     submitted_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
+    # claims
+    submission_claim: Mapped[bool] = mapped_column(Boolean, default=False)
+
     # db timestamps
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.now(timezone.utc)
@@ -140,7 +144,6 @@ class ApplicationFormORM(Base):
 
     # claims
     prepare_claim: Mapped[bool] = mapped_column(Boolean, default=False)
-    submission_claim: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # db timestamps
     created_at: Mapped[datetime] = mapped_column(

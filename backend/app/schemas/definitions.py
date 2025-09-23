@@ -1,15 +1,15 @@
 import enum
 import json
 import uuid
-from ast import pattern
 from dataclasses import field
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Optional
 from uuid import UUID
 
-from app.schemas.errors import QuestionNotFoundError
 from pydantic import BaseModel
 from pydantic import Field as PydanticField
+
+from app.schemas.errors import QuestionNotFoundError
 
 
 class Enum(enum.Enum):
@@ -111,6 +111,7 @@ class Job(BaseModel):
 # applications
 class ApplicationStatus(Enum):
     STARTED = "started"
+    READY = "ready"
     SUBMITTED = "submitted"
     ACKNOWLEDGED = "acknowledged"
     ASSESSMENT = "assessment"

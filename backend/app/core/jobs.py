@@ -1,6 +1,8 @@
 import re
 
 import pandas as pd
+from jobspy import scrape_jobs
+
 from app.core.llm import answer_question, upload_resume
 from app.core.scrapers.scraper import JobSite
 from app.core.scrapers.sites import LinkedIn
@@ -8,12 +10,10 @@ from app.core.utils import get_domain_handler, jobspy_to_job
 from app.schemas.definitions import (
     Application,
     ApplicationForm,
-    ApplicationStatus,
     Job,
     User,
 )
 from app.schemas.errors import MissingAppUrlError
-from jobspy import scrape_jobs
 
 
 def save_jobs(num_jobs=5) -> list[Job]:
@@ -67,7 +67,7 @@ def fill_out_application_form(app: Application, user: User) -> ApplicationForm:
     return app
 
 
-def submit_app(app: Application) -> Application:
+def submit_app(app: Application) -> bool:
     """Submit an application."""
     if not app.url:
         raise MissingAppUrlError("App must have a URL.")
@@ -76,10 +76,7 @@ def submit_app(app: Application) -> Application:
     if job_site is None:
         raise NotImplementedError(f"Site not supported: {app.url}")
 
-    if job_site.apply():
-        app.status = ApplicationStatus.SUBMITTED
-
-    return app
+    return job_site.apply()
 
 
 def check_job_expiration(job) -> bool:

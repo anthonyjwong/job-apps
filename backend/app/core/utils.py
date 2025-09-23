@@ -5,10 +5,11 @@ from typing import Callable, Optional, Tuple, Type
 from urllib.parse import urlparse
 
 import pandas as pd
+
+from app.core.scrapers.scraper import JobSite
+from app.core.scrapers.sites.ashby import Ashby
+from app.core.scrapers.sites.linkedin import LinkedIn
 from app.schemas.definitions import Application, Job
-from app.scrapers.scraper import JobSite
-from app.scrapers.sites.ashby import Ashby
-from app.scrapers.sites.linkedin import LinkedIn
 
 DOMAIN_HANDLERS = {"jobs.ashbyhq.com": Ashby, "www.linkedin.com": LinkedIn}
 

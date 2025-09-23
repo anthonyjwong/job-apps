@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUp, Brain, Calendar, Shield, Star, Target, TrendingUp, Users, Zap } from "lucide-react";
+import { ArrowRight, ArrowUp, Brain, Calendar, Shield, Star, Target, TrendingUp, Zap } from "lucide-react";
 import { headers } from "next/headers";
 import { ApplicationTrendsChart, InterviewFunnelChart, InterviewRateTrendsChart, type ApplicationTrendPoint, type InterviewFunnelStep, type WeeklyInterviewRate } from "../../components/AnalyticsCharts";
 import { JobClassificationBadge } from "../../components/JobClassificationBadge";

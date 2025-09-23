@@ -1,6 +1,9 @@
 import json
 import logging
 
+from openai import OpenAI
+from openai.types.responses import Response
+
 from app.core.utils import with_retry
 from app.schemas.definitions import (
     Application,
@@ -9,8 +12,6 @@ from app.schemas.definitions import (
     JobReview,
     User,
 )
-from openai import OpenAI
-from openai.types.responses import Response
 
 client = OpenAI(timeout=60)
 

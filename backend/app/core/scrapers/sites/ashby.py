@@ -1,6 +1,9 @@
 import logging
 
-from app.core.scrapers.scraper import EMULATE_HUMAN, JobSite, human_delay
+from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
+
+from app.core.scrapers.scraper import JobSite, human_delay
 from app.schemas.definitions import (
     Application,
     ApplicationForm,
@@ -8,8 +11,6 @@ from app.schemas.definitions import (
     ApplicationFormState,
     Job,
 )
-from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright
 
 
 class Ashby(JobSite):

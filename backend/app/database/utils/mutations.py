@@ -1,9 +1,14 @@
 import logging
-from uuid import UUID
 
-from app.database.crud import app_to_orm, job_to_orm, orm_to_app, orm_to_job
+from app.database.crud import app_to_orm, job_to_orm, orm_to_job
 from app.database.models import ApplicationORM, JobORM
-from app.schemas.definitions import App, AppFragment, Job
+from app.schemas.definitions import (
+    App,
+    AppFragment,
+    ApplicationFormState,
+    ApplicationStatus,
+    Job,
+)
 
 
 def update_job_by_id(db_session, job_id, updated_job: Job):
@@ -108,13 +113,20 @@ def update_application_by_id_with_fragment(db_session, app_id, fragment: AppFrag
 
 
 def approve_application_by_id(db_session, app_id):
-    """Approve an application by its ID."""
+    """Approve an application by its ID atomically."""
     app = db_session.query(ApplicationORM).filter(ApplicationORM.id == app_id).first()
     if not app:
         raise ValueError(f"Application with id {app_id} not found.")
-    app.approved = True
-    db_session.commit()
-    logging.debug(f"App {app_id} approved")
+    try:
+        with db_session.begin_nested():
+            app.form.update({ApplicationFormState.APPROVED: True})
+            app.status = ApplicationStatus.READY
+        db_session.commit()
+        logging.debug(f"App {app_id} approved")
+    except Exception as e:
+        db_session.rollback()
+        logging.error(f"Failed to approve app {app_id}: {e}")
+        raise
 
 
 def discard_application_by_id(db_session, app_id):

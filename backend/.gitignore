@@ -6,3 +6,4 @@ _playground.ipynb
 debug.log
 
 playwright_storage
+.ruff_cache

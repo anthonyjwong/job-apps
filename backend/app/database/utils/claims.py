@@ -1,13 +1,21 @@
 import logging
 from uuid import UUID
 
+from sqlalchemy.orm import Session
+
 from app.database.crud import app_to_orm
-from app.database.models import ApplicationORM, JobORM
+from app.database.models import ApplicationFormORM, ApplicationORM, JobORM
 from app.database.utils.queries import get_application_by_job_id
-from app.schemas.definitions import Application, Job, JobReview, JobState
+from app.schemas.definitions import (
+    Application,
+    ApplicationFormState,
+    ApplicationStatus,
+    JobReview,
+    JobState,
+)
 
 
-def claim_job_for_review(db_session, job_id: UUID) -> bool:
+def claim_job_for_review(db_session: Session, job_id: UUID) -> bool:
     """Atomically claim a job for review.
 
     Returns True if the claim succeeded (job transitioned to review_claim=True),
@@ -28,7 +36,7 @@ def claim_job_for_review(db_session, job_id: UUID) -> bool:
     return False
 
 
-def set_job_reviewed(db_session, job_id: UUID, review: JobReview):
+def set_job_reviewed(db_session: Session, job_id: UUID, review: JobReview):
     """Mark a job reviewed and clear review_claim flag."""
     (
         db_session.query(JobORM)
@@ -47,7 +55,7 @@ def set_job_reviewed(db_session, job_id: UUID, review: JobReview):
     logging.debug(f"Job {job_id} marked reviewed and claim cleared")
 
 
-def clear_job_review_claim(db_session, job_id: UUID):
+def clear_job_review_claim(db_session: Session, job_id: UUID):
     """Clear review_claim flag without marking reviewed."""
     (
         db_session.query(JobORM)
@@ -58,7 +66,7 @@ def clear_job_review_claim(db_session, job_id: UUID):
     logging.debug(f"Job {job_id} review claim cleared")
 
 
-def claim_job_for_app_creation(db_session, job_id: UUID) -> bool:
+def claim_job_for_app_creation(db_session: Session, job_id: UUID) -> bool:
     """Atomically claim a job for application creation.
 
     Returns True if the claim succeeded (job transitioned to create_app_claim=True),
@@ -78,7 +86,7 @@ def claim_job_for_app_creation(db_session, job_id: UUID) -> bool:
     return False
 
 
-def set_job_app_created(db_session, app: Application):
+def set_job_app_created(db_session: Session, app: Application):
     """Atomically upsert the application and clear the job's create_app_claim.
 
     If an application already exists for the job, update it; otherwise insert a new one.
@@ -116,7 +124,7 @@ def set_job_app_created(db_session, app: Application):
         raise
 
 
-def clear_job_app_creation_claim(db_session, job_id: UUID):
+def clear_job_app_creation_claim(db_session: Session, job_id: UUID):
     """Clear create_app_claim flag without creating an application."""
     (
         db_session.query(JobORM)
@@ -127,7 +135,7 @@ def clear_job_app_creation_claim(db_session, job_id: UUID):
     logging.debug(f"Job {job_id} app creation claim cleared")
 
 
-def claim_job_for_expiration_check(db_session, job_id: UUID) -> bool:
+def claim_job_for_expiration_check(db_session: Session, job_id: UUID) -> bool:
     """Atomically claim a job for expiration check.
 
     Returns True if the claim succeeded (job transitioned to expiration_check_claim=True),
@@ -147,13 +155,16 @@ def claim_job_for_expiration_check(db_session, job_id: UUID) -> bool:
     return False
 
 
-def set_job_expired(db_session, job_id: UUID):
+def set_job_expired(db_session: Session, job_id: UUID):
     """Mark a job expired and clear expiration_check_claim flag."""
     (
         db_session.query(JobORM)
         .filter(JobORM.id == job_id)
         .update(
-            {JobORM.expired: True, JobORM.expiration_check_claim: False},
+            {
+                JobORM.state: JobState.EXPIRED.value,
+                JobORM.expiration_check_claim: False,
+            },
             synchronize_session=False,
         )
     )
@@ -161,7 +172,7 @@ def set_job_expired(db_session, job_id: UUID):
     logging.debug(f"Job {job_id} marked expired and claim cleared")
 
 
-def clear_job_expiration_claim(db_session, job_id: UUID):
+def clear_job_expiration_claim(db_session: Session, job_id: UUID):
     """Clear expiration_check_claim flag without marking expired."""
     (
         db_session.query(JobORM)
@@ -172,7 +183,7 @@ def clear_job_expiration_claim(db_session, job_id: UUID):
     logging.debug(f"Job {job_id} expiration check claim cleared")
 
 
-def claim_app_for_prep(db_session, app_id: UUID) -> bool:
+def claim_app_for_prep(db_session: Session, app_id: UUID) -> bool:
     """Atomically claim an app for preparation.
 
     Returns True if the claim succeeded (app transitioned to prepare_claim=True),
@@ -181,11 +192,12 @@ def claim_app_for_prep(db_session, app_id: UUID) -> bool:
     updated = (
         db_session.query(ApplicationORM)
         .filter(
-            ApplicationORM.id == app_id,
-            ApplicationORM.prepared == False,
-            ApplicationORM.prepare_claim == False,
+            ApplicationFormORM.application_id == app_id,
+            ApplicationFormState(ApplicationFormORM.state)
+            < ApplicationFormState.PREPARED,
+            ApplicationFormORM.prepare_claim == False,
         )
-        .update({ApplicationORM.prepare_claim: True}, synchronize_session=False)
+        .update({ApplicationFormORM.prepare_claim: True}, synchronize_session=False)
     )
     if updated:
         db_session.commit()
@@ -193,36 +205,35 @@ def claim_app_for_prep(db_session, app_id: UUID) -> bool:
     return False
 
 
-def set_app_prepared(db_session, app_id: UUID, updated_app: Application):
-    """Mark an application prepared and clear prepare_claim flag."""
+def set_app_prepared(db_session: Session, app_id: UUID):
+    """Mark application READY and set form to PREPARED; clear prepare_claim atomically."""
     (
-        db_session.query(ApplicationORM)
-        .filter(ApplicationORM.id == app_id)
+        db_session.query(ApplicationFormORM)
+        .filter(ApplicationFormORM.application_id == app_id)
         .update(
             {
-                ApplicationORM.prepared: True,
-                ApplicationORM.prepare_claim: False,
-                ApplicationORM.fields: updated_app.fields,
+                ApplicationFormORM.state: ApplicationFormState.PREPARED.value,
+                ApplicationFormORM.prepare_claim: False,
             },
             synchronize_session=False,
         )
     )
     db_session.commit()
-    logging.debug(f"Application {app_id} marked prepared and claim cleared")
+    logging.debug(f"Application {app_id} form PREPARED and claim cleared")
 
 
-def clear_app_preparation_claim(db_session, app_id: UUID):
-    """Clear prepare_claim flag without marking prepared."""
+def clear_app_preparation_claim(db_session: Session, app_id: UUID):
+    """Clear form.prepare_claim flag without marking prepared."""
     (
-        db_session.query(ApplicationORM)
-        .filter(ApplicationORM.id == app_id)
-        .update({ApplicationORM.prepare_claim: False}, synchronize_session=False)
+        db_session.query(ApplicationFormORM)
+        .filter(ApplicationFormORM.application_id == app_id)
+        .update({ApplicationFormORM.prepare_claim: False}, synchronize_session=False)
     )
     db_session.commit()
     logging.debug(f"Application {app_id} preparation claim cleared")
 
 
-def claim_app_for_submission(db_session, app_id: UUID) -> bool:
+def claim_app_for_submission(db_session: Session, app_id: UUID) -> bool:
     """Atomically claim a app for submission.
 
     Returns True if the claim succeeded (record transitioned to submission_claim=True),
@@ -232,7 +243,7 @@ def claim_app_for_submission(db_session, app_id: UUID) -> bool:
         db_session.query(ApplicationORM)
         .filter(
             ApplicationORM.id == app_id,
-            ApplicationORM.submitted == False,
+            ApplicationStatus(ApplicationORM.status) == ApplicationStatus.READY,
             ApplicationORM.submission_claim == False,
         )
         .update({ApplicationORM.submission_claim: True}, synchronize_session=False)
@@ -243,20 +254,23 @@ def claim_app_for_submission(db_session, app_id: UUID) -> bool:
     return False
 
 
-def set_app_submitted(db_session, app_id: UUID):
+def set_app_submitted(db_session: Session, app_id: UUID):
     """Mark a app submitted and clear submission_claim flag."""
     (
         db_session.query(ApplicationORM)
         .filter(ApplicationORM.id == app_id)
         .update(
-            {ApplicationORM.submitted: True, ApplicationORM.submission_claim: False},
+            {
+                ApplicationORM.status: ApplicationStatus.SUBMITTED.value,
+                ApplicationORM.submission_claim: False,
+            },
             synchronize_session=False,
         )
     )
     db_session.commit()
 
 
-def clear_app_submission_claim(db_session, app_id: UUID):
+def clear_app_submission_claim(db_session: Session, app_id: UUID):
     """Clear submission_claim flag without marking submitted."""
     (
         db_session.query(ApplicationORM)

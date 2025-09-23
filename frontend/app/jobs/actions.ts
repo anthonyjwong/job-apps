@@ -39,7 +39,7 @@ export async function applyToJob(payload: ApplyPayload): Promise<{ success: bool
     if (!res.ok) return { success: false, message: "Failed to submit application" };
     revalidatePath("/applications");
     return { success: true };
-  } catch (e) {
+  } catch (_) {
     return { success: false, message: "Network error" };
   }
 }

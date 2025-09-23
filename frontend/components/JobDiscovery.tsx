@@ -1,6 +1,6 @@
 "use client";
 
-import { Brain, Briefcase, Filter, MapPin, Search, Zap } from "lucide-react";
+import { Brain, Briefcase, MapPin, Search, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { apiService } from "../lib/api";
 import { Job } from "../lib/types";
@@ -8,7 +8,7 @@ import { JobCard } from "./JobCard";
 import { JobClassificationBadge } from "./JobClassificationBadge";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent } from "./ui/card";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 

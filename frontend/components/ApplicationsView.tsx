@@ -73,14 +73,20 @@ export function ApplicationsView({ initialApplications }: { initialApplications:
 
   const getStatusColor = (status: ApplicationStatus) => {
     switch (status) {
+      case "started":
+        return "secondary";
       case "submitted":
         return "secondary";
-      case "interviewed":
+      case "assessment":
         return "default";
-      case "offered":
+      case "interview":
         return "default";
       case "rejected":
         return "destructive";
+      case "offer":
+        return "default";
+      case "accepted":
+        return "default";
       case "withdrawn":
         return "outline";
       default:
@@ -139,16 +145,16 @@ export function ApplicationsView({ initialApplications }: { initialApplications:
   const statusCounts = {
     all: applications.length,
     submitted: applications.filter((app) => app.status === "submitted").length,
-    interviewed: applications.filter((app) => app.status === "interviewed").length,
-    offered: applications.filter((app) => app.status === "offered").length,
+    interviewed: applications.filter((app) => app.status === "interview").length,
+    offered: applications.filter((app) => app.status === "offer").length,
     rejected: applications.filter((app) => app.status === "rejected").length,
     withdrawn: applications.filter((app) => app.status === "withdrawn").length,
   };
 
   const statusOptions: { value: ApplicationStatus; label: string; color: string }[] = [
     { value: "submitted", label: "Submitted", color: "secondary" },
-    { value: "interviewed", label: "Interviewed", color: "default" },
-    { value: "offered", label: "Offered", color: "default" },
+    { value: "interview", label: "Interviewed", color: "default" },
+    { value: "offer", label: "Offered", color: "default" },
     { value: "rejected", label: "Rejected", color: "destructive" },
     { value: "withdrawn", label: "Withdrawn", color: "outline" },
   ];

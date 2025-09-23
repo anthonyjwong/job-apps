@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { NotificationDropdown } from "./NotificationDropdown";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
 

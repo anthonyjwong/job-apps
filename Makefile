@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := dev
 
-.PHONY: dev prod backend stop clean
+.PHONY: dev prod backend stop clean lint lint-backend lint-frontend format-backend
 
 # Start development environment
 dev:
@@ -33,3 +33,18 @@ upgrade:
 
 downgrade:
 	docker compose -f docker-compose.dev.yml run --rm -v $$PWD/backend:/app -w /app backend alembic downgrade -1
+
+# Lint aggregate target
+lint: lint-backend lint-frontend ## Lint both backend and frontend
+
+# Backend linting: ruff (fix/remove unused), black (format), mypy (types)
+lint-backend:
+	cd backend && \
+	poetry run ruff check --fix . && \
+	poetry run black . && \
+	poetry run mypy . && \
+	cd ..
+
+# Frontend linting: ESLint (fix, remove unused imports/vars)
+lint-frontend:
+	cd frontend && pnpm run lint:fix && cd ..
