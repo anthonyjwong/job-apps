@@ -16,13 +16,14 @@ prod:
 # Stop all running containers
 stop:
 	docker compose -f docker-compose.dev.yml down
-	docker compose -f docker-compose.prod.yml down
+	[ -f docker-compose.prod.yml ] && docker compose -f docker-compose.prod.yml down || true
 
 # Remove all containers and images
 clean:
 	docker compose -f docker-compose.dev.yml down --rmi all --remove-orphans
-	docker compose -f docker-compose.prod.yml down --rmi all --remove-orphans
-	docker image prune -f || true
+	[ -f docker-compose.prod.yml ] && docker compose -f docker-compose.prod.yml down --rmi all --remove-orphans || true
+	docker builder prune -af || true
+	docker image prune -af || true
 
 # Alembic: generates files in local workspace and runs against the db container
 revision:
