@@ -10,35 +10,39 @@ RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}"
 
 WORKDIR /app
 
-# Create non-root user and group
+# Create non-root user and group early (stable layer)
 RUN addgroup --system app && adduser --system --ingroup app app \
     && mkdir -p /app \
     && chown -R app:app /app
 
-# Install deps first for better caching
+# Copy only dependency manifests first for caching
 COPY pyproject.toml poetry.lock* ./
 
-# Copy application code
-COPY ./app ./app
+# Install dependency tree only (no project package) for maximum cache reuse
+RUN touch README.md && poetry install --without dev --no-root && rm -rf "$POETRY_CACHE_DIR"
 
-RUN touch README.md && poetry install --without dev && rm -rf "$POETRY_CACHE_DIR"
-
-# Copy LLM prompts
+# LLM prompts
 COPY ./.instructions ./.instructions
 
-# Copy Alembic files
+# Alembic config & migrations
 COPY alembic.ini ./
 COPY ./migrations ./migrations
 
-# Copy resume over, should be removed later when file storage is implemented
+# Resume asset (temporary until external storage) 
 ARG resume="AJ Wong's Resume.pdf"
 COPY ${resume} ./
+
+# Copy application source
+COPY ./app ./app
+
+# Install project itself (lightweight, just creates entry points & metadata)
+RUN poetry install --only-root && rm -rf "$POETRY_CACHE_DIR"
 
 # Ensure files owned by non-root user
 RUN chown -R app:app /app
 
-# necessary for healthcheck to work
-RUN apt-get update && apt-get install -y curl
+# necessary for healthcheck to work (combine update & install, then clean)
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Switch to non-root user
 USER app

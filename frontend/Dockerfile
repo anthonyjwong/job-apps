@@ -1,36 +1,19 @@
-FROM node:20-slim AS base
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-ENV NEXT_TELEMETRY_DISABLED=1
+FROM node:20-slim
+ENV PNPM_HOME="/pnpm" \
+    PATH="/pnpm:$PATH" \
+    NEXT_TELEMETRY_DISABLED=1 \
+    NODE_ENV=development
 WORKDIR /app
-# Ensure pnpm is available
+
+# Enable pnpm
 RUN corepack enable && corepack prepare pnpm@9 --activate
 
-# Install dependencies separately for better caching
-FROM base AS deps
+# Copy only manifest files first (dependency layer)
 COPY package.json pnpm-lock.yaml ./
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lockfile
 
-# Build the Next.js app
-FROM base AS build
+# Copy source (mounted at runtime too, but needed for initial install completeness)
 COPY . .
-COPY --from=deps /app/node_modules /app/node_modules
-RUN pnpm run build
-
-# Production runtime image
-FROM node:20-slim AS prod
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-WORKDIR /app
-ENV NODE_ENV=production
-RUN corepack enable && corepack prepare pnpm@9 --activate
-
-# Copy production node_modules and build artifacts
-COPY --from=deps /app/node_modules /app/node_modules
-COPY --from=build /app/.next /app/.next
-COPY pnpm-lock.yaml ./
-COPY package.json ./
-COPY next.config.ts tsconfig.json ./
 
 EXPOSE 3000
-CMD [ "pnpm", "start" ]
+CMD ["pnpm", "dev"]

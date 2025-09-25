@@ -1,15 +1,13 @@
 import enum
 import json
 import uuid
-from dataclasses import field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
+from app.schemas.errors import QuestionNotFoundError
 from pydantic import BaseModel
 from pydantic import Field as PydanticField
-
-from app.schemas.errors import QuestionNotFoundError
 
 
 class Enum(enum.Enum):
@@ -67,16 +65,16 @@ class Job(BaseModel):
     title: str
     company: str
     location: str
-    min_salary: Optional[float]
-    max_salary: Optional[float]
-    type: Optional[str]
-    date_posted: Optional[str]
-    description: Optional[str]
-    linkedin_job_url: Optional[str]
-    direct_job_url: Optional[str]
+    min_salary: Optional[float] = None
+    max_salary: Optional[float] = None
+    type: Optional[str] = None
+    date_posted: Optional[str] = None
+    description: Optional[str] = None
+    linkedin_job_url: Optional[str] = None
+    direct_job_url: Optional[str] = None
     state: JobState = JobState.PENDING
-    review: Optional[JobReview]
-    jobspy_id: Optional[str]
+    review: Optional[JobReview] = None
+    jobspy_id: Optional[str] = None
     manually_created: bool = False
 
     def to_dict(self):
@@ -125,8 +123,8 @@ class ApplicationStatus(Enum):
 class ApplicationFormField(BaseModel):
     question: str
     multiple_choice: bool
-    choices: Optional[list[str]]
-    answer: Optional[str]
+    choices: Optional[list[str]] = None
+    answer: Optional[str] = None
 
     def to_dict(self):
         """Converts ApplicationFormField object to dict format."""
@@ -193,11 +191,11 @@ class ApplicationForm(BaseModel):
 class Application(BaseModel):
     id: UUID = PydanticField(default_factory=uuid.uuid4)
     job: Job
-    form: Optional[ApplicationForm]
+    form: Optional[ApplicationForm] = None
     url: str
     referred: bool = False
     status: ApplicationStatus = ApplicationStatus.STARTED
-    submitted_at: Optional[datetime]
+    submitted_at: Optional[datetime] = PydanticField(default=datetime.now(timezone.utc))
 
     def to_dict(self):
         """Converts Application object to dict format."""
@@ -221,13 +219,13 @@ class User(BaseModel):
     first_name: str
     last_name: str
     email: str
-    phone_number: Optional[str]
-    resume_pdf_path: Optional[str]
-    linkedin_url: Optional[str]
-    github_url: Optional[str]
-    current_location: Optional[str]
-    desired_location: Optional[str]
-    work_mode_ranking: list[str] = field(
+    phone_number: Optional[str] = None
+    resume_pdf_path: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    github_url: Optional[str] = None
+    current_location: Optional[str] = None
+    desired_location: Optional[str] = None
+    work_mode_ranking: list[str] = PydanticField(
         default_factory=lambda: ["hybrid", "onsite", "remote"]
     )
 

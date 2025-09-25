@@ -30,7 +30,7 @@ from app.database.utils.claims import (
 from app.database.utils.mutations import add_new_scraped_jobs
 from app.database.utils.queries import get_application_by_id, get_job_by_id
 from app.schemas.definitions import (
-    App,
+    Application,
     ApplicationFormState,
     ApplicationStatus,
     Job,
@@ -54,9 +54,7 @@ celery_app.conf.update(
 
 def _get_redis_client():
     url = os.getenv("CELERY_BACKEND_URL") or os.getenv("CELERY_BROKER_URL")
-    return (
-        redis.from_url(url) if url else redis.Redis(host="localhost", port=6379, db=0)
-    )
+    return redis.from_url(url) if url else redis.Redis(host="localhost", port=6379, db=0)
 
 
 def _acquire_jobspy_lock(ttl_seconds: int = 60):
@@ -74,7 +72,7 @@ def validate_job_id(job_id: UUID) -> Job:
     return job
 
 
-def validate_app_id(app_id: UUID) -> App:
+def validate_app_id(app_id: UUID) -> Application:
     app = None
     with SessionLocal() as db:
         app = get_application_by_id(db, app_id)
@@ -307,9 +305,7 @@ def submit_application_task(job_id: UUID, app_id: UUID):
         elif type(e) is QuestionNotFoundError:
             error_message = f"Required question not found for app {app.id}"
         elif type(e) is NotImplementedError:
-            error_message = (
-                f"{get_base_url(app.url)} app submission is not supported at this time"
-            )
+            error_message = f"{get_base_url(app.url)} app submission is not supported at this time"
         else:
             error_message = f"Error submitting application for app {app.id}"
 

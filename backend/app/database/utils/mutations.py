@@ -3,8 +3,7 @@ import logging
 from app.database.crud import app_to_orm, job_to_orm, orm_to_job
 from app.database.models import ApplicationORM, JobORM
 from app.schemas.definitions import (
-    App,
-    AppFragment,
+    Application,
     ApplicationFormState,
     ApplicationStatus,
     Job,
@@ -53,7 +52,7 @@ def discard_job_by_id(db_session, job_id):
     logging.debug(f"Job {job_id} discarded")
 
 
-def update_application_by_id(db_session, app_id, updated_app: App):
+def update_application_by_id(db_session, app_id, updated_app: Application):
     """Update an application by its ID."""
     app = db_session.query(ApplicationORM).filter(ApplicationORM.id == app_id).first()
     if app:
@@ -96,8 +95,9 @@ def update_application_state_by_id(db_session, app_id, new_state: str):
     logging.debug(f"App {app_id} state updated to {new_state}")
 
 
-def update_application_by_id_with_fragment(db_session, app_id, fragment: AppFragment):
+def update_application_by_id_with_fragment(db_session, app_id, fragment):
     """Update an application by its ID."""
+    pass
     app = db_session.query(ApplicationORM).filter(ApplicationORM.id == app_id).first()
     if app:
         for key, value in fragment.__dict__.items():
@@ -148,9 +148,7 @@ def add_new_scraped_jobs(db_session, new_jobs: list[Job]) -> list[Job]:
 
         # check if job already exists
         existing_job = (
-            db_session.query(JobORM)
-            .filter(JobORM.jobspy_id == job_orm.jobspy_id)
-            .first()
+            db_session.query(JobORM).filter(JobORM.jobspy_id == job_orm.jobspy_id).first()
         )
         if existing_job:
             # If job exists, do nothing
@@ -166,7 +164,7 @@ def add_new_scraped_jobs(db_session, new_jobs: list[Job]) -> list[Job]:
     return added_jobs
 
 
-def add_new_application(db_session, new_app: App):
+def add_new_application(db_session, new_app: Application):
     """Add a new application to the database."""
     db_session.add(app_to_orm(new_app))
     db_session.commit()

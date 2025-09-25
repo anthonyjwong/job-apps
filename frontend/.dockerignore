@@ -1,7 +1,16 @@
 node_modules
 .next
+dist
+coverage
+*.log
 npm-debug.log
 yarn-error.log
+.pnpm-store
 .vscode
 .idea
 .git
+Dockerfile.dev
+Dockerfile
+*.local
+*.swp
+*.tsbuildinfo

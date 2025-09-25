@@ -4,14 +4,14 @@
 
 # Start development environment
 dev:
-	docker compose -f docker-compose.dev.yml up --build
+	docker compose -f docker-compose.dev.yml up
 
 backend:
 	docker compose -f docker-compose.dev.yml up -d db redis worker backend
 
 # Start production environment
 prod:
-	docker compose -f docker-compose.prod.yml up --build
+	docker compose -f docker-compose.prod.yml up
 
 # Stop all running containers
 stop:
@@ -22,8 +22,12 @@ stop:
 clean:
 	docker compose -f docker-compose.dev.yml down --rmi all --remove-orphans
 	[ -f docker-compose.prod.yml ] && docker compose -f docker-compose.prod.yml down --rmi all --remove-orphans || true
-	docker builder prune -af || true
 	docker image prune -af || true
+
+reset-cache:
+	docker compose -f docker-compose.dev.yml down --rmi all --remove-orphans
+	[ -f docker-compose.prod.yml ] && docker compose -f docker-compose.prod.yml down --rmi all --remove-orphans || true
+	docker builder prune -af || true
 
 # Alembic: generates files in local workspace and runs against the db container
 revision:

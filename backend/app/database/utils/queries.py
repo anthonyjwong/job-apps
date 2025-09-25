@@ -2,7 +2,7 @@ from datetime import timezone
 
 from app.database.crud import orm_to_app, orm_to_job
 from app.database.models import ApplicationORM, JobORM
-from app.schemas.definitions import Job
+from app.schemas.definitions import Application, Job
 
 
 def get_job_by_id(db_session, job_id) -> Job:
@@ -18,9 +18,7 @@ def get_unapproved_jobs(db_session) -> list[Job]:
     jobs = (
         db_session.query(JobORM)
         .filter(
-            (JobORM.approved == False)
-            & (JobORM.discarded == False)
-            & (JobORM.expired == False)
+            (JobORM.approved == False) & (JobORM.discarded == False) & (JobORM.expired == False)
         )
         .order_by(JobORM.created_at.desc())
         .all()
@@ -33,9 +31,7 @@ def get_unreviewed_jobs(db_session) -> list[Job]:
     jobs = (
         db_session.query(JobORM)
         .filter(
-            (JobORM.reviewed == False)
-            & (JobORM.manual == False)
-            & (JobORM.review_claim == False)
+            (JobORM.reviewed == False) & (JobORM.manual == False) & (JobORM.review_claim == False)
         )
         .all()
     )
@@ -80,49 +76,39 @@ def get_all_jobs(db_session) -> list[Job]:
     return [orm_to_job(job) for job in jobs]
 
 
-def get_application_by_id(db_session, application_id) -> App:
+def get_application_by_id(db_session, application_id) -> Application:
     """Fetch an application by its ID."""
-    app = (
-        db_session.query(ApplicationORM)
-        .filter(ApplicationORM.id == application_id)
-        .first()
-    )
+    app = db_session.query(ApplicationORM).filter(ApplicationORM.id == application_id).first()
     if app is None:
         return None
     return orm_to_app(app)
 
 
-def get_application_by_job_id(db_session, job_id) -> App:
+def get_application_by_job_id(db_session, job_id) -> Application:
     """Fetch an application by its job ID."""
-    app = (
-        db_session.query(ApplicationORM).filter(ApplicationORM.job_id == job_id).first()
-    )
+    app = db_session.query(ApplicationORM).filter(ApplicationORM.job_id == job_id).first()
     if app is None:
         return None
     return orm_to_app(app)
 
 
-def get_unscraped_applications(db_session) -> list[App]:
+def get_unscraped_applications(db_session) -> list[Application]:
     """Fetch all unscraped applications."""
-    apps = (
-        db_session.query(ApplicationORM).filter(ApplicationORM.scraped == False).all()
-    )
+    apps = db_session.query(ApplicationORM).filter(ApplicationORM.scraped == False).all()
     return [orm_to_app(app) for app in apps]
 
 
-def get_unprepared_applications(db_session) -> list[App]:
+def get_unprepared_applications(db_session) -> list[Application]:
     """Fetch all unprepared apps."""
     apps = (
         db_session.query(ApplicationORM)
-        .filter(
-            (ApplicationORM.prepared == False) & (ApplicationORM.prepare_claim == False)
-        )
+        .filter((ApplicationORM.prepared == False) & (ApplicationORM.prepare_claim == False))
         .all()
     )
     return [orm_to_app(app) for app in apps]
 
 
-def get_unapproved_applications(db_session) -> list[App]:
+def get_unapproved_applications(db_session) -> list[Application]:
     """Fetch all unapproved applications."""
     apps = (
         db_session.query(ApplicationORM)
@@ -137,7 +123,7 @@ def get_unapproved_applications(db_session) -> list[App]:
     return [orm_to_app(app) for app in apps]
 
 
-def get_approved_applications(db_session) -> list[App]:
+def get_approved_applications(db_session) -> list[Application]:
     """Fetch all user-approved applications."""
     apps = (
         db_session.query(ApplicationORM)
@@ -151,15 +137,13 @@ def get_approved_applications(db_session) -> list[App]:
     return [orm_to_app(app) for app in apps]
 
 
-def get_submitted_applications(db_session) -> list[App]:
+def get_submitted_applications(db_session) -> list[Application]:
     """Fetch all submitted applications."""
-    apps = (
-        db_session.query(ApplicationORM).filter(ApplicationORM.submitted == True).all()
-    )
+    apps = db_session.query(ApplicationORM).filter(ApplicationORM.submitted == True).all()
     return [orm_to_app(app) for app in apps]
 
 
-def get_all_applications(db_session) -> list[App]:
+def get_all_applications(db_session) -> list[Application]:
     """Fetch all applications."""
     apps = db_session.query(ApplicationORM).all()
     return [orm_to_app(app) for app in apps]
