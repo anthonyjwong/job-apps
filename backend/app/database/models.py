@@ -2,9 +2,6 @@ import uuid
 from datetime import datetime, timezone
 from typing import List
 
-from sqlalchemy import JSON, UUID, Boolean, DateTime, Float, ForeignKey, String
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from app.database.session import Base
 from app.schemas.definitions import (
     ApplicationFormState,
@@ -12,14 +9,14 @@ from app.schemas.definitions import (
     JobClassification,
     JobState,
 )
+from sqlalchemy import JSON, UUID, Boolean, DateTime, Float, ForeignKey, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
 class JobORM(Base):
     __tablename__ = "jobs"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title: Mapped[str] = mapped_column(String, nullable=False)
     company: Mapped[str] = mapped_column(String, nullable=False)
     location: Mapped[str] = mapped_column(String, nullable=True)
@@ -42,9 +39,7 @@ class JobORM(Base):
     expiration_check_claim: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # db timestamps
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now(timezone.utc)
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.now(timezone.utc),
@@ -85,14 +80,9 @@ class JobORM(Base):
 class ApplicationORM(Base):
     __tablename__ = "applications"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     job_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("jobs.id"), nullable=False
-    )
-    form_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("application_forms.id"), nullable=True
     )
     url: Mapped[str] = mapped_column(String, nullable=False)
     referred: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -105,9 +95,7 @@ class ApplicationORM(Base):
     submission_claim: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # db timestamps
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now(timezone.utc)
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.now(timezone.utc),
@@ -131,9 +119,7 @@ class ApplicationORM(Base):
 class ApplicationFormORM(Base):
     __tablename__ = "application_forms"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     application_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("applications.id"), nullable=False
     )
@@ -146,9 +132,7 @@ class ApplicationFormORM(Base):
     prepare_claim: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # db timestamps
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now(timezone.utc)
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.now(timezone.utc),
@@ -156,9 +140,7 @@ class ApplicationFormORM(Base):
     )
 
     # relationship
-    application: Mapped["ApplicationORM"] = relationship(
-        "ApplicationORM", back_populates="form"
-    )
+    application: Mapped["ApplicationORM"] = relationship("ApplicationORM", back_populates="form")
 
     def to_dict(self):
         return {
@@ -176,14 +158,8 @@ class ApplicationFormORM(Base):
 class ErrorORM(Base):
     __tablename__ = "errors"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     error: Mapped[str] = mapped_column(String, nullable=False)
     operation: Mapped[str] = mapped_column(String, nullable=False)
-    error_time: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now(timezone.utc)
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now(timezone.utc)
-    )
+    error_time: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))

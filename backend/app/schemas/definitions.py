@@ -64,7 +64,7 @@ class Job(BaseModel):
     id: UUID = PydanticField(default_factory=uuid.uuid4)
     title: str
     company: str
-    location: str
+    location: Optional[str] = None
     min_salary: Optional[float] = None
     max_salary: Optional[float] = None
     type: Optional[str] = None

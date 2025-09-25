@@ -26,7 +26,6 @@ class AssessmentResponse(BaseModel):
     company: str
     position: str
     type: str
-    title: str
     description: str
     dueDate: str
     timeLimit: str

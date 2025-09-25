@@ -1,7 +1,3 @@
-from fastapi import APIRouter, Depends
-from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
-
 from app.database.session import get_db
 from app.database.utils.frontend import (
     fetch_assessment_applications,
@@ -16,6 +12,9 @@ from app.schemas.api import (
     GetSubmittedApplicationsResponse,
     InterviewResponse,
 )
+from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api", tags=["frontend"])
 
@@ -29,27 +28,23 @@ def get_submitted_applications(
 
     app_responses = []
     for app in apps:
+        print(app.job.review.classification.value)
         app_responses.append(
             ApplicationResponse(
                 id=str(app.id),
                 company=app.job.company,
                 position=app.job.title,
                 status=app.status,
-                applicationDate=app.submitted_at,  # TODO: convert to MM/DD/YYYY
-                location=app.job.location,
+                applicationDate=app.submitted_at.strftime("%Y-%m-%d"),
+                location=app.job.location or "NOT PROVIDED",
                 jobType=app.job.type,
-                category=app.job.review.classification,
+                classification=app.job.review.classification,
                 action=app.job.review.action,
                 notes="NOT IMPLEMENTED",
             )
         )
 
-    return JSONResponse(
-        status_code=200,
-        content=GetSubmittedApplicationsResponse(
-            applications=app_responses, total=len(app_responses)
-        ),
-    )
+    return GetSubmittedApplicationsResponse(applications=app_responses, total=len(app_responses))
 
 
 @router.get("/assessments")
@@ -76,15 +71,12 @@ def get_assessments(db: Session = Depends(get_db)) -> GetAssessmentsResponse:
             )
         )
 
-    return JSONResponse(
-        status_code=200,
-        content=GetAssessmentsResponse(
-            assessments=assessment_responses,
-            total=len(assessment_responses),
-            pending=0,
-            completed=0,
-            scheduled=0,
-        ),
+    return GetAssessmentsResponse(
+        assessments=assessment_responses,
+        total=len(assessment_responses),
+        pending=0,
+        completed=0,
+        scheduled=0,
     )
 
 
@@ -112,12 +104,9 @@ def get_interviews(db: Session = Depends(get_db)) -> GetInterviewsResponse:
             )
         )
 
-    return JSONResponse(
-        status_code=200,
-        content=GetInterviewsResponse(
-            interviews=interview_responses,
-            total=len(interview_responses),
-            upcoming=0,
-            completed=0,
-        ),
+    return GetInterviewsResponse(
+        interviews=interview_responses,
+        total=len(interview_responses),
+        upcoming=0,
+        completed=0,
     )
