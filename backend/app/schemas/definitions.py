@@ -14,15 +14,17 @@ class Enum(enum.Enum):
     """Base class for enums with comparison operators based on definition order."""
 
     def __lt__(self, other):
-        if self == other:
-            return False
+        """Compare two members of the SAME enum by their declaration order.
 
-        # order of enum values is preserved
-        for elem in JobState:
-            if elem == self:
-                return True
-            elif elem == other:
-                return False
+        If enums are of different types we return NotImplemented so Python can
+        fall back to other error handling instead of giving a misleading result.
+        """
+        if self.__class__ is not other.__class__:
+            return NotImplemented
+        if self is other:
+            return False
+        members = list(self.__class__)
+        return members.index(self) < members.index(other)
 
     def __gt__(self, other):
         return not (self < other)
@@ -31,6 +33,12 @@ class Enum(enum.Enum):
         if self == other:
             return True
         return not (self < other)
+
+    def __str__(self):
+        return str(self.value)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}('{self.value}')"
 
 
 # jobs
