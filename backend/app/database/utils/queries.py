@@ -40,7 +40,7 @@ def get_unreviewed_jobs(db_session) -> list[Job]:
 
 def get_reviewed_jobs(db_session) -> list[Job]:
     """Fetch all reviewed jobs that do not have an associated application."""
-    # Get job_ids that have an associated application
+    # get job_ids that have an associated application
     app_job_ids = db_session.query(ApplicationORM.job_id).distinct()
     jobs = (
         db_session.query(JobORM)

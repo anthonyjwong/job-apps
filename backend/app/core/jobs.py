@@ -1,19 +1,13 @@
 import re
 
 import pandas as pd
-from jobspy import scrape_jobs
-
 from app.core.llm import answer_question, upload_resume
 from app.core.scrapers.scraper import JobSite
 from app.core.scrapers.sites import LinkedIn
 from app.core.utils import get_domain_handler, jobspy_to_job
-from app.schemas.definitions import (
-    Application,
-    ApplicationForm,
-    Job,
-    User,
-)
+from app.schemas.definitions import Application, ApplicationForm, Job, User
 from app.schemas.errors import MissingAppUrlError
+from jobspy import scrape_jobs
 
 
 def save_jobs(num_jobs=5) -> list[Job]:
@@ -31,7 +25,7 @@ def save_jobs(num_jobs=5) -> list[Job]:
         # proxies=["208.195.175.46:65095", "208.195.175.45:65095", "localhost"],
     )
 
-    # Convert listings to Job objects
+    # convert listings to Job objects
     jobs = [jobspy_to_job(row.to_dict()) for _, row in listings.iterrows()]
 
     return jobs
@@ -50,14 +44,12 @@ def fill_out_application_form(app: Application, user: User) -> ApplicationForm:
     """Initially fill out application questions."""
     if app.form is None:
         raise ValueError("Application must have a form to fill out.")
-    # Upload resume once for this request and reuse the file id
+    # upload resume once for this request and reuse the file id
     resume_file_id = upload_resume(user.resume_pdf_path)
 
     common_questions = user.get_common_questions()
     for field in app.form.fields:
-        matches = re.findall(
-            user.get_common_questions_regex(), field.question, re.IGNORECASE
-        )
+        matches = re.findall(user.get_common_questions_regex(), field.question, re.IGNORECASE)
         if matches:
             field.answer = common_questions[matches[0].lower()]
         else:

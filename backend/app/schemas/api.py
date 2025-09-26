@@ -18,7 +18,10 @@ class ApplicationResponse(BaseModel):
 
 class GetSubmittedApplicationsResponse(BaseModel):
     applications: list[ApplicationResponse]
-    total: int
+    total: int  # total items matching filters (unpaged)
+    page: int
+    page_size: int
+    total_pages: int
 
 
 class AssessmentResponse(BaseModel):

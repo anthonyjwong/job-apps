@@ -1,9 +1,6 @@
 import json
 import logging
 
-from openai import OpenAI
-from openai.types.responses import Response
-
 from app.core.utils import with_retry
 from app.schemas.definitions import (
     Application,
@@ -12,12 +9,14 @@ from app.schemas.definitions import (
     JobReview,
     User,
 )
+from openai import OpenAI
+from openai.types.responses import Response
 
 client = OpenAI(timeout=60)
 
 
 def upload_resume(resume_pdf_path: str):
-    # Upload resume once for this request and reuse the file id
+    # upload resume once for this request and reuse the file id
     with open(resume_pdf_path, "rb") as f:
         resume_pdf = with_retry(client.files.create, file=f, purpose="user_data")
         return resume_pdf.id
@@ -70,10 +69,10 @@ def answer_question(
     user: User,
     resume_file_id: str | None,
 ) -> Response:
-    # I want the AI to have a large source of data about the applicant. It should have more than just the resume,
-    # but also use answers the applicant has already provided if possible.
+    # TODO: add large source of data about the applicant
+    # should have more than just the resume, but also use answers the applicant has already provided if possible
 
-    # Ensure we have a resume file id (upload once per prepare request)
+    # ensure we have a resume file id (upload once per prepare request)
     if not resume_file_id:
         with open(user.resume_pdf_path, "rb") as f:
             resume_pdf = with_retry(

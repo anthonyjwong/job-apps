@@ -1,8 +1,5 @@
 import logging
 
-from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright
-
 from app.core.scrapers.scraper import JobSite, human_delay
 from app.schemas.definitions import (
     Application,
@@ -11,6 +8,8 @@ from app.schemas.definitions import (
     ApplicationFormState,
     Job,
 )
+from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
 
 
 class Ashby(JobSite):
@@ -22,9 +21,7 @@ class Ashby(JobSite):
     def find_answer_area(self, children):
         divs = children[1:]
         answer_area = divs[0]
-        if len(divs) > 1 and "ashby-application-form-question-description" in divs[
-            0
-        ].get("class"):
+        if len(divs) > 1 and "ashby-application-form-question-description" in divs[0].get("class"):
             answer_area = divs[1]
         return answer_area
 
@@ -48,9 +45,7 @@ class Ashby(JobSite):
         try:
             aria_expanded = cb.get_attribute("aria-expanded")
             if (aria_expanded or "false").lower() == "false":
-                toggle = (
-                    element.locator("button").filter(has=element.locator("svg")).first
-                )
+                toggle = element.locator("button").filter(has=element.locator("svg")).first
                 if toggle.count():
                     toggle.click()
                     human_delay(0.2, 0.5)
@@ -92,7 +87,7 @@ class Ashby(JobSite):
 
         cb.press("Tab")  # always press tab after filling out combobox
 
-        # Post-fill combobox value check and correction
+        # post-fill combobox value check and correction
         combobox_value = ((cb.input_value()) or "").strip()
         if not combobox_value or value.split(",")[0] not in combobox_value:
             cb.evaluate(
@@ -116,9 +111,7 @@ class Ashby(JobSite):
             browser = p.firefox.launch(headless=True)
             page = browser.new_page()
             page.goto(url)
-            page.wait_for_selector(
-                "div.ashby-application-form-container"
-            )  # wait until loaded
+            page.wait_for_selector("div.ashby-application-form-container")  # wait until loaded
 
             # get page content
             html = page.content()
@@ -128,17 +121,11 @@ class Ashby(JobSite):
             # parse job app
             form = ApplicationForm(fields=[])
             container = soup.find(class_="ashby-application-form-container")
-            sections = container.find_all(
-                class_="ashby-application-form-section-container"
-            )
+            sections = container.find_all(class_="ashby-application-form-section-container")
             for section in sections:
                 for element in section:
-                    question = element.find(
-                        class_="ashby-application-form-question-title"
-                    )
-                    if (
-                        element.name != "fieldset" and question is None
-                    ):  # skip non questions
+                    question = element.find(class_="ashby-application-form-question-title")
+                    if element.name != "fieldset" and question is None:  # skip non questions
                         continue
 
                     if "ashby-application-form-field-entry" in element.get(
@@ -147,8 +134,7 @@ class Ashby(JobSite):
                         children = element.find_all(recursive=False)
                         answer_area = self.find_answer_area(children)
                         if (
-                            answer_area.name == "input"
-                            or answer_area.name == "textarea"
+                            answer_area.name == "input" or answer_area.name == "textarea"
                         ):  # label + input/textarea = text answer
                             form.fields.append(
                                 ApplicationFormField(
@@ -161,9 +147,7 @@ class Ashby(JobSite):
                         elif (
                             answer_area.name == "div"
                         ):  # label + div = yes/no or text dropdown or file upload
-                            if "_yesno_hkyf8_143" in answer_area.get(
-                                "class"
-                            ):  # yes/no question
+                            if "_yesno_hkyf8_143" in answer_area.get("class"):  # yes/no question
                                 form.fields.append(
                                     ApplicationFormField(
                                         question=question.text,
@@ -191,9 +175,7 @@ class Ashby(JobSite):
                                 choices.append(choice)
 
                         radio_buttons = element.find_all("input", {"type": "radio"})
-                        radio_answers = element.find_all(
-                            "label", class_="_label_1v5e2_43"
-                        )
+                        radio_answers = element.find_all("label", class_="_label_1v5e2_43")
                         if len(radio_buttons) > 0:
                             for choice in radio_answers:
                                 choices.append(choice.text)
@@ -221,9 +203,7 @@ class Ashby(JobSite):
                 page.goto(url, wait_until="domcontentloaded")
                 page.wait_for_selector("div.ashby-application-form-container")
 
-                question_elements = page.locator(
-                    ".ashby-application-form-field-entry, fieldset"
-                )
+                question_elements = page.locator(".ashby-application-form-field-entry, fieldset")
 
                 total = question_elements.count()
                 for i in range(total):
@@ -263,9 +243,7 @@ class Ashby(JobSite):
                                     option.click()
                                     human_delay()
 
-                        file_upload = element.locator(
-                            "input#_systemfield_resume[type='file']"
-                        )
+                        file_upload = element.locator("input#_systemfield_resume[type='file']")
                         if file_upload.count() > 0:
                             file_upload.set_input_files(answer)
                             human_delay()
@@ -283,9 +261,7 @@ class Ashby(JobSite):
                 if app.form.state == ApplicationFormState.APPROVED:
                     # submit
                     human_delay(1, 2, override=True)
-                    submit_button = page.locator(
-                        ".ashby-application-form-submit-button"
-                    ).first
+                    submit_button = page.locator(".ashby-application-form-submit-button").first
                     submit_button.scroll_into_view_if_needed()
                     submit_button.click()
                     human_delay(2, 3)
@@ -309,7 +285,9 @@ class Ashby(JobSite):
                         logging.info(f"App {app.id} submitted successfully!")
                         return True
                     elif failure:
-                        error_message = f"App {app.id} submission failed; Failure container detected."
+                        error_message = (
+                            f"App {app.id} submission failed; Failure container detected."
+                        )
                         logging.error(error_message)
                         raise RuntimeError(error_message)
                     else:
@@ -318,9 +296,7 @@ class Ashby(JobSite):
                         raise RuntimeError(error_message)
                 else:
                     logging.error("Application not approved by user.")
-                    raise RuntimeError(
-                        f"Failed to submit app {app.id}: User did not approve."
-                    )
+                    raise RuntimeError(f"Failed to submit app {app.id}: User did not approve.")
 
         except Exception as e:
             logging.error(f"Error occurred while submitting app {app.id}: {e}")

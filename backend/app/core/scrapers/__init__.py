@@ -1,1 +1,1 @@
-# Marks scrapers as a package
+# marks scrapers as a package
