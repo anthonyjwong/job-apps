@@ -248,8 +248,7 @@ def check_if_job_still_exists_task(job_id: UUID):
 
 
 @celery_app.task
-def prepare_application_task(job_id: UUID, app_id: UUID, user: dict):
-    job = validate_job_id(job_id)
+def prepare_application_task(app_id: UUID, user: dict):
     app = validate_app_id(app_id)
     user = User(**user)
 

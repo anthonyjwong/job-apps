@@ -1,4 +1,7 @@
+from datetime import datetime, timedelta, timezone
+
 from app.core.utils import get_domain_handler
+from app.database.models import ApplicationFormORM, ApplicationORM, JobORM
 from app.database.session import get_db
 from app.database.utils.claims import (
     claim_app_for_prep,
@@ -7,14 +10,8 @@ from app.database.utils.claims import (
     claim_job_for_expiration_check,
     claim_job_for_review,
 )
-from app.database.utils.queries import (
-    get_approved_applications,
-    get_reviewed_jobs,
-    get_unexpired_jobs_older_than_one_week,
-    get_unprepared_applications,
-    get_unreviewed_jobs,
-)
 from app.routers.users import user
+from app.schemas.definitions import ApplicationFormState, ApplicationStatus, JobState
 from app.worker.tasks import (
     check_if_job_still_exists_task,
     create_app_task,
@@ -36,7 +33,7 @@ router = APIRouter()
 def review_jobs(db: Session = Depends(get_db)):
     """Review unreviewed jobs for candidate aptitude"""
     # arg validation
-    jobs = get_unreviewed_jobs(db)
+    jobs = db.query(JobORM).filter(JobORM.state == JobState.PENDING).all()
     if len(jobs) == 0:
         return Response(status_code=204)
 
@@ -56,7 +53,14 @@ def review_jobs(db: Session = Depends(get_db)):
 def expire_jobs(db: Session = Depends(get_db)):
     """Expire jobs that are past their expiration date"""
     # arg validation
-    jobs = get_unexpired_jobs_older_than_one_week(db)
+    jobs = (
+        db.query(JobORM)
+        .filter(
+            (JobORM.state < JobState.APPROVED)
+            & (JobORM.created_at < datetime.now(timezone.utc) - timedelta(weeks=1))
+        )
+        .all()
+    )
     if len(jobs) == 0:
         return Response(status_code=204)
 
@@ -76,16 +80,15 @@ def expire_jobs(db: Session = Depends(get_db)):
 def create_job_applications(db: Session = Depends(get_db)):
     """Creates new application for unscraped apps."""
     # arg validation
-    jobs = get_reviewed_jobs(db)
+    jobs = db.query(JobORM).filter(JobORM.state == JobState.APPROVED).all()
     if len(jobs) == 0:
         return Response(status_code=204)
 
     # send-off
     for job in jobs:
-        if job.approved:
-            job_url = job.direct_job_url or job.linkedin_job_url
-            if get_domain_handler(job_url) and claim_job_for_app_creation(db, job.id):
-                create_app_task.delay(job.id)
+        job_url = job.direct_job_url or job.linkedin_job_url
+        if get_domain_handler(job_url) and claim_job_for_app_creation(db, job.id):
+            create_app_task.delay(job.id)
 
     # response
     return JSONResponse(
@@ -98,14 +101,14 @@ def create_job_applications(db: Session = Depends(get_db)):
 def prepare_applications(db: Session = Depends(get_db)):
     """Prepares unprepared applications."""
     # arg validation
-    apps = get_unprepared_applications(db)
+    apps = db.query(ApplicationORM).filter(ApplicationORM.status == ApplicationStatus.STARTED).all()
     if len(apps) == 0:
         return Response(status_code=204)
 
     # send-off
     for app in apps:
         if claim_app_for_prep(db, app.id):
-            prepare_application_task.delay(app.job_id, app.id, user.to_json())
+            prepare_application_task.delay(app.id, user.to_json())
 
     # response
     return JSONResponse(
@@ -118,7 +121,16 @@ def prepare_applications(db: Session = Depends(get_db)):
 def submit_applications(db: Session = Depends(get_db)):
     """Submits approved applications."""
     # arg validation
-    apps = get_approved_applications(db)
+    apps = (
+        db.query(ApplicationORM)
+        .join(ApplicationFormORM, ApplicationORM.form)
+        .filter(
+            (ApplicationFormORM.state == ApplicationFormState.APPROVED)
+            & (ApplicationORM.status == ApplicationStatus.READY)
+        )
+        .all()
+    )
+
     if len(apps) == 0:
         return Response(status_code=204)
 
