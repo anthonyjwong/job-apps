@@ -1,4 +1,4 @@
-import logging
+from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID
 
@@ -8,6 +8,7 @@ from app.database.session import SessionLocal, get_db
 from app.database.utils.claims import claim_app_for_prep, claim_app_for_submission
 from app.routers.users import user
 from app.schemas.api import (
+    ApplicationPatchRequest,
     ApplicationResponse,
     GetApplicationFormResponse,
     GetSubmittedApplicationsResponse,
@@ -46,7 +47,7 @@ def get_applications(
     page_size: int = Query(25, ge=1, le=100, description="Items per page"),
     sort: Optional[str] = Query(
         default="submitted_at:desc",
-        description="Sort spec field:direction. Allowed fields: submitted_at, company, status",
+        description="Sort spec field:direction. Allowed fields: company, status, submitted_at",
     ),
 ) -> GetSubmittedApplicationsResponse:
     """Get applications with filtering, sorting, and pagination.
@@ -55,7 +56,7 @@ def get_applications(
     - Multi-value filters (status, form_state, classification) are OR within the same param, AND across different params.
     - company does ILIKE '%%value%%'.
     - Dates filter on ApplicationORM.submitted_at.
-    - Always excludes applications without submitted_at unless filtering for statuses where submitted_at may be null (handled naturally).
+    - Always excludes applications without submitted_at unless filtering for statuses where submitted_at may be null.
     """
     # base query joining required tables
     query = db.query(ApplicationORM).join(JobORM, ApplicationORM.job)
@@ -170,9 +171,102 @@ def get_application_details(app_id: UUID, db: Session = Depends(get_db)):
 
 
 @router.patch("/applications/{app_id}")
-def update_application(app_id: UUID, db: Session = Depends(get_db)):
-    """Update application details by ID."""
-    pass
+def update_application(
+    app_id: UUID,
+    payload: ApplicationPatchRequest,
+    db: Session = Depends(get_db),
+) -> ApplicationResponse:
+    """Update an application.
+
+    Allowed fields: status, form_state, referred
+    Rules:
+    - status may not be earlier than SUBMITTED
+    - form_state may only progress forward (no regression)
+    - empty body -> 400; no effective change -> 400
+    """
+    if payload.is_empty():
+        raise HTTPException(status_code=400, detail="Empty body: provide at least one field")
+
+    app: ApplicationORM | None = (
+        db.query(ApplicationORM).join(JobORM).filter(ApplicationORM.id == app_id).first()
+    )
+    if not app:
+        raise HTTPException(status_code=404, detail=f"Application {app_id} not found")
+
+    updated = False
+
+    # status update
+    allowed_values = [s.value for s in ApplicationStatus if s >= ApplicationStatus.SUBMITTED]
+    if payload.status is not None:
+        try:
+            new_status = ApplicationStatus(payload.status)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid status value. Allowed: {', '.join(allowed_values)}",
+            )
+        if new_status < ApplicationStatus.SUBMITTED:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Illegal status value. Allowed via PATCH: {', '.join(allowed_values)}",
+            )
+        if new_status != app.status:
+            app.status = new_status.value
+            if new_status == ApplicationStatus.SUBMITTED and app.submitted_at is None:
+                app.submitted_at = datetime.now(timezone.utc)
+            updated = True
+
+    # form_state update
+    allowed_values = [s.value for s in ApplicationFormState if s >= ApplicationFormState.APPROVED]
+    if payload.form_state is not None:
+        if not app.form:
+            raise HTTPException(
+                status_code=400, detail=f"Application {app_id} has no form to update state"
+            )
+        try:
+            new_state = ApplicationFormState(payload.form_state)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid form_state value. Allowed: {', '.join(allowed_values)}",
+            )
+        if new_state < ApplicationFormState.APPROVED:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Illegal status value. Allowed via PATCH: {', '.join(allowed_values)}",
+            )
+        if new_state != app.form.state:
+            app.form.state = new_state.value
+            updated = True
+
+    # referred update
+    if payload.referred is not None and app.referred != payload.referred:
+        app.referred = payload.referred
+        updated = True
+
+    if not updated:
+        raise HTTPException(status_code=400, detail="No meaningful changes detected")
+
+    db.add(app)
+    db.commit()
+
+    job = app.job
+    classification_val = getattr(job, "classification", None) or ""
+    action_val = getattr(job, "action", None) or ""
+    submitted_at_str = app.submitted_at.strftime("%Y-%m-%d") if app.submitted_at else ""
+
+    return ApplicationResponse(
+        id=str(app.id),
+        company=job.company,
+        position=job.title,
+        status=app.status,
+        applicationDate=submitted_at_str,
+        location=job.location or "NOT PROVIDED",
+        jobType=job.type or "",
+        classification=classification_val,
+        action=action_val,
+        notes="NOT IMPLEMENTED",
+    )
 
 
 @router.get("/applications/{app_id}/form")
@@ -232,10 +326,7 @@ def submit_application(app_id: UUID, db: Session = Depends(get_db)):
     # arg validation
     app = db.query(ApplicationORM).filter(ApplicationORM.id == app_id).first()
     if not app:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Application {app_id} not found",
-        )
+        raise HTTPException(status_code=404, detail=f"Application {app_id} not found")
 
     if app.job is None:
         raise HTTPException(
@@ -251,14 +342,12 @@ def submit_application(app_id: UUID, db: Session = Depends(get_db)):
     job_site = get_domain_handler(app.url)
     if job_site is None:
         raise HTTPException(
-            status_code=500,
-            detail=f"Job site not supported for submission: {app.url}",
+            status_code=500, detail=f"Job site not supported for submission: {app.url}"
         )
 
     if not claim_app_for_submission(db, app_id):
         return JSONResponse(
-            status_code=202,
-            content={"message": f"App {app_id} already queued for preparation"},
+            status_code=202, content={"message": f"App {app_id} already queued for preparation"}
         )
 
     # task

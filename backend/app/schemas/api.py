@@ -33,6 +33,50 @@ class GetSubmittedApplicationsResponse(BaseModel):
     total_pages: int
 
 
+class JobResponse(BaseModel):
+    id: str
+    title: str
+    company: str
+    location: Optional[str]
+    classification: Optional[str]
+    action: Optional[str]
+    state: str
+    jobType: Optional[str]
+    datePosted: Optional[str]
+
+
+class GetJobsResponse(BaseModel):
+    jobs: list[JobResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+class JobPatchRequest(BaseModel):
+    state: Optional[str] = None
+    classification: Optional[str] = None
+    action: Optional[str] = None
+
+    class Config:
+        extra = "forbid"
+
+    def is_empty(self) -> bool:
+        return self.state is None and self.classification is None and self.action is None
+
+
+class ApplicationPatchRequest(BaseModel):
+    status: Optional[str] = None
+    form_state: Optional[str] = None
+    referred: Optional[bool] = None
+
+    class Config:
+        extra = "forbid"
+
+    def is_empty(self) -> bool:
+        return self.status is None and self.form_state is None and self.referred is None
+
+
 class AssessmentResponse(BaseModel):
     id: str
     company: str
