@@ -109,7 +109,7 @@ class Ashby(JobSite):
             url += "/application"
 
         with sync_playwright() as p:
-            browser = p.firefox.launch(headless=True)
+            browser = p.firefox.launch(headless=self.headless)
             page = browser.new_page()
             page.goto(url)
             page.wait_for_selector("div.ashby-application-form-container")  # wait until loaded
@@ -199,7 +199,7 @@ class Ashby(JobSite):
 
         try:
             with sync_playwright() as p:
-                browser = p.firefox.launch(headless=True)
+                browser = p.firefox.launch(headless=self.headless)
                 page = browser.new_page()
                 page.goto(url, wait_until="domcontentloaded")
                 page.wait_for_selector("div.ashby-application-form-container")
