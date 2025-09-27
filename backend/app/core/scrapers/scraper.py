@@ -14,6 +14,7 @@ def human_delay(min_sec=0.5, max_sec=1.5, override=False):
 
 class JobSite(ABC):
     job: Job
+    headless: bool = True
 
     def __init__(self, job: Job):
         self.job = job

@@ -196,10 +196,10 @@ def claim_app_for_prep(db_session: Session, app_id: UUID) -> bool:
     False if the app is already prepared or currently being prepared.
     """
     updated = (
-        db_session.query(ApplicationORM)
+        db_session.query(ApplicationFormORM)
         .filter(
             ApplicationFormORM.application_id == app_id,
-            ApplicationFormState(ApplicationFormORM.state) == [ApplicationFormState.SCRAPED.value],
+            ApplicationFormORM.state == ApplicationFormState.SCRAPED.value,
             ApplicationFormORM.prepare_claim == False,
         )
         .update({ApplicationFormORM.prepare_claim: True}, synchronize_session=False)

@@ -135,11 +135,11 @@ def get_new_jobs_task(num_jobs: int):
     # database operation
     try:
         with SessionLocal() as db:
-            add_new_jobs_from_jobspy(db, jobs)
+            new_jobs = add_new_jobs_from_jobspy(db, jobs)
     except Exception as e:
         raise Exception(f"Error adding new jobs to database", e)
 
-    return len(jobs)
+    return len(new_jobs)
 
 
 @celery_app.task

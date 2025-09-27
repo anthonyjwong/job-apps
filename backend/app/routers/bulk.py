@@ -43,7 +43,7 @@ def review_jobs(db: Session = Depends(get_db), user: User = Depends(get_current_
     # send-off
     for job in jobs:
         if claim_job_for_review(db, job.id):
-            evaluate_job_task.delay(job.id, user.to_json())
+            evaluate_job_task.delay(job.id, user.to_dict())
 
     # response
     return JSONResponse(
@@ -115,7 +115,7 @@ def prepare_applications(db: Session = Depends(get_db), user: User = Depends(get
     # send-off
     for app in apps:
         if claim_app_for_prep(db, app.id):
-            prepare_application_task.delay(app.id, user.to_json())
+            prepare_application_task.delay(app.id, user.to_dict())
 
     # response
     return JSONResponse(
@@ -144,7 +144,7 @@ def submit_applications(db: Session = Depends(get_db)):
     # send off
     for app in apps:
         if claim_app_for_submission(db, app.id):
-            submit_application_task.delay(app.job_id, app.id)
+            submit_application_task.delay(app.id)
 
     # response
     return JSONResponse(

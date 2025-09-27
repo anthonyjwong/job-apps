@@ -68,7 +68,7 @@ def submit_app(app: Application) -> bool:
     if job_site is None:
         raise NotImplementedError(f"Site not supported: {app.url}")
 
-    return job_site.apply()
+    return job_site.apply(app)
 
 
 def check_job_expiration(job) -> bool:

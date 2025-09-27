@@ -292,7 +292,7 @@ def review_job(job_id: UUID, db: Session = Depends(get_db), user: User = Depends
         )
 
     # task
-    task = evaluate_job_task.delay(job.id, user.to_json())
+    task = evaluate_job_task.delay(job.id, user.to_dict())
 
     # response
     return JSONResponse(

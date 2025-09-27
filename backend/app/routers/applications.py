@@ -310,7 +310,7 @@ def prepare_application(
             status_code=202,
             content={"message": f"App {app_id} already queued for preparation"},
         )
-    task = prepare_application_task.delay(app.id, user.to_json())
+    task = prepare_application_task.delay(app.id, user.to_dict())
 
     # response
     return JSONResponse(

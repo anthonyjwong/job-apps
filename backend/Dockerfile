@@ -10,11 +10,6 @@ RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}"
 
 WORKDIR /app
 
-# Create non-root user and group early (stable layer)
-RUN addgroup --system app && adduser --system --ingroup app app \
-    && mkdir -p /app \
-    && chown -R app:app /app
-
 # Copy only dependency manifests first for caching
 COPY pyproject.toml poetry.lock* ./
 
@@ -39,13 +34,13 @@ COPY ./app ./app
 RUN poetry install --only-root && rm -rf "$POETRY_CACHE_DIR"
 
 # Ensure files owned by non-root user
-RUN chown -R app:app /app
+RUN chown -R pwuser:pwuser /app
 
 # necessary for healthcheck to work (combine update & install, then clean)
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Switch to non-root user
-USER app
+USER pwuser
 
 EXPOSE 8000
 

@@ -14,6 +14,7 @@ from playwright.sync_api import sync_playwright
 
 class Ashby(JobSite):
     job: Job
+    headless: bool = True
 
     def __init__(self, job):
         self.job = job
