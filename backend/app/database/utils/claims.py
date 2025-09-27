@@ -1,11 +1,8 @@
 import logging
 from uuid import UUID
 
-from sqlalchemy.orm import Session
-
 from app.database.crud import app_to_orm
 from app.database.models import ApplicationFormORM, ApplicationORM, JobORM
-from app.database.utils.queries import get_application_by_job_id
 from app.schemas.definitions import (
     Application,
     ApplicationFormState,
@@ -13,6 +10,7 @@ from app.schemas.definitions import (
     JobReview,
     JobState,
 )
+from sqlalchemy.orm import Session
 
 
 def claim_job_for_review(db_session: Session, job_id: UUID) -> bool:
@@ -96,7 +94,9 @@ def set_job_app_created(db_session: Session, app: Application):
         raise ValueError("Application is missing job")
 
     try:
-        existing = get_application_by_job_id(db_session, app.job.id)
+        existing = (
+            db_session.query(ApplicationORM).filter(ApplicationORM.job_id == app.job.id).first()
+        )
         if existing is None:
             db_session.add(app_to_orm(app))
         else:
@@ -116,9 +116,7 @@ def set_job_app_created(db_session: Session, app: Application):
         )
 
         db_session.commit()
-        logging.debug(
-            f"Application upserted for job {app.job.id}; create_app_claim cleared"
-        )
+        logging.debug(f"Application upserted for job {app.job.id}; create_app_claim cleared")
     except Exception:
         db_session.rollback()
         raise
@@ -193,8 +191,7 @@ def claim_app_for_prep(db_session: Session, app_id: UUID) -> bool:
         db_session.query(ApplicationORM)
         .filter(
             ApplicationFormORM.application_id == app_id,
-            ApplicationFormState(ApplicationFormORM.state)
-            < ApplicationFormState.PREPARED,
+            ApplicationFormState(ApplicationFormORM.state) < ApplicationFormState.PREPARED,
             ApplicationFormORM.prepare_claim == False,
         )
         .update({ApplicationFormORM.prepare_claim: True}, synchronize_session=False)

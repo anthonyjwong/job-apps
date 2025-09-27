@@ -1,22 +1,9 @@
-from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
 from app.database.models import ApplicationFormORM, ApplicationORM, JobORM
 from app.database.session import SessionLocal, get_db
-from app.database.utils.frontend import (
-    fetch_assessment_applications,
-    fetch_interview_applications,
-    fetch_submitted_applications,
-)
-from app.schemas.api import (
-    ApplicationResponse,
-    AssessmentResponse,
-    GetAssessmentsResponse,
-    GetInterviewsResponse,
-    GetSubmittedApplicationsResponse,
-    InterviewResponse,
-)
+from app.schemas.api import ApplicationResponse, GetSubmittedApplicationsResponse
 from app.schemas.definitions import (
     ApplicationFormState,
     ApplicationStatus,
@@ -61,7 +48,6 @@ def get_applications(
     - Dates filter on ApplicationORM.submitted_at.
     - Always excludes applications without submitted_at unless filtering for statuses where submitted_at may be null (handled naturally).
     """
-
     # base query joining required tables
     query = db.query(ApplicationORM).join(JobORM, ApplicationORM.job)
 
@@ -129,7 +115,7 @@ def get_applications(
                 id=str(app.id),
                 company=job.company,
                 position=job.title,
-                status=app.status,
+                status=app.status.value,
                 applicationDate=submitted_at,
                 location=job.location or "NOT PROVIDED",
                 jobType=job.type or "",
@@ -154,9 +140,23 @@ def get_applications(
 
 
 @router.get("/applications/{app_id}")
-def get_application_details(app_id: UUID):
+def get_application_details(app_id: UUID, db: Session = Depends(get_db)):
     """Get application details by ID."""
-    pass
+    app = db.query(ApplicationORM).filter(ApplicationORM.id == app_id).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+    return ApplicationResponse(
+        id=str(app.id),
+        company=app.job.company,
+        position=app.job.title,
+        status=app.status.value,
+        applicationDate=app.submitted_at.strftime("%Y-%m-%d") if app.submitted_at else "",
+        location=app.job.location or "NOT PROVIDED",
+        jobType=app.job.type or "",
+        classification=app.job.classification.value or "",
+        action=app.job.action or "",
+        notes="NOT IMPLEMENTED",
+    )
 
 
 @router.patch("/applications/{app_id}")
