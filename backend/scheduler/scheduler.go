@@ -65,12 +65,12 @@ func main() {
 	const interval = 24 * time.Hour
 
 	schedules := []periodicSchedule{
-		{http.MethodPut, "/jobs/expire", []time.Duration{0 * time.Second, 15 * time.Minute, 30 * time.Minute, 45 * time.Minute, 60 * time.Minute}, interval},
-		{http.MethodPut, "/jobs/review", []time.Duration{30 * time.Second, 20 * time.Minute, 40 * time.Minute, 60 * time.Minute, 80 * time.Minute}, interval},
-		{http.MethodPost, "/apps/create", []time.Duration{45 * time.Second, 21 * time.Minute, 41 * time.Minute, 61 * time.Minute, 81 * time.Minute}, interval},
-		{http.MethodPut, "/apps/prepare", []time.Duration{60 * time.Second, 22 * time.Minute, 42 * time.Minute, 62 * time.Minute, 82 * time.Minute}, interval},
-		{http.MethodPut, "/apps/submit", []time.Duration{5 * time.Minute, 25 * time.Minute}, time.Hour},
-		{http.MethodPost, "/jobs/find", []time.Duration{5 * time.Second}, interval},
+		{http.MethodPost, "/bulk/jobs/expire", []time.Duration{0 * time.Second, 15 * time.Minute, 30 * time.Minute, 45 * time.Minute, 60 * time.Minute}, interval},
+		{http.MethodPost, "/bulk/jobs/review", []time.Duration{30 * time.Second, 20 * time.Minute, 40 * time.Minute, 60 * time.Minute, 80 * time.Minute}, interval},
+		{http.MethodPost, "/bulk/jobs/application", []time.Duration{45 * time.Second, 21 * time.Minute, 41 * time.Minute, 61 * time.Minute, 81 * time.Minute}, interval},
+		{http.MethodPost, "/bulk/applications/prepare", []time.Duration{60 * time.Second, 22 * time.Minute, 42 * time.Minute, 62 * time.Minute, 82 * time.Minute}, interval},
+		{http.MethodPost, "/bulk/applications/submit", []time.Duration{5 * time.Minute, 25 * time.Minute}, time.Hour},
+		{http.MethodPost, "/jobs/refresh", []time.Duration{5 * time.Second}, interval},
 	}
 
 	// Start schedules

@@ -27,6 +27,7 @@ from app.database.utils.claims import (
     set_job_expired,
     set_job_reviewed,
 )
+from app.database.utils.mutations import add_new_jobs_from_jobspy
 from app.database.utils.queries import fetch_application_by_id, fetch_job_by_id
 from app.schemas.definitions import (
     Application,
@@ -134,8 +135,7 @@ def get_new_jobs_task(num_jobs: int):
     # database operation
     try:
         with SessionLocal() as db:
-            db.add_all(jobs)
-            db.commit()
+            add_new_jobs_from_jobspy(db, jobs)
     except Exception as e:
         raise Exception(f"Error adding new jobs to database", e)
 

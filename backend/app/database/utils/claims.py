@@ -23,7 +23,7 @@ def claim_job_for_review(db_session: Session, job_id: UUID) -> bool:
         db_session.query(JobORM)
         .filter(
             JobORM.id == job_id,
-            JobState(JobORM.state) < JobState.REVIEWED,
+            JobORM.state == JobState.PENDING.value,
             JobORM.review_claim == False,
         )
         .update({JobORM.review_claim: True}, synchronize_session=False)
@@ -74,6 +74,7 @@ def claim_job_for_app_creation(db_session: Session, job_id: UUID) -> bool:
         db_session.query(JobORM)
         .filter(
             JobORM.id == job_id,
+            JobORM.state == JobState.APPROVED.value,
             JobORM.create_app_claim == False,
         )
         .update({JobORM.create_app_claim: True}, synchronize_session=False)
@@ -143,6 +144,13 @@ def claim_job_for_expiration_check(db_session: Session, job_id: UUID) -> bool:
         db_session.query(JobORM)
         .filter(
             JobORM.id == job_id,
+            JobORM.state.in_(
+                [
+                    JobState.PENDING.value,
+                    JobState.REVIEWED.value,
+                    JobState.APPROVED.value,
+                ]
+            ),
             JobORM.expiration_check_claim == False,
         )
         .update({JobORM.expiration_check_claim: True}, synchronize_session=False)
@@ -191,7 +199,7 @@ def claim_app_for_prep(db_session: Session, app_id: UUID) -> bool:
         db_session.query(ApplicationORM)
         .filter(
             ApplicationFormORM.application_id == app_id,
-            ApplicationFormState(ApplicationFormORM.state) < ApplicationFormState.PREPARED,
+            ApplicationFormState(ApplicationFormORM.state) == [ApplicationFormState.SCRAPED.value],
             ApplicationFormORM.prepare_claim == False,
         )
         .update({ApplicationFormORM.prepare_claim: True}, synchronize_session=False)
@@ -240,7 +248,7 @@ def claim_app_for_submission(db_session: Session, app_id: UUID) -> bool:
         db_session.query(ApplicationORM)
         .filter(
             ApplicationORM.id == app_id,
-            ApplicationStatus(ApplicationORM.status) == ApplicationStatus.READY,
+            ApplicationORM.status == ApplicationStatus.READY.value,
             ApplicationORM.submission_claim == False,
         )
         .update({ApplicationORM.submission_claim: True}, synchronize_session=False)

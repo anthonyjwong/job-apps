@@ -29,7 +29,7 @@ services:
     build:
       context: ./backend
     command: >
-      watchmedo auto-restart --directory=./ --pattern=*.py --recursive -- python3 -Xfrozen_modules=off -m celery -A app.worker.tasks worker
+      watchmedo auto-restart --directory=./ --pattern=*.py --recursive -- python3 -Xfrozen_modules=off -m celery -A app.worker.tasks worker --loglevel=info
     environment:
       CELERY_BACKEND_URL: ${CELERY_BACKEND_URL}
       CELERY_BROKER_URL: ${CELERY_BROKER_URL}

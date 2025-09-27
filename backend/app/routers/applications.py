@@ -286,7 +286,7 @@ def update_application_form(app_id: UUID, db: Session = Depends(get_db)):
     pass
 
 
-@router.put("/applications/{app_id}/prepare")
+@router.post("/applications/{app_id}/prepare")
 def prepare_application(
     app_id: UUID, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
@@ -323,7 +323,7 @@ def prepare_application(
     )
 
 
-@router.put("/applications/{app_id}/submit")
+@router.post("/applications/{app_id}/submit")
 def submit_application(app_id: UUID, db: Session = Depends(get_db)):
     """Submit an application"""
     # arg validation
@@ -342,7 +342,7 @@ def submit_application(app_id: UUID, db: Session = Depends(get_db)):
             detail=f"Application {app_id} must be approved by user before submission",
         )
 
-    job_site = get_domain_handler(app.url)
+    job_site = get_domain_handler(app.url)(app.job)
     if job_site is None:
         raise HTTPException(
             status_code=500, detail=f"Job site not supported for submission: {app.url}"

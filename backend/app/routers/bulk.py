@@ -9,9 +9,13 @@ from app.database.utils.claims import (
     claim_job_for_expiration_check,
     claim_job_for_review,
 )
-from app.dependencies import get_db
-from app.routers.users import user
-from app.schemas.definitions import ApplicationFormState, ApplicationStatus, JobState
+from app.dependencies import get_current_user, get_db
+from app.schemas.definitions import (
+    ApplicationFormState,
+    ApplicationStatus,
+    JobState,
+    User,
+)
 from app.worker.tasks import (
     check_if_job_still_exists_task,
     create_app_task,
@@ -28,11 +32,11 @@ from sqlalchemy.orm import Session
 router = APIRouter()
 
 
-@router.put("/jobs/review")
-def review_jobs(db: Session = Depends(get_db)):
+@router.post("/jobs/review")
+def review_jobs(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     """Review unreviewed jobs for candidate aptitude"""
     # arg validation
-    jobs = db.query(JobORM).filter(JobORM.state == JobState.PENDING).all()
+    jobs = db.query(JobORM).filter(JobORM.state == JobState.PENDING.value).all()
     if len(jobs) == 0:
         return Response(status_code=204)
 
@@ -48,15 +52,15 @@ def review_jobs(db: Session = Depends(get_db)):
     )
 
 
-@router.put("/jobs/expire")
+@router.post("/jobs/expire")
 def expire_jobs(db: Session = Depends(get_db)):
     """Expire jobs that are past their expiration date"""
     # arg validation
     jobs = (
         db.query(JobORM)
         .filter(
-            (JobORM.state < JobState.APPROVED)
-            & (JobORM.created_at < datetime.now(timezone.utc) - timedelta(weeks=1))
+            JobORM.state.in_([JobState.PENDING.value, JobState.REVIEWED.value]),
+            JobORM.created_at < datetime.now(timezone.utc) - timedelta(weeks=1),
         )
         .all()
     )
@@ -79,7 +83,7 @@ def expire_jobs(db: Session = Depends(get_db)):
 def create_job_applications(db: Session = Depends(get_db)):
     """Creates new application for unscraped apps."""
     # arg validation
-    jobs = db.query(JobORM).filter(JobORM.state == JobState.APPROVED).all()
+    jobs = db.query(JobORM).filter(JobORM.state == JobState.APPROVED.value).all()
     if len(jobs) == 0:
         return Response(status_code=204)
 
@@ -96,11 +100,15 @@ def create_job_applications(db: Session = Depends(get_db)):
     )
 
 
-@router.put("/applications/prepare")
-def prepare_applications(db: Session = Depends(get_db)):
+@router.post("/applications/prepare")
+def prepare_applications(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     """Prepares unprepared applications."""
     # arg validation
-    apps = db.query(ApplicationORM).filter(ApplicationORM.status == ApplicationStatus.STARTED).all()
+    apps = (
+        db.query(ApplicationORM)
+        .filter(ApplicationORM.status == ApplicationStatus.STARTED.value)
+        .all()
+    )
     if len(apps) == 0:
         return Response(status_code=204)
 
@@ -116,7 +124,7 @@ def prepare_applications(db: Session = Depends(get_db)):
     )
 
 
-@router.put("/applications/submit")
+@router.post("/applications/submit")
 def submit_applications(db: Session = Depends(get_db)):
     """Submits approved applications."""
     # arg validation
@@ -124,8 +132,8 @@ def submit_applications(db: Session = Depends(get_db)):
         db.query(ApplicationORM)
         .join(ApplicationFormORM, ApplicationORM.form)
         .filter(
-            (ApplicationFormORM.state == ApplicationFormState.APPROVED)
-            & (ApplicationORM.status == ApplicationStatus.READY)
+            ApplicationFormORM.state == ApplicationFormState.APPROVED.value,
+            ApplicationORM.status == ApplicationStatus.READY.value,
         )
         .all()
     )

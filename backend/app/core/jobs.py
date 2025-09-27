@@ -33,7 +33,7 @@ def save_jobs(num_jobs=5) -> list[Job]:
 
 def scrape_application_form(app: Application) -> ApplicationForm:
     """Scrape job details and create an application."""
-    job_site: JobSite = get_domain_handler(app)
+    job_site: JobSite = get_domain_handler(app.url)(app.job)
     if job_site is None:
         raise NotImplementedError(f"Site not supported: {app.url}")
 
@@ -64,7 +64,7 @@ def submit_app(app: Application) -> bool:
     if not app.url:
         raise MissingAppUrlError("App must have a URL.")
 
-    job_site: JobSite = get_domain_handler(app)
+    job_site: JobSite = get_domain_handler(app.url)(app.job)
     if job_site is None:
         raise NotImplementedError(f"Site not supported: {app.url}")
 

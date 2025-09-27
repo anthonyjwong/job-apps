@@ -4,7 +4,7 @@ import os
 
 import debugpy
 import uvicorn
-from app.routers import applications, bulk, data, jobs, manual, users
+from app.routers import applications, bulk, data, jobs, users
 from app.worker.tasks import get_task_status
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

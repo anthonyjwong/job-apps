@@ -5,7 +5,6 @@ from typing import Callable, Optional, Tuple, Type
 from urllib.parse import urlparse
 
 import pandas as pd
-
 from app.core.scrapers.scraper import JobSite
 from app.core.scrapers.sites.ashby import Ashby
 from app.core.scrapers.sites.linkedin import LinkedIn
@@ -14,11 +13,11 @@ from app.schemas.definitions import Application, Job
 DOMAIN_HANDLERS = {"jobs.ashbyhq.com": Ashby, "www.linkedin.com": LinkedIn}
 
 
-def get_domain_handler(app: Application) -> JobSite:
+def get_domain_handler(url: str) -> JobSite:
     """Get the appropriate JobSite handler based on the URL's domain."""
-    base_url = get_base_url(app.url)
+    base_url = get_base_url(url)
     if base_url in DOMAIN_HANDLERS:
-        return DOMAIN_HANDLERS[base_url](app.job)
+        return DOMAIN_HANDLERS[base_url]
     else:
         return None
 
