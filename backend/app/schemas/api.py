@@ -3,6 +3,15 @@ from typing import Optional
 from pydantic import BaseModel
 
 
+class ApplicationFormResponse(BaseModel):
+    question: str
+    answer: str
+
+
+class GetApplicationFormResponse(BaseModel):
+    form: list[ApplicationFormResponse]
+
+
 class ApplicationResponse(BaseModel):
     id: str
     company: str

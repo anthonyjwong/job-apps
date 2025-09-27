@@ -280,8 +280,7 @@ def prepare_application_task(job_id: UUID, app_id: UUID, user: dict):
 
 
 @celery_app.task
-def submit_application_task(job_id: UUID, app_id: UUID):
-    job = validate_job_id(job_id)
+def submit_application_task(app_id: UUID):
     app = validate_app_id(app_id)
 
     if app.status >= ApplicationStatus.SUBMITTED:
@@ -292,7 +291,7 @@ def submit_application_task(job_id: UUID, app_id: UUID):
     # logic
     try:
         logging.info(f"Submitting app {app.id}...")
-        submitted = submit_app(app, job)
+        submitted = submit_app(app)
     except (
         MissingAppUrlError,
         QuestionNotFoundError,
@@ -301,7 +300,7 @@ def submit_application_task(job_id: UUID, app_id: UUID):
     ) as e:
         error_message = None
         if type(e) is MissingAppUrlError:
-            error_message = f"Job {job.id} is missing URLs"
+            error_message = f"Job {app.job.id} is missing URLs"
         elif type(e) is QuestionNotFoundError:
             error_message = f"Required question not found for app {app.id}"
         elif type(e) is NotImplementedError:

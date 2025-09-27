@@ -1,14 +1,23 @@
+import logging
 from typing import List, Optional
 from uuid import UUID
 
+from app.core.utils import get_domain_handler
 from app.database.models import ApplicationFormORM, ApplicationORM, JobORM
 from app.database.session import SessionLocal, get_db
-from app.schemas.api import ApplicationResponse, GetSubmittedApplicationsResponse
+from app.database.utils.claims import claim_app_for_prep, claim_app_for_submission
+from app.routers.users import user
+from app.schemas.api import (
+    ApplicationResponse,
+    GetApplicationFormResponse,
+    GetSubmittedApplicationsResponse,
+)
 from app.schemas.definitions import (
     ApplicationFormState,
     ApplicationStatus,
     JobClassification,
 )
+from app.worker.tasks import prepare_application_task, submit_application_task
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy import asc, desc, func
@@ -145,6 +154,7 @@ def get_application_details(app_id: UUID, db: Session = Depends(get_db)):
     app = db.query(ApplicationORM).filter(ApplicationORM.id == app_id).first()
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
+
     return ApplicationResponse(
         id=str(app.id),
         company=app.job.company,
@@ -166,9 +176,13 @@ def update_application(app_id: UUID, db: Session = Depends(get_db)):
 
 
 @router.get("/applications/{app_id}/form")
-def get_application_form(app_id: UUID):
+def get_application_form(app_id: UUID, db: Session = Depends(get_db)):
     """Get application form details by app ID."""
-    pass
+    app = db.query(ApplicationORM).filter(ApplicationORM.id == app_id).first()
+    if not app.form:
+        raise HTTPException(status_code=404, detail=f"Application {app_id} has no form")
+
+    return GetApplicationFormResponse(form=app.form)
 
 
 @router.patch("/applications/{app_id}/form")
@@ -178,55 +192,27 @@ def update_application_form(app_id: UUID, db: Session = Depends(get_db)):
 
 
 @router.put("/applications/{app_id}/prepare")
-def prepare_application(app_id: UUID):
+def prepare_application(app_id: UUID, db: Session = Depends(get_db)):
     """Create an app for a job by its ID."""
-    with SessionLocal() as db:
-        # arg validation
-        app = get_application_by_id(db, app_id)
-        if app is None:
-            logging.error(
-                f"/app/{app_id}/prepare: App not found",
-            )
-            return JSONResponse(
-                status_code=404,
-                content={
-                    "status": "error",
-                    "message": f"App {app_id} not found",
-                },
-            )
+    # arg validation
+    app = db.query(ApplicationORM).filter(ApplicationORM.id == app_id).first()
+    if app is None:
+        raise HTTPException(status_code=404, detail=f"Application {app_id} not found")
 
-        job = get_job_by_id(db, app.job_id)
-        if job is None:
-            logging.error(
-                f"/app/{app_id}/prepare: Job {app.job_id} not found",
-            )
-            return JSONResponse(
-                status_code=404,
-                content={
-                    "status": "error",
-                    "message": f"Job {app.job_id} attached to app {app_id} not found",
-                },
-            )
+    if app.job is None:
+        raise HTTPException(
+            status_code=404, detail=f"Job {app.job_id} attached to application {app_id} not found"
+        )
 
-        if app.prepared == True:
-            logging.error(
-                f"/app/{app_id}/prepare: App is already prepared",
-            )
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "status": "error",
-                    "message": f"App {app.id} is already prepared",
-                },
-            )
+    if app.form.state == ApplicationFormState.PREPARED:
+        raise HTTPException(status_code=500, detail=f"Application {app.id} is already prepared")
 
-        if not claim_app_for_prep(db, app_id):
-            return JSONResponse(
-                status_code=202,
-                content={"message": f"App {app_id} already queued for preparation"},
-            )
-
-    # task
+    # claim and queue
+    if not claim_app_for_prep(db, app_id):
+        return JSONResponse(
+            status_code=202,
+            content={"message": f"App {app_id} already queued for preparation"},
+        )
     task = prepare_application_task.delay(job.id, app.id, user.to_json())
 
     # response
@@ -241,79 +227,42 @@ def prepare_application(app_id: UUID):
 
 
 @router.put("/applications/{app_id}/submit")
-def submit_application(app_id: UUID):
+def submit_application(app_id: UUID, db: Session = Depends(get_db)):
     """Submit an application"""
-    with SessionLocal() as db:
-        # arg validation
-        app = get_application_by_id(db, app_id)
-        if not app:
-            logging.error(
-                f"/app/{app_id}/submit: App not found",
-            )
-            return JSONResponse(
-                status_code=404,
-                content={
-                    "status": "error",
-                    "message": f"Application {app_id} not found",
-                },
-            )
+    # arg validation
+    app = db.query(ApplicationORM).filter(ApplicationORM.id == app_id).first()
+    if not app:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Application {app_id} not found",
+        )
 
-        if not app.prepared:
-            logging.error(
-                f"/app/{app_id}/submit: App not prepared",
-            )
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "status": "error",
-                    "message": f"App {app_id} must be prepared before approval",
-                },
-            )
+    if app.job is None:
+        raise HTTPException(
+            status_code=404, detail=f"Job {app.job_id} attached to application {app_id} not found"
+        )
 
-        if not app.approved:
-            logging.error(
-                f"/app/{app_id}/submit: App not approved by user",
-            )
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "status": "error",
-                    "message": f"App {app_id} must be approved by user before submission",
-                },
-            )
+    if app.form.state != ApplicationFormState.APPROVED:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Application {app_id} must be approved by user before submission",
+        )
 
-        job = get_job_by_id(db, app.job_id)
-        if not job:
-            logging.error(
-                f"/app/{app_id}/submit: Job {app.job_id} not found",
-            )
-            return JSONResponse(
-                status_code=404,
-                content={
-                    "status": "error",
-                    "message": f"Job ID {app.job_id} attached to app {app_id} not found",
-                },
-            )
+    job_site = get_domain_handler(app.url)
+    if job_site is None:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Job site not supported for submission: {app.url}",
+        )
 
-        job_site = get_domain_handler(app.url)
-        if job_site is None:
-            logging.debug(f"/app/{app_id}/submit: Job site not supported for submission: {app.url}")
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "status": "error",
-                    "message": f"Job site not supported for submission: {app.url}",
-                },
-            )
-
-        if not claim_app_for_submission(db, app_id):
-            return JSONResponse(
-                status_code=202,
-                content={"message": f"App {app_id} already queued for preparation"},
-            )
+    if not claim_app_for_submission(db, app_id):
+        return JSONResponse(
+            status_code=202,
+            content={"message": f"App {app_id} already queued for preparation"},
+        )
 
     # task
-    task = submit_application_task.delay(job.id, app_id)
+    task = submit_application_task.delay(app_id)
 
     # response
     return JSONResponse(
