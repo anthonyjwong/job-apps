@@ -1,13 +1,16 @@
+from app.dependencies import get_current_user
 from app.schemas.definitions import User
+from fastapi import APIRouter
+from fastapi.params import Depends
 
-user = User(
-    first_name="AJ",
-    last_name="Wong",
-    email="anthonyjaredwong@gmail.com",
-    resume_pdf_path="AJ Wong's Resume.pdf",
-    linkedin_url="https://www.linkedin.com/in/anthonyjaredwong/",
-    github_url="https://github.com/anthonyjwong",
-    current_location="Danville, California, United States",
-    desired_location="New York, NY",
-    work_mode_ranking=["hybrid", "onsite", "remote"],
-)
+router = APIRouter()
+
+
+@router.get("/users/me")
+def get_current_user_info(user: User = Depends(get_current_user)):
+    pass
+
+
+@router.put("/users/me")
+def update_current_user_info(user: User = Depends(get_current_user)):
+    pass

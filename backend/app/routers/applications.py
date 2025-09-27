@@ -4,19 +4,20 @@ from uuid import UUID
 
 from app.core.utils import get_domain_handler
 from app.database.models import ApplicationFormORM, ApplicationORM, JobORM
-from app.database.session import SessionLocal, get_db
 from app.database.utils.claims import claim_app_for_prep, claim_app_for_submission
-from app.routers.users import user
+from app.database.utils.queries import fetch_application_by_id
+from app.dependencies import get_current_user, get_db
 from app.schemas.api import (
     ApplicationPatchRequest,
     ApplicationResponse,
     GetApplicationFormResponse,
-    GetSubmittedApplicationsResponse,
+    GetApplicationsResponse,
 )
 from app.schemas.definitions import (
     ApplicationFormState,
     ApplicationStatus,
     JobClassification,
+    User,
 )
 from app.worker.tasks import prepare_application_task, submit_application_task
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -49,7 +50,7 @@ def get_applications(
         default="submitted_at:desc",
         description="Sort spec field:direction. Allowed fields: company, status, submitted_at",
     ),
-) -> GetSubmittedApplicationsResponse:
+) -> GetApplicationsResponse:
     """Get applications with filtering, sorting, and pagination.
 
     Notes:
@@ -140,7 +141,7 @@ def get_applications(
     if page > total_pages and total_pages != 0:
         raise HTTPException(status_code=400, detail="Page out of range")
 
-    return GetSubmittedApplicationsResponse(
+    return GetApplicationsResponse(
         applications=app_responses,
         total=total,
         page=page,
@@ -152,7 +153,7 @@ def get_applications(
 @router.get("/applications/{app_id}")
 def get_application_details(app_id: UUID, db: Session = Depends(get_db)):
     """Get application details by ID."""
-    app = db.query(ApplicationORM).filter(ApplicationORM.id == app_id).first()
+    app = fetch_application_by_id(db, app_id)
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
 
@@ -272,7 +273,7 @@ def update_application(
 @router.get("/applications/{app_id}/form")
 def get_application_form(app_id: UUID, db: Session = Depends(get_db)):
     """Get application form details by app ID."""
-    app = db.query(ApplicationORM).filter(ApplicationORM.id == app_id).first()
+    app = fetch_application_by_id(db, app_id)
     if not app.form:
         raise HTTPException(status_code=404, detail=f"Application {app_id} has no form")
 
@@ -286,10 +287,12 @@ def update_application_form(app_id: UUID, db: Session = Depends(get_db)):
 
 
 @router.put("/applications/{app_id}/prepare")
-def prepare_application(app_id: UUID, db: Session = Depends(get_db)):
+def prepare_application(
+    app_id: UUID, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+):
     """Create an app for a job by its ID."""
     # arg validation
-    app = db.query(ApplicationORM).filter(ApplicationORM.id == app_id).first()
+    app = fetch_application_by_id(db, app_id)
     if app is None:
         raise HTTPException(status_code=404, detail=f"Application {app_id} not found")
 
@@ -307,7 +310,7 @@ def prepare_application(app_id: UUID, db: Session = Depends(get_db)):
             status_code=202,
             content={"message": f"App {app_id} already queued for preparation"},
         )
-    task = prepare_application_task.delay(job.id, app.id, user.to_json())
+    task = prepare_application_task.delay(app.id, user.to_json())
 
     # response
     return JSONResponse(
@@ -324,7 +327,7 @@ def prepare_application(app_id: UUID, db: Session = Depends(get_db)):
 def submit_application(app_id: UUID, db: Session = Depends(get_db)):
     """Submit an application"""
     # arg validation
-    app = db.query(ApplicationORM).filter(ApplicationORM.id == app_id).first()
+    app = fetch_application_by_id(db, app_id)
     if not app:
         raise HTTPException(status_code=404, detail=f"Application {app_id} not found")
 

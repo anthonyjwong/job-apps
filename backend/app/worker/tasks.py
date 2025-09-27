@@ -27,8 +27,7 @@ from app.database.utils.claims import (
     set_job_expired,
     set_job_reviewed,
 )
-from app.database.utils.mutations import add_new_scraped_jobs
-from app.database.utils.queries import get_application_by_id, get_job_by_id
+from app.database.utils.queries import fetch_application_by_id, fetch_job_by_id
 from app.schemas.definitions import (
     Application,
     ApplicationFormState,
@@ -65,7 +64,7 @@ def _acquire_jobspy_lock(ttl_seconds: int = 60):
 def validate_job_id(job_id: UUID) -> Job:
     job = None
     with SessionLocal() as db:
-        job = get_job_by_id(db, job_id)
+        job = fetch_job_by_id(db, job_id)
     if job is None:
         raise ValueError(f"Job with id {job_id} not found.")
 
@@ -75,7 +74,7 @@ def validate_job_id(job_id: UUID) -> Job:
 def validate_app_id(app_id: UUID) -> Application:
     app = None
     with SessionLocal() as db:
-        app = get_application_by_id(db, app_id)
+        app = fetch_application_by_id(db, app_id)
     if app is None:
         raise ValueError(f"App with id {app_id} not found.")
 
@@ -135,7 +134,8 @@ def get_new_jobs_task(num_jobs: int):
     # database operation
     try:
         with SessionLocal() as db:
-            jobs = add_new_scraped_jobs(db, jobs)
+            db.add_all(jobs)
+            db.commit()
     except Exception as e:
         raise Exception(f"Error adding new jobs to database", e)
 

@@ -1,5 +1,6 @@
 from typing import Optional
 
+from fastapi import Query
 from pydantic import BaseModel
 
 
@@ -25,7 +26,7 @@ class ApplicationResponse(BaseModel):
     notes: str
 
 
-class GetSubmittedApplicationsResponse(BaseModel):
+class GetApplicationsResponse(BaseModel):
     applications: list[ApplicationResponse]
     total: int  # total items matching filters (unpaged)
     page: int

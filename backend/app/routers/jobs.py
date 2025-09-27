@@ -2,10 +2,23 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
+from app.core.utils import get_domain_handler
 from app.database.models import JobORM
-from app.database.session import get_db
+from app.database.utils.claims import (
+    claim_job_for_app_creation,
+    claim_job_for_expiration_check,
+    claim_job_for_review,
+)
+from app.database.utils.queries import fetch_application_by_job_id, fetch_job_by_id
+from app.dependencies import get_current_user, get_db
 from app.schemas.api import GetJobsResponse, JobPatchRequest, JobResponse
-from app.schemas.definitions import JobClassification, JobState
+from app.schemas.definitions import JobClassification, JobState, User
+from app.worker.tasks import (
+    check_if_job_still_exists_task,
+    create_app_task,
+    evaluate_job_task,
+    get_new_jobs_task,
+)
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy import asc, desc, func
@@ -193,8 +206,7 @@ def update_job(
             raise HTTPException(status_code=400, detail="Invalid state value")
         if new_state < JobState.APPROVED:
             raise HTTPException(
-                status_code=400,
-                detail=f'Illegal state value, must be: {", ".join(allowed_values)}',
+                status_code=400, detail=f'Illegal state value, must be: {", ".join(allowed_values)}'
             )
         if new_state != job.state:
             job.state = new_state.value
@@ -258,35 +270,26 @@ def discover_new_jobs(
 
 
 @router.post("/jobs/{job_id}/review")
-def review_job(job_id: UUID):
+def review_job(job_id: UUID, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     """Review a specific job by ID"""
-    with SessionLocal() as db:
-        # arg validation
-        job = get_job_by_id(db, job_id)
-        if job is None:
-            logging.error(f"/job/{job_id}/review: Job not found", exc_info=True)
-            return JSONResponse(
-                status_code=404,
-                content={
-                    "status": "error",
-                    "message": f"Job {job_id} not found",
-                },
-            )
+    # arg validation
+    job = fetch_job_by_id(db, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
-        if job.manually_created:
-            return JSONResponse(
-                status_code=200,
-                content={
-                    "status": "success",
-                    "message": f"Job {job_id} is marked manual, skipping review",
-                },
-            )
+    if job.manually_created:
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "success",
+                "message": f"Job {job_id} is marked manual, skipping review",
+            },
+        )
 
-        if not claim_job_for_review(db, job_id):
-            return JSONResponse(
-                status_code=202,
-                content={"message": f"Job {job_id} already queued for review"},
-            )
+    if not claim_job_for_review(db, job_id):
+        return JSONResponse(
+            status_code=202, content={"message": f"Job {job_id} already queued for review"}
+        )
 
     # task
     task = evaluate_job_task.delay(job.id, user.to_json())
@@ -303,35 +306,27 @@ def review_job(job_id: UUID):
 
 
 @router.post("/jobs/{job_id}/expire-check")
-def check_job_expiration(job_id: UUID):
+def check_job_expiration(job_id: UUID, db: Session = Depends(get_db)):
     """Check if a specific job is expired by ID"""
-    with SessionLocal() as db:
-        # arg validation
-        job = get_job_by_id(db, job_id)
-        if job is None:
-            logging.error(f"/job/{job_id}/expire-check: Job not found", exc_info=True)
-            return JSONResponse(
-                status_code=404,
-                content={
-                    "status": "error",
-                    "message": f"Job {job_id} not found",
-                },
-            )
+    # arg validation
+    job = fetch_job_by_id(db, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
-        if not job.linkedin_job_url:
-            return JSONResponse(
-                status_code=200,
-                content={
-                    "status": "success",
-                    "message": f"Job {job_id} has no LinkedIn URL, skipping expiration check",
-                },
-            )
+    if not job.linkedin_job_url:
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "success",
+                "message": f"Job {job_id} has no LinkedIn URL, skipping expiration check",
+            },
+        )
 
-        if not claim_job_for_expiration_check(db, job_id):
-            return JSONResponse(
-                status_code=202,
-                content={"message": f"Job {job_id} already queued for expiration check"},
-            )
+    if not claim_job_for_expiration_check(db, job_id):
+        return JSONResponse(
+            status_code=202,
+            content={"message": f"Job {job_id} already queued for expiration check"},
+        )
 
     # task
     task = check_if_job_still_exists_task.delay(job.id)
@@ -348,64 +343,31 @@ def check_job_expiration(job_id: UUID):
 
 
 @router.post("/jobs/{job_id}/application")
-def create_job_application(job_id: UUID):
+def create_job_application(job_id: UUID, db: Session = Depends(get_db)):
     """Create an app for a job by its ID."""
-    with SessionLocal() as db:
-        # arg validation
-        job = get_job_by_id(db, job_id)
-        if job is None:
-            logging.error(f"/job/{job_id}/create_app: Job not found", exc_info=True)
-            return JSONResponse(
-                status_code=404,
-                content={
-                    "status": "error",
-                    "message": f"Job {job_id} not found",
-                },
-            )
+    # arg validation
+    job = fetch_job_by_id(db, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
-        existing_app = get_application_by_job_id(db, job_id)
-        if existing_app:
-            logging.error(
-                f"/job/{job_id}/create_app: Application for job {job_id} already scraped",
-                exc_info=True,
-            )
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "status": "error",
-                    "message": f"Application for job {job_id} already scraped",
-                },
-            )
+    existing_app = fetch_application_by_job_id(db, job_id)
+    if existing_app:
+        raise HTTPException(status_code=500, detail=f"Application for job {job_id} already scraped")
 
-        job_url = job.direct_job_url or job.linkedin_job_url
-        if not job_url:
-            logging.error(f"/job/{job_id}/create_app: Job {job_id} is missing URLs.")
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "status": "error",
-                    "message": f"Job {job_id} is missing URLs.",
-                },
-            )
+    job_url = job.direct_job_url or job.linkedin_job_url
+    if not job_url:
+        raise HTTPException(status_code=500, detail=f"Job {job_id} is missing URLs.")
 
-        job_site = get_domain_handler(job_url)
-        if job_site is None:
-            logging.debug(
-                f"/job/{job_id}/create_app: Job site not supported for app creation: {job_url}"
-            )
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "status": "error",
-                    "message": f"Job site not supported for app creation: {job_url}",
-                },
-            )
+    job_site = get_domain_handler(job_url)
+    if job_site is None:
+        raise HTTPException(
+            status_code=500, detail=f"Job site not supported for app creation: {job_url}"
+        )
 
-        if not claim_job_for_app_creation(db, job_id):
-            return JSONResponse(
-                status_code=202,
-                content={"message": f"Job {job_id} already queued for app creation"},
-            )
+    if not claim_job_for_app_creation(db, job_id):
+        return JSONResponse(
+            status_code=202, content={"message": f"Job {job_id} already queued for app creation"}
+        )
 
     # task
     task = create_app_task.delay(job_id)

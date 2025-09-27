@@ -2,7 +2,6 @@ from datetime import datetime, timedelta, timezone
 
 from app.core.utils import get_domain_handler
 from app.database.models import ApplicationFormORM, ApplicationORM, JobORM
-from app.database.session import get_db
 from app.database.utils.claims import (
     claim_app_for_prep,
     claim_app_for_submission,
@@ -10,17 +9,17 @@ from app.database.utils.claims import (
     claim_job_for_expiration_check,
     claim_job_for_review,
 )
+from app.dependencies import get_db
 from app.routers.users import user
 from app.schemas.definitions import ApplicationFormState, ApplicationStatus, JobState
 from app.worker.tasks import (
     check_if_job_still_exists_task,
     create_app_task,
     evaluate_job_task,
-    get_new_jobs_task,
     prepare_application_task,
     submit_application_task,
 )
-from fastapi import APIRouter, Query
+from fastapi import APIRouter
 from fastapi.params import Depends
 from fastapi.responses import JSONResponse
 from httpcore import Response
