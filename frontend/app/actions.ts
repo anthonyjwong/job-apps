@@ -14,7 +14,7 @@ async function getBaseUrl() {
 export async function createApplicationAction(application: NewApplication): Promise<{ success: boolean; message?: string; id?: number }> {
   try {
     const url = await getBaseUrl();
-    const res = await fetch(`${url}/api/applications`, {
+    const res = await fetch(`${url}/applications`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(application),

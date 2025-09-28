@@ -13,7 +13,7 @@ async function getBaseUrl() {
 
 export async function saveProfile(profile: UserProfileSettings) {
   const url = await getBaseUrl();
-  const res = await fetch(`${url}/api/user/settings`, {
+  const res = await fetch(`${url}/user/settings`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ profile })
@@ -25,7 +25,7 @@ export async function saveProfile(profile: UserProfileSettings) {
 
 export async function saveNotifications(notifications: UserNotificationSettings) {
   const url = await getBaseUrl();
-  const res = await fetch(`${url}/api/user/settings`, {
+  const res = await fetch(`${url}/user/settings`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ notifications })
@@ -37,7 +37,7 @@ export async function saveNotifications(notifications: UserNotificationSettings)
 
 export async function savePreferences(preferences: UserPreferenceSettings) {
   const url = await getBaseUrl();
-  const res = await fetch(`${url}/api/user/settings`, {
+  const res = await fetch(`${url}/user/settings`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ preferences })
@@ -49,7 +49,7 @@ export async function savePreferences(preferences: UserPreferenceSettings) {
 
 export async function savePrivacy(privacy: UserPrivacySettings) {
   const url = await getBaseUrl();
-  const res = await fetch(`${url}/api/user/settings`, {
+  const res = await fetch(`${url}/user/settings`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ privacy })

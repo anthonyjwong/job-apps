@@ -9,8 +9,8 @@ async function getInitialData(): Promise<{ jobs: Job[]; saved: string[] }> {
   const baseUrl = `${protocol}://${host}`;
   try {
     const [jobsRes, savedRes] = await Promise.all([
-      fetch(`${baseUrl}/api/jobs`, { cache: "no-store" }),
-      fetch(`${baseUrl}/api/saved-jobs`, { cache: "no-store" }),
+      fetch(`${baseUrl}/jobs`, { cache: "no-store" }),
+      fetch(`${baseUrl}/saved-jobs`, { cache: "no-store" }),
     ]);
     const jobsJson = jobsRes.ok ? await jobsRes.json() : { jobs: [] };
     const savedJson = savedRes.ok ? await savedRes.json() : { savedJobs: [] };

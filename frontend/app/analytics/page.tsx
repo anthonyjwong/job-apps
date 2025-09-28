@@ -11,7 +11,7 @@ async function getAnalytics(): Promise<AnalyticsData> {
   const h = await headers();
   const host = h.get("host");
   const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
-  const res = await fetch(`${protocol}://${host}/api/analytics`, { cache: "no-store" });
+  const res = await fetch(`${protocol}://${host}/analytics`, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to fetch analytics");
   return res.json();
 }
