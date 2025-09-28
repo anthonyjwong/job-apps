@@ -87,14 +87,14 @@ def get_applications(
 
     # sorting
     direction = desc
-    field = "submitted_at"
+    field = "updated_at"
     if sort:
         try:
             raw_field, raw_dir = sort.split(":")
             raw_dir = raw_dir.lower()
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid sort spec. Use field:direction")
-        if raw_field not in {"submitted_at", "company", "status"}:
+        if raw_field not in {"updated_at", "submitted_at", "company", "status"}:
             raise HTTPException(status_code=400, detail="Unsupported sort field")
         if raw_dir not in {"asc", "desc"}:
             raise HTTPException(status_code=400, detail="Sort direction must be asc or desc")
@@ -102,6 +102,7 @@ def get_applications(
         field = raw_field
 
     sort_col_map = {
+        "updated_at": ApplicationORM.updated_at,
         "submitted_at": ApplicationORM.submitted_at,
         "company": JobORM.company,
         "status": ApplicationORM.status,
@@ -126,7 +127,7 @@ def get_applications(
                 id=str(app.id),
                 company=job.company,
                 position=job.title,
-                status=app.status.value,
+                status=app.status,
                 applicationDate=submitted_at,
                 location=job.location or "NOT PROVIDED",
                 jobType=job.type or "",

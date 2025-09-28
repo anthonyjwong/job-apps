@@ -6,19 +6,19 @@ async function fetchHomeData(): Promise<{ interviews: Interview[]; assessments: 
   const hdrs = await headers();
   const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host");
   const protocol = hdrs.get("x-forwarded-proto") ?? "http";
-  const baseUrl = `${protocol}://${host}`;
+  const baseUrl = "http://backend:8000" // `${protocol}://${host}`;
   try {
     const [interviewsRes, assessmentsRes, applicationsRes] = await Promise.all([
-      fetch(`${baseUrl}/api/interviews`, { cache: "no-store" }),
-      fetch(`${baseUrl}/api/assessments`, { cache: "no-store" }),
-      fetch(`${baseUrl}/api/applications`, { cache: "no-store" }),
+      fetch(`${baseUrl}/applications?status=interview`, { cache: "no-store" }),
+      fetch(`${baseUrl}/applications?status=assessment`, { cache: "no-store" }),
+      fetch(`${baseUrl}/applications?status=submitted&status=acknowledged&sort=updated_at:desc`, { cache: "no-store" }),
     ]);
     const interviewsJson = interviewsRes.ok ? await interviewsRes.json() : { interviews: [] };
     const assessmentsJson = assessmentsRes.ok ? await assessmentsRes.json() : { assessments: [] };
     const applicationsJson = applicationsRes.ok ? await applicationsRes.json() : { applications: [] };
     return {
-      interviews: interviewsJson.interviews ?? [],
-      assessments: assessmentsJson.assessments ?? [],
+      interviews: interviewsJson.applications ?? [],
+      assessments: assessmentsJson.applications ?? [],
       applications: applicationsJson.applications ?? [],
     };
   } catch {

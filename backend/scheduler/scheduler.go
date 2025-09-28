@@ -70,7 +70,7 @@ func main() {
 		{http.MethodPost, "/bulk/jobs/review", []time.Duration{10 * time.Second, 20 * time.Minute, 40 * time.Minute, 60 * time.Minute, 80 * time.Minute}, interval},
 		{http.MethodPost, "/bulk/jobs/application", []time.Duration{15 * time.Second, 21 * time.Minute, 41 * time.Minute, 61 * time.Minute, 81 * time.Minute}, interval},
 		{http.MethodPost, "/bulk/applications/prepare", []time.Duration{20 * time.Second, 22 * time.Minute, 42 * time.Minute, 62 * time.Minute, 82 * time.Minute}, interval},
-		{http.MethodPost, "/bulk/applications/submit", []time.Duration{25 * time.Second, 25 * time.Minute}, time.Hour},
+		// {http.MethodPost, "/bulk/applications/submit", []time.Duration{25 * time.Second, 25 * time.Minute}, time.Hour},
 	}
 
 	// Start schedules

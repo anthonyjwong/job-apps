@@ -168,6 +168,7 @@ export function JobsView({ initialJobs, initialSaved, initialCategory = 'all' }:
         <>
           <div className="grid gap-6">
             {sortedJobs.map((job) => (
+              console.log("JobCard:", job.id, job.title),
               <JobCard key={job.id} {...job} onApply={handleApply} onSave={handleSave} isSaved={savedJobs.includes(job.id)} />
             ))}
           </div>

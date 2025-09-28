@@ -16,6 +16,7 @@ export function ApplicationItem({ company, position, status, classification, onC
   const statusConfig: Record<ApplicationStatus, { label: string; variant: "secondary" | "default" | "destructive" | "outline" }> = {
     started: { label: "Started", variant: "secondary" },
     submitted: { label: "Submitted", variant: "secondary" },
+    acknowledged: { label: "Acknowledged", variant: "secondary" },
     assessment: { label: "Assessment", variant: "default" },
     interview: { label: "Interview", variant: "default" },
     rejected: { label: "Rejected", variant: "destructive" },

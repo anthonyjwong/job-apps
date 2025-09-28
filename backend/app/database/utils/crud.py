@@ -51,9 +51,7 @@ def orm_to_job(db_job: JobORM) -> Job:
         min_salary=db_job.min_salary,
         max_salary=db_job.max_salary,
         type=db_job.type,
-        date_posted=(
-            db_job.date_posted.strftime("%Y-%m-%d") if db_job.date_posted else None
-        ),
+        date_posted=(db_job.date_posted.strftime("%Y-%m-%d") if db_job.date_posted else None),
         description=db_job.description,
         linkedin_job_url=db_job.linkedin_job_url,
         direct_job_url=db_job.direct_job_url,

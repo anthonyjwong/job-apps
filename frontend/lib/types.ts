@@ -1,6 +1,6 @@
 // Shared application types for consistency across the application
 
-export type ApplicationStatus = "started" | "submitted" | "assessment" | "interview" | "rejected" | "offer" | "accepted" | "withdrawn";
+export type ApplicationStatus = "started" | "submitted" | "acknowledged" | "assessment" | "interview" | "rejected" | "offer" | "accepted" | "withdrawn";
 
 export type JobClassification = "safety" | "target" | "reach" | "dream";
 
@@ -41,12 +41,12 @@ export interface Job {
   company: string;
   location: string;
   salary?: string;
-  type: "full-time" | "part-time" | "contract" | "remote";
+  type: "fulltime" | "parttime" | "contract" | "internship" | "other" | null;
   postedDate: string;
   description: string;
   skills: string[];
   classification: JobClassification;
-  aiScore: number;
+  score: number;
   action?: string;
 }
 

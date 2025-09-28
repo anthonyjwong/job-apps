@@ -6,11 +6,11 @@ async function getInitialData(): Promise<{ jobs: Job[]; saved: string[] }> {
   const hdrs = await headers();
   const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host");
   const protocol = hdrs.get("x-forwarded-proto") ?? "http";
-  const baseUrl = `${protocol}://${host}`;
+  const baseUrl = "http://backend:8000" // `${protocol}://${host}`;
   try {
     const [jobsRes, savedRes] = await Promise.all([
-      fetch(`${baseUrl}/jobs`, { cache: "no-store" }),
-      fetch(`${baseUrl}/saved-jobs`, { cache: "no-store" }),
+      fetch(`${baseUrl}/jobs?state=reviewed&state=pending`, { cache: "no-store" }),
+      fetch(`${baseUrl}/jobs?state=approved`, { cache: "no-store" }),
     ]);
     const jobsJson = jobsRes.ok ? await jobsRes.json() : { jobs: [] };
     const savedJson = savedRes.ok ? await savedRes.json() : { savedJobs: [] };
