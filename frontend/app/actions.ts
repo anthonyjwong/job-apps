@@ -11,7 +11,7 @@ async function getBaseUrl() {
   return `${proto}://${host}`;
 }
 
-export async function createApplicationAction(application: NewApplication): Promise<{ success: boolean; message?: string; id?: number }> {
+export async function createApplicationAction(application: NewApplication): Promise<{ success: boolean; message?: string; id?: string }> {
   try {
     const url = await getBaseUrl();
     const res = await fetch(`${url}/applications`, {

@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, ReactNode, useContext, useEffect, useState } from 'react'
 
 type Theme = 'dark' | 'light'
 
@@ -12,8 +12,8 @@ type ThemeProviderContextType = {
 
 const ThemeProviderContext = createContext<ThemeProviderContextType | undefined>(undefined)
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark')
+export function ThemeProvider({ children, initialTheme = 'dark' }: { children: ReactNode; initialTheme?: Theme }) {
+  const [theme, setTheme] = useState<Theme>(initialTheme)
 
   useEffect(() => {
     // Set initial dark mode

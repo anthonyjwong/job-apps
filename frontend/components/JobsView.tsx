@@ -1,8 +1,9 @@
 "use client";
 
-import { applyToJob, saveJobAction, unsaveJobAction } from "@/app/jobs/actions";
+import { saveJobAction, unsaveJobAction } from "@/app/jobs/actions";
 import { Brain, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { apiService } from "../lib/api";
 import type { Job } from "../lib/types";
 import { JobCard } from "./JobCard";
@@ -12,19 +13,49 @@ import { Button } from "./ui/button";
 
 type JobsViewProps = {
   initialJobs: Job[];
-  initialSaved: string[];
   initialCategory?: string;
 };
 
-export function JobsView({ initialJobs, initialSaved, initialCategory = 'all' }: JobsViewProps) {
+export function JobsView({ initialJobs, initialCategory = 'all' }: JobsViewProps) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [classificationFilter, setCategoryFilter] = useState(initialCategory);
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
-  const [savedJobs, setSavedJobs] = useState<string[]>(initialSaved);
   const [loading, setLoading] = useState(false);
+  const [sort, setSort] = useState('date_posted:desc');
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
+  useEffect(() => {
+    // Sync classification with URL param if it changes client-side via router.push
+    const urlClass = searchParams?.get('classification');
+    if (urlClass && urlClass !== classificationFilter) {
+      const valid = ['safety','target','reach','dream'];
+      if (valid.includes(urlClass)) {
+        setCategoryFilter(urlClass);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Debounced URL sync for filters/search
+  useEffect(() => {
+    const commit = () => {
+      const params = new URLSearchParams();
+      if (classificationFilter !== 'all') params.set('classification', classificationFilter);
+      if (locationFilter !== 'all') params.set('location', locationFilter);
+      if (typeFilter !== 'all') params.set('type', typeFilter);
+      if (sort && sort !== 'date_posted:desc') params.set('sort', sort);
+      if (searchQuery.trim()) params.set('search', searchQuery.trim());
+      const qs = params.toString();
+      router.replace(`/jobs${qs ? `?${qs}` : ''}`);
+    };
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(commit, 400);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [classificationFilter, locationFilter, typeFilter, sort, searchQuery, router]);
   useEffect(() => {
     let ignore = false;
     const fetchJobs = async () => {
@@ -32,88 +63,55 @@ export function JobsView({ initialJobs, initialSaved, initialCategory = 'all' }:
       try {
         const response = await apiService.getJobs({
           search: searchQuery || undefined,
-          classification: classificationFilter === "all" ? undefined : classificationFilter,
-          location: locationFilter === "all" ? undefined : locationFilter,
-          type: typeFilter === "all" ? undefined : typeFilter,
+          classification: classificationFilter === 'all' ? undefined : classificationFilter,
+          location: locationFilter === 'all' ? undefined : locationFilter,
+          type: typeFilter === 'all' ? undefined : typeFilter,
+          sort: sort || undefined,
         });
         if (!ignore && response.data) {
-          setJobs(response.data.jobs);
+          const transformed = response.data.jobs.map((j: any) => ({
+            id: j.id,
+            title: j.title,
+            company: j.company,
+            location: j.location || '',
+            salary: undefined,
+            type: j.jobType,
+            postedDate: j.datePosted || '',
+            description: j.description || undefined,
+            skills: [],
+            classification: j.classification || 'safety',
+            score: 0,
+            action: j.action || undefined,
+          }) as Job);
+          setJobs(transformed);
         }
       } finally {
         if (!ignore) setLoading(false);
       }
     };
     fetchJobs();
-    return () => {
-      ignore = true;
-    };
-  }, [searchQuery, classificationFilter, locationFilter, typeFilter]);
+    return () => { ignore = true; };
+  }, [searchQuery, classificationFilter, locationFilter, typeFilter, sort]);
 
-  const handleApply = async (jobId: string) => {
-    const job = jobs.find((j) => j.id === jobId);
-    if (!job) return;
-    const response = await applyToJob({
-      company: job.company,
-      position: job.title,
-      location: job.location,
-      salary: job.salary,
-      type: job.type,
-      classification: job.classification,
-    });
-    if (response.success) {
-      (window as any).showToast?.({
-        type: "success",
-        title: "Application Submitted!",
-        message: `Successfully applied to ${job.title} at ${job.company}`,
-      });
-    } else {
-      (window as any).showToast?.({
-        type: "error",
-        title: "Error",
-        message: response.message ?? "Failed to submit application. Please try again.",
-      });
-    }
-  };
 
   const handleSave = async (jobId: string) => {
-    const job = jobs.find((j) => j.id === jobId);
+    const job = jobs.find(j => j.id === jobId);
     if (!job) return;
-    const wasSaved = savedJobs.includes(jobId);
-
-    if (wasSaved) {
-      setSavedJobs((prev) => prev.filter((id) => id !== jobId));
-      const resp = await unsaveJobAction(jobId);
-      if (resp.success) {
-        (window as any).showToast?.({
-          type: "info",
-          title: "Job Removed",
-          message: `Removed ${job.title} from saved jobs`,
-        });
-      } else {
-        setSavedJobs((prev) => (prev.includes(jobId) ? prev : [...prev, jobId]));
-        (window as any).showToast?.({
-          type: "error",
-          title: "Unsave Failed",
-          message: resp.message ?? "Could not remove from saved. Please retry.",
-        });
-      }
+    const resp = await saveJobAction(jobId);
+    if (resp.success) {
+      // remove from list since page only shows unsaved jobs
+      setJobs(prev => prev.filter(j => j.id !== jobId));
+      (window as any).showToast?.({
+        type: 'success',
+        title: 'Job Saved!',
+        message: `${job.title} at ${job.company} saved`,
+      });
     } else {
-      setSavedJobs((prev) => (prev.includes(jobId) ? prev : [...prev, jobId]));
-      const resp = await saveJobAction(jobId);
-      if (resp.success) {
-        (window as any).showToast?.({
-          type: "success",
-          title: "Job Saved!",
-          message: `${job.title} at ${job.company} saved for later`,
-        });
-      } else {
-        setSavedJobs((prev) => prev.filter((id) => id !== jobId));
-        (window as any).showToast?.({
-          type: "error",
-          title: "Save Failed",
-          message: resp.message ?? "Could not save job. Please retry.",
-        });
-      }
+      (window as any).showToast?.({
+        type: 'error',
+        title: 'Save Failed',
+        message: resp.message ?? 'Could not save job. Please retry.',
+      });
     }
   };
 
@@ -143,6 +141,8 @@ export function JobsView({ initialJobs, initialSaved, initialCategory = 'all' }:
         onLocation={setLocationFilter}
         type={typeFilter}
         onType={setTypeFilter}
+        sort={sort}
+        onSort={setSort}
       />
 
       </div>
@@ -150,7 +150,7 @@ export function JobsView({ initialJobs, initialSaved, initialCategory = 'all' }:
       {/* Results */}
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {loading ? "Loading jobs..." : `Showing ${sortedJobs.length} jobs, sorted by interview likelihood`}
+          {loading ? "Loading jobs..." : `Showing ${sortedJobs.length} jobs`}
         </p>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Zap className="w-3 h-3" />
@@ -168,8 +168,11 @@ export function JobsView({ initialJobs, initialSaved, initialCategory = 'all' }:
         <>
           <div className="grid gap-6">
             {sortedJobs.map((job) => (
-              console.log("JobCard:", job.id, job.title),
-              <JobCard key={job.id} {...job} onApply={handleApply} onSave={handleSave} isSaved={savedJobs.includes(job.id)} />
+              <JobCard
+                key={job.id}
+                {...job}
+                onSave={handleSave}
+              />
             ))}
           </div>
 

@@ -52,7 +52,7 @@ export function HomeInteractive({ interviews, assessments, applications, stats }
   const handleAddApplication = async (newApp: NewApplication) => {
     const resp = await createApplicationAction(newApp);
     if (resp.success) {
-      setApps(prev => [{ id: resp.id ?? Math.random(), ...newApp }, ...prev]);
+      setApps(prev => [{ id: resp.id ?? Math.random().toString(), ...newApp }, ...prev]);
       (window as any).showToast?.({ type: "success", title: "Saved", message: "Application added" });
     } else {
       (window as any).showToast?.({ type: "error", title: "Error", message: resp.message ?? "Failed to add application" });

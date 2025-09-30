@@ -44,6 +44,7 @@ class JobResponse(BaseModel):
     state: str
     jobType: Optional[str]
     datePosted: Optional[str]
+    description: Optional[str]
 
 
 class GetJobsResponse(BaseModel):

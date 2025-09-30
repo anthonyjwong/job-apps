@@ -145,6 +145,7 @@ def get_jobs(
                 state=j.state,
                 jobType=j.type,
                 datePosted=j.date_posted.strftime("%Y-%m-%d") if j.date_posted else None,
+                description=j.description,
             )
         )
 
@@ -245,6 +246,7 @@ def update_job(
         state=job.state,
         jobType=job.type,
         datePosted=job.date_posted.strftime("%Y-%m-%d") if job.date_posted else None,
+        description=job.description,
     )
 
 

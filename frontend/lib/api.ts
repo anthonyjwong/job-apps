@@ -7,7 +7,7 @@ export interface ApiResponse<T> {
 }
 
 class ApiService {
-  private baseUrl = '/api';
+  private baseUrl = 'http://localhost:8000';
 
   private async fetchApi<T>(
     endpoint: string, 
@@ -46,8 +46,8 @@ class ApiService {
     });
   }
 
-  async updateApplication(id: number, updates: Partial<Application>) {
-    return this.fetchApi<{ application: Application; message: string }>('/applications', {
+  async updateApplication(id: string, updates: Partial<Application>) {
+    return this.fetchApi<{ application: Application; message: string }>(`/applications/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ id, ...updates }),
     });
@@ -65,15 +65,36 @@ class ApiService {
     classification?: string;
     location?: string;
     type?: string;
+    sort?: string; // expected format field:direction matching backend (e.g., date_posted:desc)
   }) {
+    // Backend /jobs endpoint expects: classification (can be repeated), location, job_type, company, title
+    // Frontend supplies: search (matches company OR title substring), classification (single), location, type.
     const queryParams = new URLSearchParams();
     if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value) queryParams.append(key, value);
-      });
+      const { search, classification, location, type, sort } = params;
+      if (classification) {
+        // API supports multiple classification values; we send single if provided
+        queryParams.append('classification', classification);
+      }
+      if (location) queryParams.append('location', location);
+      if (type) queryParams.append('job_type', type); // translate to backend param
+      if (search) {
+        // send search to both company and title to broaden match similar to free-text
+        queryParams.append('company', search);
+        queryParams.append('title', search);
+      }
+      if (sort) {
+        queryParams.append('sort', sort);
+      }
     }
-    
-    const endpoint = `/jobs${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+
+    const qs = queryParams.toString();
+    const endpoint = `/jobs${qs ? `?${qs}` : ''}`;
+    if (process.env.NODE_ENV !== 'production') {
+      // Debug logging for filter issue investigation
+      // eslint-disable-next-line no-console
+      console.debug('[apiService.getJobs] endpoint:', endpoint);
+    }
     return this.fetchApi<{ jobs: Job[]; total: number; totalAvailable: number }>(endpoint);
   }
 

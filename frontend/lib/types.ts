@@ -5,7 +5,7 @@ export type ApplicationStatus = "started" | "submitted" | "acknowledged" | "asse
 export type JobClassification = "safety" | "target" | "reach" | "dream";
 
 export interface Application {
-  id: number;
+  id: string;
   company: string;
   position: string;
   status: ApplicationStatus;
@@ -18,6 +18,18 @@ export interface Application {
   jobUrl?: string;
   contacts?: Array<{ name: string; role: string; email?: string }>;
   classification?: JobClassification;
+}
+
+export interface ApplicationsDataSummary {
+  total: number;
+  submitted: number;
+  acknowledged: number;
+  assessment: number;
+  interview: number;
+  rejected: number;
+  offer: number;
+  accepted: number;
+  withdrawn: number;
 }
 
 export interface NewApplication {
@@ -41,9 +53,9 @@ export interface Job {
   company: string;
   location: string;
   salary?: string;
-  type: "fulltime" | "parttime" | "contract" | "internship" | "other" | null;
+  type?: "fulltime" | "parttime" | "contract" | "internship" | "other";
   postedDate: string;
-  description: string;
+  description?: string;
   skills: string[];
   classification: JobClassification;
   score: number;

@@ -38,8 +38,8 @@ if os.environ.get("DEBUGPY", "0") == "1":
 app = FastAPI(title="Job Application API")
 app.include_router(jobs.router, tags=["Jobs"])
 app.include_router(applications.router, tags=["Applications"])
-app.include_router(users.router, prefix="/users", tags=["Users"])
-app.include_router(data.router, tags=["Data"])
+app.include_router(users.router, tags=["Users"])
+app.include_router(data.router, prefix="/data", tags=["Data"])
 app.include_router(bulk.router, prefix="/bulk", tags=["Bulk"])
 
 # allow requests from your frontend (e.g., http://localhost:3000)

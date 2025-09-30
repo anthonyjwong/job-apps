@@ -3,7 +3,7 @@
 import { Calendar, Check, ChevronDown, Download, Edit, ExternalLink, Eye, Filter, MapPin, MoreHorizontal, Plus, Search, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { apiService } from "../lib/api";
-import type { Application, ApplicationStatus, NewApplication } from "../lib/types";
+import type { Application, ApplicationsDataSummary, ApplicationStatus, NewApplication } from "../lib/types";
 import { AddApplicationModal } from "./AddApplicationModal";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -15,14 +15,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 
-export function ApplicationsView({ initialApplications }: { initialApplications: Application[] }) {
+export function ApplicationsView({ initialApplications, stats }: { initialApplications: Application[], stats: ApplicationsDataSummary }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("date-desc");
-  const [selectedApplications, setSelectedApplications] = useState<number[]>([]);
+  const [selectedApplications, setSelectedApplications] = useState<string[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [applications, setApplications] = useState<Application[]>(initialApplications);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     // If we ever need client refetching, enable here. Default to server-provided data.
@@ -50,7 +49,7 @@ export function ApplicationsView({ initialApplications }: { initialApplications:
     }
   };
 
-  const handleStatusChange = async (applicationId: number, newStatus: ApplicationStatus) => {
+  const handleStatusChange = async (applicationId: string, newStatus: ApplicationStatus) => {
     const response = await apiService.updateApplication(applicationId, { status: newStatus });
     if (response.data) {
       setApplications((prev) => prev.map((app) => (app.id === applicationId ? { ...app, status: newStatus } : app)));
@@ -133,7 +132,20 @@ export function ApplicationsView({ initialApplications }: { initialApplications:
     return filtered;
   }, [applications, searchTerm, statusFilter, sortBy]);
 
-  const handleSelectApplication = (id: number, checked: boolean) => {
+  // Deterministic date formatting (avoid locale/timezone hydration mismatches)
+  const formatDate = (isoOrDateLike: string) => {
+    // Assume applicationDate is in ISO or YYYY-MM-DD; split at 'T' first to avoid TZ shift
+    const base = isoOrDateLike.split('T')[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(base)) return base; // already normalized
+    const d = new Date(isoOrDateLike);
+    if (isNaN(d.getTime())) return isoOrDateLike; // fallback to raw
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const handleSelectApplication = (id: string, checked: boolean) => {
     setSelectedApplications((prev) => (checked ? [...prev, id] : prev.filter((appId) => appId !== id)));
   };
 
@@ -142,20 +154,14 @@ export function ApplicationsView({ initialApplications }: { initialApplications:
     else setSelectedApplications([]);
   };
 
-  const statusCounts = {
-    all: applications.length,
-    submitted: applications.filter((app) => app.status === "submitted").length,
-    interviewed: applications.filter((app) => app.status === "interview").length,
-    offered: applications.filter((app) => app.status === "offer").length,
-    rejected: applications.filter((app) => app.status === "rejected").length,
-    withdrawn: applications.filter((app) => app.status === "withdrawn").length,
-  };
-
   const statusOptions: { value: ApplicationStatus; label: string; color: string }[] = [
     { value: "submitted", label: "Submitted", color: "secondary" },
+    { value: "acknowledged", label: "Acknowledged", color: "default" },
+    { value: "assessment", label: "Assessment", color: "default" },
     { value: "interview", label: "Interviewed", color: "default" },
-    { value: "offer", label: "Offered", color: "default" },
     { value: "rejected", label: "Rejected", color: "destructive" },
+    { value: "offer", label: "Offered", color: "default" },
+    { value: "accepted", label: "Accepted", color: "default" },
     { value: "withdrawn", label: "Withdrawn", color: "outline" },
   ];
 
@@ -245,12 +251,12 @@ export function ApplicationsView({ initialApplications }: { initialApplications:
       <div className="grid gap-4 md:grid-cols-6">
         {(
           [
-            { key: "all", label: "Total", count: statusCounts.all },
-            { key: "submitted", label: "Submitted", count: statusCounts.submitted },
-            { key: "interviewed", label: "Interviewed", count: statusCounts.interviewed },
-            { key: "offered", label: "Offers", count: statusCounts.offered },
-            { key: "rejected", label: "Rejected", count: statusCounts.rejected },
-            { key: "withdrawn", label: "Withdrawn", count: statusCounts.withdrawn },
+            { key: "all", label: "Total", count: stats.total },
+            { key: "submitted", label: "Submitted", count: stats.submitted },
+            { key: "acknowledged", label: "Acknowledged", count: stats.acknowledged },
+            { key: "assessment", label: "Assessments", count: stats.assessment },
+            { key: "interview", label: "Interviews", count: stats.interview },
+            { key: "rejected", label: "Rejected", count: stats.rejected },
           ] as const
         ).map((s) => (
           <Card key={s.key} className="cursor-pointer hover:bg-muted/50" onClick={() => setStatusFilter(s.key)}>
@@ -280,9 +286,12 @@ export function ApplicationsView({ initialApplications }: { initialApplications:
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="submitted">Submitted</SelectItem>
-                <SelectItem value="interviewed">Interviewed</SelectItem>
-                <SelectItem value="offered">Offered</SelectItem>
+                <SelectItem value="acknowledged">Acknowledged</SelectItem>
+                <SelectItem value="assessment">Assessment</SelectItem>
+                <SelectItem value="interview">Interview</SelectItem>
                 <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="offer">Offer</SelectItem>
+                <SelectItem value="accepted">Accepted</SelectItem>
                 <SelectItem value="withdrawn">Withdrawn</SelectItem>
               </SelectContent>
             </Select>
@@ -378,7 +387,7 @@ export function ApplicationsView({ initialApplications }: { initialApplications:
                     <TableCell>
                       <div className="flex items-center gap-1 text-sm">
                         <Calendar className="w-3 h-3" />
-                        {new Date(application.applicationDate).toLocaleDateString()}
+                        {formatDate(application.applicationDate)}
                       </div>
                     </TableCell>
                     <TableCell>

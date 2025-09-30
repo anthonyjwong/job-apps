@@ -4,7 +4,7 @@
 
 # Start development environment
 dev:
-	docker compose -f docker-compose.dev.yml up
+	docker compose -f docker-compose.dev.yml up redis worker backend frontend
 
 backend:
 	docker compose -f docker-compose.dev.yml up -d db redis worker backend

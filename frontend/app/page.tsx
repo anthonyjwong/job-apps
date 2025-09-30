@@ -1,12 +1,8 @@
 import { HomeInteractive } from "@/components/HomeInteractive";
 import type { Application, Assessment, Interview } from "@/lib/types";
-import { headers } from "next/headers";
 
 async function fetchHomeData(): Promise<{ interviews: Interview[]; assessments: Assessment[]; applications: Application[] }> {
-  const hdrs = await headers();
-  const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host");
-  const protocol = hdrs.get("x-forwarded-proto") ?? "http";
-  const baseUrl = "http://backend:8000" // `${protocol}://${host}`;
+  const baseUrl = "http://backend:8000";
   try {
     const [interviewsRes, assessmentsRes, applicationsRes] = await Promise.all([
       fetch(`${baseUrl}/applications?status=interview`, { cache: "no-store" }),

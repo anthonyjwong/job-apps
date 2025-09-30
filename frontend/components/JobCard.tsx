@@ -3,25 +3,25 @@
 import { Brain, Building, Clock, DollarSign, Lightbulb, MapPin } from "lucide-react";
 import type { JobClassification } from "../lib/types";
 import { JobClassificationBadge } from "./JobClassificationBadge";
+import MarkdownRenderer from "./MarkdownRenderer";
+import { useTheme } from "./ThemeProvider";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-
+ 
 interface JobCardProps {
   id: string;
   title: string;
   company: string;
   location: string;
   salary?: string;
-  type: "fulltime" | "parttime" | "contract" | "internship" | "other" | null;
+  type?: "fulltime" | "parttime" | "contract" | "internship" | "other";
   postedDate: string;
-  description: string;
+  description?: string;
   skills: string[];
   classification: JobClassification;
   score: number;
   action?: string;
-  onApply: (jobId: string) => void;
   onSave: (jobId: string) => void;
-  isSaved?: boolean;
 }
 
 export function JobCard({
@@ -37,10 +37,15 @@ export function JobCard({
   classification,
   score,
   action,
-  onApply,
   onSave,
-  isSaved = false,
 }: JobCardProps) {
+  let theme: 'light' | 'dark' = 'light';
+  try {
+    const ctx = useTheme();
+    theme = ctx.theme;
+  } catch (_e) {
+    // if provider missing, fall back silently
+  }
   const getTypeColor = (type: string) => {
     switch (type) {
       case "fulltime": return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
@@ -59,7 +64,7 @@ export function JobCard({
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
             <h3 className="font-medium">{title}</h3>
-            <JobClassificationBadge classification={classification} size="sm" />
+            {classification && <JobClassificationBadge classification={classification} size="sm" />}
           </div>
           <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
             <div className="flex items-center gap-1">
@@ -98,9 +103,23 @@ export function JobCard({
         </div>
       </div>
 
-      <p className="text-sm text-muted-foreground mb-4 overflow-hidden">
-        {description && description.length > 150 ? `${description.substring(0, 150)}...` : description}
-      </p>
+      {description && (
+        <div className="mb-4 text-sm text-muted-foreground">
+          <MarkdownRenderer
+            markdown={description}
+            darkMode={theme === 'dark'}
+            collapsible
+            previewCharLimit={260}
+            theme={{
+              link: 'var(--primary)',
+              border: 'var(--border)',
+              muted: 'var(--muted-foreground)',
+              text: 'var(--foreground)',
+              appBg: 'var(--card)'
+            }}
+          />
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2 mb-4">
         {skills.slice(0, 4).map((skill) => (
@@ -128,11 +147,8 @@ export function JobCard({
       )}
 
       <div className="flex gap-3">
-        <Button onClick={() => onApply(id)} className="flex-1">
-          Apply Now
-        </Button>
-        <Button variant="outline" onClick={() => onSave(id)}>
-          {isSaved ? "Saved" : "Save"}
+        <Button variant="outline" onClick={() => onSave(id)} className="flex-1">
+          Save
         </Button>
       </div>
     </div>

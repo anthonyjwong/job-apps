@@ -13,12 +13,14 @@ type JobsFiltersProps = {
   onLocation: (v: string) => void;
   type: string;
   onType: (v: string) => void;
+  sort: string;
+  onSort: (v: string) => void;
 };
 
-export function JobsFilters({ search, onSearch, classification, onCategory, location, onLocation, type, onType }: JobsFiltersProps) {
+export function JobsFilters({ search, onSearch, classification, onCategory, location, onLocation, type, onType, sort, onSort }: JobsFiltersProps) {
   return (
     <div className="bg-card border border-border rounded-lg p-6 mb-6">
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <div className="md:col-span-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -73,10 +75,29 @@ export function JobsFilters({ search, onSearch, classification, onCategory, loca
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="full-time">Full Time</SelectItem>
-              <SelectItem value="part-time">Part Time</SelectItem>
+              <SelectItem value="fulltime">Full Time</SelectItem>
+              <SelectItem value="parttime">Part Time</SelectItem>
               <SelectItem value="contract">Contract</SelectItem>
-              <SelectItem value="remote">Remote</SelectItem>
+              <SelectItem value="internship">Internship</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Select value={sort} onValueChange={onSort}>
+            <SelectTrigger>
+              <div className="flex items-center gap-2">
+                <SelectValue placeholder="Sort" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date_posted:desc">Newest</SelectItem>
+              <SelectItem value="date_posted:asc">Oldest</SelectItem>
+              <SelectItem value="company:asc">Company A-Z</SelectItem>
+              <SelectItem value="company:desc">Company Z-A</SelectItem>
+              <SelectItem value="title:asc">Title A-Z</SelectItem>
+              <SelectItem value="title:desc">Title Z-A</SelectItem>
             </SelectContent>
           </Select>
         </div>

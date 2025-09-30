@@ -8,7 +8,7 @@ type ApplyPayload = {
   position: string;
   location?: string;
   salary?: string;
-  type: "full-time" | "part-time" | "contract" | "remote";
+  type?: "fulltime" | "parttime" | "contract" | "internship" | "other";
   classification: "safety" | "target" | "reach" | "dream";
 };
 
