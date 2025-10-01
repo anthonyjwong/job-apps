@@ -22,6 +22,13 @@ export interface Application {
   classification?: JobClassification;
 }
 
+export interface GetApplicationsResponse {
+    applications: Application[];
+    total: number;  // total items matching filters (unpaged)
+    page: number;
+    page_size: number;
+    total_pages: number;
+}
 export interface ApplicationsDataSummary {
   total: number;
   submitted: number;

@@ -72,17 +72,17 @@ export default async function PriorityActionsOverview() {
             </div>
 
             {/* Success State when all caught up */}
-            {/* {totalActionItems === 0 && ( */}
-            <Card className="border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
-                <div className="flex items-center gap-3">
-                    <CheckCircle className="w-6 h-6 text-green-600" />
-                    <div>
-                        <p className="font-medium text-green-800 dark:text-green-200">All caught up!</p>
-                        <p className="text-sm text-green-600 dark:text-green-400">No urgent actions needed. Keep up the great work!</p>
+            {totalActionItems === 0 && (
+                <Card className="border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
+                    <div className="flex items-center gap-3">
+                        <CheckCircle className="w-6 h-6 text-green-600" />
+                        <div>
+                            <p className="font-medium text-green-800 dark:text-green-200">All caught up!</p>
+                            <p className="text-sm text-green-600 dark:text-green-400">No urgent actions needed. Keep up the great work!</p>
+                        </div>
                     </div>
-                </div>
-            </Card>
-            {/* )} */}
+                </Card>
+            )}
         </>
     );
 }

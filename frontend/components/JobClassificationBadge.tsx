@@ -38,7 +38,6 @@ export function JobClassificationBadge({ classification, size = "md" }: JobClass
   const config = classificationConfig[classification];
   const Icon = config.icon;
   
-  
   const sizeClass = {
     sm: "h-5 px-2 text-xs",
     md: "h-6 px-2.5 text-sm", 
