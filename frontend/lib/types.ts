@@ -1,10 +1,8 @@
 // Shared application types for consistency across the application
 
-import { ApplicationItem } from "@/components/ApplicationItem";
-
 export type ApplicationStatus = "started" | "submitted" | "acknowledged" | "assessment" | "interview" | "rejected" | "offer" | "accepted" | "withdrawn";
 
-export type JobClassification = "safety" | "target" | "reach" | "dream";
+export type JobClassification = "safety" | "target" | "reach" | "dream" | "unreviewed";
 
 export interface Application {
   id: string;
@@ -19,7 +17,7 @@ export interface Application {
   notes?: string;
   jobUrl?: string;
   contacts?: Array<{ name: string; role: string; email?: string }>;
-  classification?: JobClassification;
+  classification: JobClassification;
 }
 
 export interface GetApplicationsResponse {

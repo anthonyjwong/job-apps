@@ -1,18 +1,19 @@
-import { fetchPreparedApplications } from "@/app/lib/data";
+import { fetchMockApplications } from "@/app/lib/data";
 import { JobClassificationBadge } from "@/components/JobClassificationBadge";
 import { Button } from "@/components/ui/button";
 import { Application } from "@/lib/types";
 import { ArrowRight, Brain, Plus, Send } from "lucide-react";
+import Link from "next/link";
 import Card from "../card";
 import Header from "../header";
 
 export default async function ApplicationsPipelineOverview() {
-    const applications: Application[] = await fetchPreparedApplications();
+    const applications: Application[] = await fetchMockApplications();
 
     return (
         <>
             <Card>
-                <Header Icon={Send} text="Application Pipeline" subtext="Ready-to-submit applications to maintain your job search velocity"/>
+                <Header Icon={Send} text="Application Pipeline" subtext="Ready-to-submit applications to maintain your job search velocity" />
                 <div>
                     {applications.length === 0 ? (
                         <div className="text-center py-8 space-y-4">
@@ -40,10 +41,12 @@ export default async function ApplicationsPipelineOverview() {
                                 <p className="text-sm text-muted-foreground">
                                     {applications.length} applications ready to review and submit
                                 </p>
-                                <Button size="sm" variant="ghost">
-                                    View All
-                                    <ArrowRight className="w-4 h-4 ml-2" />
-                                </Button>
+                                <Link href="/applications/manage">
+                                    <Button size="sm" variant="ghost">
+                                        Manage apps
+                                        <ArrowRight className="w-4 h-4 ml-2" />
+                                    </Button>
+                                </Link>
                             </div>
 
                             <div className="grid gap-3">

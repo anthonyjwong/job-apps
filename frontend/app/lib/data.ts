@@ -13,7 +13,7 @@ export async function fetchPriorityActionsData(): Promise<PriorityActions> {
   }
 }
 
-export async function fetchPreparedApplications(): Promise<Application[]> {
+export async function fetchMockApplications(): Promise<Application[]> {
   try {
     const response = await fetch(`${baseUrl}/applications?form_state=prepared`, { cache: "no-store" });
     if (!response.ok) throw new Error('Failed to fetch prepared applications');
