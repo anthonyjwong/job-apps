@@ -1,10 +1,11 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from uuid import UUID
 
 from app.core.utils import get_domain_handler
 from app.database.models import ApplicationFormORM, ApplicationORM, JobORM
 from app.database.utils.claims import claim_app_for_prep, claim_app_for_submission
+from app.database.utils.crud import app_to_response
 from app.database.utils.queries import fetch_application_by_id
 from app.dependencies import get_current_user, get_db
 from app.schemas.api import (
@@ -12,6 +13,7 @@ from app.schemas.api import (
     ApplicationResponse,
     GetApplicationFormResponse,
     GetApplicationsResponse,
+    GetPriorityApplicationsResponse,
 )
 from app.schemas.definitions import (
     ApplicationFormState,
@@ -148,6 +150,62 @@ def get_applications(
         page=page,
         page_size=page_size,
         total_pages=total_pages,
+    )
+
+
+@router.get("/applications/priority")
+def get_priority_applications(
+    db: Session = Depends(get_db),
+    stale_days: int = Query(5, ge=1, le=90),
+    classification: Optional[List[JobClassification]] = Query(default=None),
+    company: Optional[str] = Query(default=None),
+):
+    """Return priority application buckets (interviews, assessments, stale).
+
+    Placed BEFORE the dynamic /applications/{app_id} route to avoid the 'priority'
+    literal being captured as a UUID and causing validation errors.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(days=stale_days)
+
+    base = db.query(ApplicationORM).join(JobORM, ApplicationORM.job)
+
+    if classification:
+        base = base.filter(JobORM.classification.in_([c.value for c in classification]))
+    if company:
+        like_expr = f"%{company}%"
+        base = base.filter(func.lower(JobORM.company).like(func.lower(like_expr)))
+
+    interviews_q = base.filter(ApplicationORM.status == ApplicationStatus.INTERVIEW.value)
+    assessments_q = base.filter(ApplicationORM.status == ApplicationStatus.ASSESSMENT.value)
+    stale_q = base.filter(
+        ApplicationORM.status.in_(
+            [
+                s.value
+                for s in ApplicationStatus
+                if s >= ApplicationStatus.SUBMITTED and s <= ApplicationStatus.OFFER
+            ]
+        ),
+        ApplicationORM.submitted_at.isnot(None),
+        ApplicationORM.submitted_at < cutoff,
+    )
+
+    interviews = [app_to_response(app) for app in interviews_q.all()]
+    assessments = [app_to_response(app) for app in assessments_q.all()]
+    # Sort stale oldest first for action prioritization
+    stale = [
+        app_to_response(app) for app in stale_q.order_by(asc(ApplicationORM.submitted_at)).all()
+    ]
+
+    return GetPriorityApplicationsResponse(
+        stale_threshold_days=stale_days,
+        interviews=interviews,
+        assessments=assessments,
+        stale=stale,
+        counts={
+            "interviews": len(interviews),
+            "assessments": len(assessments),
+            "stale": len(stale),
+        },
     )
 
 

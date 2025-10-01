@@ -66,12 +66,13 @@ class ApiService {
     location?: string;
     type?: string;
     sort?: string; // expected format field:direction matching backend (e.g., date_posted:desc)
+    state?: string | string[]; // allow enforcing reviewed
   }) {
     // Backend /jobs endpoint expects: classification (can be repeated), location, job_type, company, title
     // Frontend supplies: search (matches company OR title substring), classification (single), location, type.
     const queryParams = new URLSearchParams();
     if (params) {
-      const { search, classification, location, type, sort } = params;
+      const { search, classification, location, type, sort, state } = params;
       if (classification) {
         // API supports multiple classification values; we send single if provided
         queryParams.append('classification', classification);
@@ -85,6 +86,13 @@ class ApiService {
       }
       if (sort) {
         queryParams.append('sort', sort);
+      }
+      if (state) {
+        if (Array.isArray(state)) {
+          state.forEach(s => queryParams.append('state', s));
+        } else {
+          queryParams.append('state', state);
+        }
       }
     }
 

@@ -1,5 +1,7 @@
 // Shared application types for consistency across the application
 
+import { ApplicationItem } from "@/components/ApplicationItem";
+
 export type ApplicationStatus = "started" | "submitted" | "acknowledged" | "assessment" | "interview" | "rejected" | "offer" | "accepted" | "withdrawn";
 
 export type JobClassification = "safety" | "target" | "reach" | "dream";
@@ -216,4 +218,16 @@ export interface UserSettings {
   notifications: UserNotificationSettings;
   preferences: UserPreferenceSettings;
   privacy: UserPrivacySettings;
+}
+
+export interface PriorityActions {
+  stale_threshold_days: number;
+  interviews: Application[];
+  assessments: Application[];
+  stale: Application[];
+  counts: {
+    interviews: number;
+    assessments: number;
+    stale: number;
+  };
 }

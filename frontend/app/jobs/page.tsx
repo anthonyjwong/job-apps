@@ -21,7 +21,13 @@ function mapJob(j: any): Job {
 async function getInitialData(qs: string): Promise<Job[]> {
   const baseUrl = "http://backend:8000";
   try {
-    const jobsUrl = `${baseUrl}/jobs${qs ? `?${qs}` : ''}`;
+    // Ensure qs always includes state=reviewed, even if qs is empty
+    let queryString = qs ? qs : "state=reviewed";
+    // If qs does not include state=reviewed, append it
+    if (!/(\?|&)state=reviewed\b/.test(queryString)) {
+      queryString += (queryString ? "&" : "") + "state=reviewed";
+    }
+    const jobsUrl = `${baseUrl}/jobs?${queryString}`;
     const [jobsRes] = await Promise.all([
       fetch(jobsUrl, { cache: "no-store" }),
     ]);
@@ -34,7 +40,7 @@ async function getInitialData(qs: string): Promise<Job[]> {
 }
 
 export default async function JobsPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
-  const sp = searchParams || {};
+  const sp = await searchParams || {};
   const pickFirst = (v: string | string[] | undefined) => Array.isArray(v) ? v[0] : v;
   const classificationRaw = pickFirst(sp.classification);
   const locationRaw = pickFirst(sp.location);
@@ -44,7 +50,6 @@ export default async function JobsPage({ searchParams }: { searchParams?: Record
 
   const params = new URLSearchParams();
   // Always restrict to reviewed state for discovery page base set
-  params.set('state', 'reviewed');
   if (classificationRaw && ['safety','target','reach','dream'].includes(classificationRaw)) params.set('classification', classificationRaw);
   if (locationRaw) params.set('location', locationRaw);
   if (typeRaw) params.set('job_type', typeRaw); // backend expects job_type

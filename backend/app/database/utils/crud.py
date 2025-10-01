@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from app.database.models import ApplicationFormORM, ApplicationORM, JobORM
+from app.schemas.api import ApplicationResponse
 from app.schemas.definitions import (
     Application,
     ApplicationForm,
@@ -88,6 +89,22 @@ def orm_to_app(db_app: ApplicationORM) -> Application:
         referred=db_app.referred,
         status=ApplicationStatus(db_app.status),
         submitted_at=db_app.submitted_at,
+    )
+
+
+def app_to_response(app: ApplicationORM) -> ApplicationResponse:
+    job = app.job
+    return ApplicationResponse(
+        id=str(app.id),
+        company=job.company,
+        position=job.title,
+        status=app.status,
+        applicationDate=app.submitted_at.strftime("%Y-%m-%d") if app.submitted_at else "",
+        location=job.location or "NOT PROVIDED",
+        jobType=job.type or "",
+        classification=getattr(job, "classification", "") or "",
+        action=getattr(job, "action", "") or "",
+        notes="NOT IMPLEMENTED",
     )
 
 

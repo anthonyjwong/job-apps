@@ -122,3 +122,11 @@ class GetInterviewsResponse(BaseModel):
     total: int
     upcoming: int
     completed: int
+
+
+class GetPriorityApplicationsResponse(BaseModel):
+    stale_threshold_days: int
+    interviews: list[ApplicationResponse]
+    assessments: list[ApplicationResponse]
+    stale: list[ApplicationResponse]
+    counts: dict[str, int]

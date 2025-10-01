@@ -122,8 +122,8 @@ class ApplicationStatus(Enum):
     ACKNOWLEDGED = "acknowledged"
     ASSESSMENT = "assessment"
     INTERVIEW = "interview"
-    REJECTED = "rejected"
     OFFER = "offer"
+    REJECTED = "rejected"
     ACCEPTED = "accepted"
     WITHDRAWN = "withdrawn"
 

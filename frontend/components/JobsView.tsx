@@ -1,11 +1,11 @@
 "use client";
 
-import { saveJobAction, unsaveJobAction } from "@/app/jobs/actions";
+import { saveJobAction } from "@/app/jobs/actions";
 import { Brain, Zap } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { apiService } from "../lib/api";
-import type { Job } from "../lib/types";
+import type { Job, JobClassification } from "../lib/types";
 import { JobCard } from "./JobCard";
 import { JobsFilters } from "./JobsFilters";
 import { Badge } from "./ui/badge";
@@ -32,12 +32,12 @@ export function JobsView({ initialJobs, initialCategory = 'all' }: JobsViewProps
     // Sync classification with URL param if it changes client-side via router.push
     const urlClass = searchParams?.get('classification');
     if (urlClass && urlClass !== classificationFilter) {
-      const valid = ['safety','target','reach','dream'];
+      const valid = ['safety', 'target', 'reach', 'dream'];
       if (valid.includes(urlClass)) {
         setCategoryFilter(urlClass);
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   // Debounced URL sync for filters/search
@@ -67,6 +67,7 @@ export function JobsView({ initialJobs, initialCategory = 'all' }: JobsViewProps
           location: locationFilter === 'all' ? undefined : locationFilter,
           type: typeFilter === 'all' ? undefined : typeFilter,
           sort: sort || undefined,
+          state: 'reviewed',
         });
         if (!ignore && response.data) {
           const transformed = response.data.jobs.map((j: any) => ({
@@ -93,24 +94,23 @@ export function JobsView({ initialJobs, initialCategory = 'all' }: JobsViewProps
     return () => { ignore = true; };
   }, [searchQuery, classificationFilter, locationFilter, typeFilter, sort]);
 
-
   const handleSave = async (jobId: string) => {
+    console.log("Approving job", jobId);
+  };
+
+  const handleClassificationChange = (jobId: string, newClassification: JobClassification) => {
+    setJobs(prevJobs =>
+      prevJobs.map(job =>
+        job.id === jobId ? { ...job, classification: newClassification } : job
+      )
+    );
+
     const job = jobs.find(j => j.id === jobId);
-    if (!job) return;
-    const resp = await saveJobAction(jobId);
-    if (resp.success) {
-      // remove from list since page only shows unsaved jobs
-      setJobs(prev => prev.filter(j => j.id !== jobId));
-      (window as any).showToast?.({
+    if (job && (window as any).showToast) {
+      (window as any).showToast({
         type: 'success',
-        title: 'Job Saved!',
-        message: `${job.title} at ${job.company} saved`,
-      });
-    } else {
-      (window as any).showToast?.({
-        type: 'error',
-        title: 'Save Failed',
-        message: resp.message ?? 'Could not save job. Please retry.',
+        title: 'Classification Updated',
+        message: `${job.title} moved to ${newClassification} classification`,
       });
     }
   };
@@ -131,19 +131,19 @@ export function JobsView({ initialJobs, initialCategory = 'all' }: JobsViewProps
           Our AI analyzes your likelihood of landing an interview for each job. Dream roles represent career goals to build towards, while other categories focus on immediate opportunities.
         </p>
 
-      {/* Search and Filters */}
-      <JobsFilters
-        search={searchQuery}
-        onSearch={setSearchQuery}
-        classification={classificationFilter}
-        onCategory={setCategoryFilter}
-        location={locationFilter}
-        onLocation={setLocationFilter}
-        type={typeFilter}
-        onType={setTypeFilter}
-        sort={sort}
-        onSort={setSort}
-      />
+        {/* Search and Filters */}
+        <JobsFilters
+          search={searchQuery}
+          onSearch={setSearchQuery}
+          classification={classificationFilter}
+          onCategory={setCategoryFilter}
+          location={locationFilter}
+          onLocation={setLocationFilter}
+          type={typeFilter}
+          onType={setTypeFilter}
+          sort={sort}
+          onSort={setSort}
+        />
 
       </div>
 
@@ -172,6 +172,7 @@ export function JobsView({ initialJobs, initialCategory = 'all' }: JobsViewProps
                 key={job.id}
                 {...job}
                 onSave={handleSave}
+                onClassificationChange={handleClassificationChange}
               />
             ))}
           </div>
